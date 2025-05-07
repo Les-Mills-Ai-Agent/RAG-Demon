@@ -58,8 +58,9 @@ def split_document(document):
 llm, embeddings, vector_store = init()
 
 # Load document
-with open("docs/description.md", "r") as f:
-  document = f.read()
+with open("docs/description.md", "r", encoding="utf-8") as f:
+    document = f.read()
+
 
 
 splits = split_document(document)
