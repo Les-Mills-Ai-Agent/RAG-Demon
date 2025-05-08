@@ -46,8 +46,8 @@ class RagDemon:
 
         self.prompt = hub.pull("rlm/rag-prompt")
 
-    def split_and_store_document(self, document) -> List[Document]:
-        
+    def split_document(self, document) -> List[Document]:
+
         headers_to_split_on = [
             ("#", "Header 1"),
             ("##", "Header 2"),
@@ -64,10 +64,10 @@ class RagDemon:
             separators=[". ", "\n\n", "\n"],
         )
 
-        all_splits = text_splitter.split_documents(md_splits)
+        return text_splitter.split_documents(md_splits)
 
-        self.vector_store.add_documents(documents=all_splits)
-        return all_splits
+    def store_splits(self, splits: List[Document]):
+        self.vector_store.add_documents(documents=splits)
     
     def retrieve(self, question):
         docs, scores = zip(*self.vector_store.similarity_search_with_score(question))
@@ -91,7 +91,8 @@ def main():
         document = f.read()
 
     # Split and store the document in the vector store
-    rag_demon.split_and_store_document(document)
+    splits = rag_demon.split_document(document)
+    rag_demon.store_splits(splits)
 
     # Get user input for the question
     question = input("Ask a question about the document (press enter to continue): ")
