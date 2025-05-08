@@ -1,121 +1,113 @@
-from langchain.chat_models import init_chat_model
-from langchain_community.vectorstores.faiss import FAISS
-from langchain_community.document_loaders import UnstructuredMarkdownLoader
-from langchain_openai.embeddings import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
-from langchain_core.vectorstores import InMemoryVectorStore
 from langchain import hub
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
-from langchain_core.documents.base import Document
+from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langgraph.graph import START, StateGraph
-from typing_extensions import List, TypedDict
-import bs4
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from langchain_openai.embeddings import OpenAIEmbeddings
+
+from langchain_text_splitters import (
+    RecursiveCharacterTextSplitter,
+    MarkdownHeaderTextSplitter,
+)
+
+from typing_extensions import List
 import os
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv(override=True)
-os.getenv('OPENAI_API_KEY')
-
-def init():
-    llm = ChatOpenAI(
-    model="gpt-4o-mini",
-    temperature=0,
-    max_tokens=None,)
-
-    embeddings = OpenAIEmbeddings(
-        model="text-embedding-3-large",
-    )
-
-    vector_store = InMemoryVectorStore(embeddings)
-
-    return llm, embeddings, vector_store
-
-def split_document(document):
-    headers_to_split_on = [
-        ("#", "Header 1"),
-        ("##", "Header 2"),
-        ("###", "Header 3"),
-        ("####", "Header 4"),
-    ]
-
-    md_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
-    md_splits = md_splitter.split_text(document)
-
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=50,
-        separators=[". ", "\n\n", "\n"],
-    )
-
-    all_splits = text_splitter.split_documents(md_splits)
-
-    return all_splits
-
-llm, embeddings, vector_store = init()
-
-# Load document
-with open("docs/description.md", "r", encoding="utf-8") as f:
-    document = f.read()
+os.getenv("OPENAI_API_KEY")
 
 
+class RagDemon:
 
-splits = split_document(document)
+    llm: ChatOpenAI
+    embeddings: OpenAIEmbeddings
+    vector_store: InMemoryVectorStore
 
-# Add documents to vector store
-vector_store.add_documents(documents=splits)
+    prompt: ChatPromptTemplate
 
-# Define prompt for question-answering
-prompt = hub.pull("rlm/rag-prompt")
-
-
-# Define state for application
-class State(TypedDict):
-    question: str
     context: List[Document]
     answer: str
     scores: List[float]
 
+    def __init__(self):
+        self.llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            temperature=0,
+            max_tokens=None,
+        )
 
-# Define application steps
-def retrieve(state: State):
-    docs, scores = zip(*vector_store.similarity_search_with_score(state["question"]))
-    return {"context": docs, "scores": scores}
+        self.embeddings = OpenAIEmbeddings(
+            model="text-embedding-3-large",
+        )
 
-def generate(state: State):
-    docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
-    response = llm.invoke(messages)
-    return {"answer": response.content}
+        self.vector_store = InMemoryVectorStore(self.embeddings)
+
+        self.prompt = hub.pull("rlm/rag-prompt")
+
+    def split_document(self, document) -> List[Document]:
+
+        headers_to_split_on = [
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+            ("###", "Header 3"),
+            ("####", "Header 4"),
+        ]
+
+        md_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
+        md_splits = md_splitter.split_text(document)
+
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=50,
+            separators=[". ", "\n\n", "\n"],
+        )
+
+        return text_splitter.split_documents(md_splits)
+
+    def store_splits(self, splits: List[Document]):
+        self.vector_store.add_documents(documents=splits)
+    
+    def retrieve(self, question):
+        docs, scores = zip(*self.vector_store.similarity_search_with_score(question))
+        self.context = docs
+        self.scores = scores
+        self.question = question
 
 
-# Compile application and test
-graph_builder = StateGraph(State).add_sequence([retrieve, generate])
-graph_builder.add_edge(START, "retrieve")
-graph = graph_builder.compile()
+    def generate(self):
+        docs_content = "\n\n".join(doc.page_content for doc in self.context)
+        messages = self.prompt.invoke({"question": self.question, "context": docs_content})
+        response = self.llm.invoke(messages)
+        return response.content
+
+def main():
+    # Initialize the RAGDemon application
+    rag_demon = RagDemon()
+
+    # Load document
+    with open("sample_data/description.md", "r") as f:
+        document = f.read()
+
+    # Split and store the document in the vector store
+    splits = rag_demon.split_document(document)
+    rag_demon.store_splits(splits)
+
+    # Get user input for the question
+    question = input("Ask a question about the document (press enter to continue): ")
+
+    # Retrieve relevant documents and generate an answer
+    rag_demon.retrieve(question)
+    response = rag_demon.generate()
+
+    # Print the results
+    seperator = "\n" + "=" * 40 + "\n"
+    print("RESPONSE:\n", seperator, response, seperator)
+    print("DOCUMENTS:\n", seperator)
+    for doc in rag_demon.context:
+        print(f"Metadata:\n{doc.metadata}\nContent: {doc.page_content}\nScore: {rag_demon.scores[0]}\n")
 
 # Test the application
-question = input("Ask a question about the document (press enter to continue): ")
-
-response = graph.invoke({"question": question})
-print("DOCUMENTS:")
-print("=====================================")
-for i in range(len(response["context"])):
-  doc = response["context"][i]
-  print(f'SCORE: {response["scores"][i]}')
-  print(f'METADATA: {doc.metadata}\nCONTENT: {doc.page_content}\n\n')
-  print("=====================================")
-
-print('RESPONSE:')
-print("=====================================")
-print(response["answer"])
-
-print("\n=====================================")
-print("REFERENCES:")
-print("=====================================")
-for i in range(len(response["context"])):
-  doc = response["context"][i]
-  print(" - ".join(doc.metadata.values()))
+if __name__ == "__main__":
+    main()
