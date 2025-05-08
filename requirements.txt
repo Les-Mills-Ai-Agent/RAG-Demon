@@ -54,12 +54,9 @@ openai==1.77.0
 orjson==3.10.18
 ormsgpack==1.9.1
 packaging==24.2
-<<<<<<< Updated upstream
-=======
 pathspec==0.12.1
 platformdirs==4.3.7
 pluggy==1.5.0
->>>>>>> Stashed changes
 propcache==0.3.1
 psutil==7.0.0
 pycparser==2.22
