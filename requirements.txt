@@ -25,6 +25,7 @@ httpcore==1.0.9
 httpx==0.28.1
 httpx-sse==0.4.0
 idna==3.10
+iniconfig==2.1.0
 jiter==0.9.0
 joblib==1.5.0
 jsonpatch==1.33
@@ -53,6 +54,12 @@ openai==1.77.0
 orjson==3.10.18
 ormsgpack==1.9.1
 packaging==24.2
+<<<<<<< Updated upstream
+=======
+pathspec==0.12.1
+platformdirs==4.3.7
+pluggy==1.5.0
+>>>>>>> Stashed changes
 propcache==0.3.1
 psutil==7.0.0
 pycparser==2.22
@@ -60,6 +67,7 @@ pydantic==2.11.4
 pydantic-settings==2.9.1
 pydantic_core==2.33.2
 pypdf==5.4.0
+pytest==8.3.5
 python-dotenv==1.1.0
 python-iso639==2025.2.18
 python-magic==0.4.27
