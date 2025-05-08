@@ -10,9 +10,6 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv(override=True)
-os.getenv("OPENAI_API_KEY")
-
-
 
 def test_init_creates_llm_embeddings_and_vectorstore():
     rag_demon = RagDemon()
