@@ -112,3 +112,10 @@ for i in range(len(response["context"])):
 print('RESPONSE:')
 print("=====================================")
 print(response["answer"])
+
+print("\n=====================================")
+print("REFERENCES:")
+print("=====================================")
+for i in range(len(response["context"])):
+  doc = response["context"][i]
+  print(" - ".join(doc.metadata.values()))
