@@ -5,6 +5,13 @@ from ragdemon.ragdemon import RagDemon
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_core.vectorstores import InMemoryVectorStore
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv(override=True)
+os.getenv("OPENAI_API_KEY")
+
 
 
 def test_init_creates_llm_embeddings_and_vectorstore():
