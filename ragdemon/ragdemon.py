@@ -87,9 +87,9 @@ def main():
     rag_demon = RagDemon()
 
     # Load document
-    with open("sample_data/description.md", "r") as f:
+    with open("sample_data/description.md", encoding="utf-8") as f:
         document = f.read()
-
+        
     # Split and store the document in the vector store
     splits = rag_demon.split_document(document)
     rag_demon.store_splits(splits)
