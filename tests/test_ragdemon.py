@@ -1,35 +1,25 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from langchain_core.documents import Document
-from ragdemon.ragdemon import init, split_document, retrieve, generate, State
+from ragdemon.ragdemon import RagDemon
+from langchain_openai import ChatOpenAI
+from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain_core.vectorstores import InMemoryVectorStore
 
 
-def test_init_returns_expected_objects():
-    llm, embeddings, vector_store = init()
-    assert hasattr(llm, "invoke")
-    assert hasattr(embeddings, "embed_query")
-    assert hasattr(vector_store, "similarity_search_with_score")
+def test_init_creates_llm_embeddings_and_vectorstore():
+    rag_demon = RagDemon()
+    assert isinstance(rag_demon.llm, ChatOpenAI)
+    assert isinstance(rag_demon.embeddings, OpenAIEmbeddings)
+    assert isinstance(rag_demon.vector_store, InMemoryVectorStore)
 
-
-def test_split_document_returns_documents():
-    example_md = "# Title\nSome introductory text.\n\n## Subheader\nMore details here."
-    result = split_document(example_md)
-
-    assert isinstance(result, list)
-    assert all(isinstance(doc, Document) for doc in result)
-    assert len(result) > 0
-
-
-def test_retrieve_with_mocked_vectorstore():
-    mock_state = {"question": "What is the title?", "context": [], "answer": "", "scores": []}
-
-    fake_doc = Document(page_content="Fake content", metadata={})
-    fake_score = 0.9
-
-    with patch("ragdemon.ragdemon.vector_store.similarity_search_with_score", return_value=[(fake_doc, fake_score)]):
-        output = retrieve(mock_state)
-
-    assert "context" in output
-    assert "scores" in output
-    assert output["context"][0].page_content == "Fake content"
-    assert output["scores"][0] == fake_score
+def test_split_document():
+    rag_demon = RagDemon()
+    document = Document(page_content="# Hello I am Header 1\nContent 1\n\n## Hello I am Header 2\nContent 2")
+    splits = rag_demon.split_and_store_document(document.page_content)
+    
+    assert len(splits) == 2
+    assert splits[0].page_content == "Content 1"
+    assert splits[0].metadata["Header 1"] == "Hello I am Header 1"
+    assert splits[1].page_content == "Content 2"
+    assert splits[1].metadata["Header 2"] == "Hello I am Header 2"
