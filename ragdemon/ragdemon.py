@@ -111,7 +111,7 @@ class RagDemon:
     def show_history(self):
         try:
             with open(CHAT_HISTORY_FILE, "r") as f:
-                history - json.load(f)
+                history = json.load(f)
         except FileNotFoundError:
             print("No previous chats found.")
             return
