@@ -4,6 +4,10 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
+import json
+from datetime import datetime
+
+CHAT_HISTORY_FILE = "chat_data/chat_history.json"
 
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
@@ -81,15 +85,56 @@ class RagDemon:
         messages = self.prompt.invoke({"question": self.question, "context": docs_content})
         response = self.llm.invoke(messages)
         return response.content
+    
+
+    def save_chat(self, question, response):
+        # Attempt to open the existing chat history file in read mode
+        try: 
+            with open(CHAT_HISTORY_FILE, "r") as f:
+                #load the existing chatr history from the JSON file
+                history = json.load(f)
+        except FileNotFoundError:
+            #if the file doenst exist yet, initalise and empty history list as shown.
+            history = []
+
+        # Append the new chat entry to the history with questions timestamps and responses from the Ai model.
+        history.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "question": question,
+            "response": response
+        })
+
+        #Write the updated History back to the file in JSON Format, with indentations to make sure it is neat.
+        with open(CHAT_HISTORY_FILE, "w") as f:
+            json.dump(history, f, indent=2)
+
+    def show_history(self):
+        try:
+            with open(CHAT_HISTORY_FILE, "r") as f:
+                history = json.load(f)
+        except FileNotFoundError:
+            print("No previous chats found.")
+            return
+
+        if not history:
+            print("No previous chats found.")
+            return
+
+        for idx, entry in enumerate(history, start=1):
+            print(f"\n#{idx} | {entry['timestamp']}")
+            print(f"Q: {entry['question']}")
+            print(f"A: {entry['response']}")
+
+
 
 def main():
     # Initialize the RAGDemon application
     rag_demon = RagDemon()
 
     # Load document
-    with open("sample_data/description.md", "r") as f:
+    with open("sample_data/description.md", encoding="utf-8") as f:
         document = f.read()
-
+        
     # Split and store the document in the vector store
     splits = rag_demon.split_document(document)
     rag_demon.store_splits(splits)
@@ -100,6 +145,9 @@ def main():
     # Retrieve relevant documents and generate an answer
     rag_demon.retrieve(question)
     response = rag_demon.generate()
+
+    # save the interaction to the JSON Chat History file
+    rag_demon.save_chat(question, response)
 
     # Print the results
     seperator = "\n" + "=" * 40 + "\n"
