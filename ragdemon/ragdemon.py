@@ -92,7 +92,7 @@ class RagDemon:
         try: 
             with open(CHAT_HISTORY_FILE, "r") as f:
                 #load the existing chatr history from the JSON file
-                history - json.load(f)
+                history = json.load(f)
         except FileNotFoundError:
             #if the file doenst exist yet, initalise and empty history list as shown.
             history = []
