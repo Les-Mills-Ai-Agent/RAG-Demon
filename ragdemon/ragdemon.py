@@ -4,6 +4,7 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain_community.document_loaders import WebBaseLoader
 
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
@@ -17,6 +18,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv(override=True)
 os.getenv("OPENAI_API_KEY")
+os.getenv("USER_AGENT")
 
 
 class RagDemon:
@@ -45,6 +47,13 @@ class RagDemon:
         self.vector_store = InMemoryVectorStore(self.embeddings)
 
         self.prompt = hub.pull("rlm/rag-prompt")
+        
+    def fetch_documentation(self, url):
+        loader = WebBaseLoader(url)
+        doc_list = loader.load()
+        
+        document = doc_list[0].page_content
+        return document
 
     def split_document(self, document) -> List[Document]:
 
@@ -86,9 +95,8 @@ def main():
     # Initialize the RAGDemon application
     rag_demon = RagDemon()
 
-    # Load document
-    with open("sample_data/description.md", "r") as f:
-        document = f.read()
+    # Load document by scraping documentation online
+    document = rag_demon.fetch_documentation("https://api.content.lesmills.com/docs/v1/content-portal-api.yaml")
 
     # Split and store the document in the vector store
     splits = rag_demon.split_document(document)
