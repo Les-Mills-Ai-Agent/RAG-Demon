@@ -108,6 +108,25 @@ class RagDemon:
         with open(CHAT_HISTORY_FILE, "w") as f:
             json.dump(history, f, indent=2)
 
+    def show_history(self):
+        try:
+            with open(CHAT_HISTORY_FILE, "r") as f:
+                history - json.load(f)
+        except FileNotFoundError:
+            print("No previous chats found.")
+            return
+
+        if not history:
+            print("No previous chats found.")
+            return
+
+        for idx, entry in enumerate(history, start=1):
+            print(f"\n#{idx} | {entry['timestamp']}")
+            print(f"Q: {entry['question']}")
+            print(f"A: {entry['response']}")
+
+
+
 def main():
     # Initialize the RAGDemon application
     rag_demon = RagDemon()
@@ -126,6 +145,9 @@ def main():
     # Retrieve relevant documents and generate an answer
     rag_demon.retrieve(question)
     response = rag_demon.generate()
+
+    # save the interaction to the JSON Chat History file
+    rag_demon.save_chat(question, response)
 
     # Print the results
     seperator = "\n" + "=" * 40 + "\n"
