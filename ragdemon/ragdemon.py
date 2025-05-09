@@ -88,19 +88,23 @@ class RagDemon:
     
 
     def save_chat(self, question, response):
+        # Attempt to open the existing chat history file in read mode
         try: 
             with open(CHAT_HISTORY_FILE, "r") as f:
+                #load the existing chatr history from the JSON file
                 history - json.load(f)
         except FileNotFoundError:
+            #if the file doenst exist yet, initalise and empty history list as shown.
             history = []
 
-
+        # Append the new chat entry to the history with questions timestamps and responses from the Ai model.
         history.append({
             "timestamp": datetime.utcnow().isoformat(),
             "question": question,
             "response": response
         })
 
+        #Write the updated History back to the file in JSON Format, with indentations to make sure it is neat.
         with open(CHAT_HISTORY_FILE, "w") as f:
             json.dump(history, f, indent=2)
 
