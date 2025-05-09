@@ -85,6 +85,24 @@ class RagDemon:
         messages = self.prompt.invoke({"question": self.question, "context": docs_content})
         response = self.llm.invoke(messages)
         return response.content
+    
+
+    def save_chat(self, question, response):
+        try: 
+            with open(CHAT_HISTORY_FILE, "r") as f:
+                history - json.load(f)
+        except FileNotFoundError:
+            history = []
+
+
+        history.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "question": question,
+            "response": response
+        })
+
+        with open(CHAT_HISTORY_FILE, "w") as f:
+            json.dump(history, f, indent=2)
 
 def main():
     # Initialize the RAGDemon application
