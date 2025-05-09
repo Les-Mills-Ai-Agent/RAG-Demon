@@ -4,6 +4,10 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
+import json
+from datetime import datetime
+
+CHAT_HISTORY_FILE = "chat_data/chat_history.json"
 
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
