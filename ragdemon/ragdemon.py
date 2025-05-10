@@ -5,10 +5,12 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_community.document_loaders import WebBaseLoader
+import yaml
 
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
     MarkdownHeaderTextSplitter,
+    RecursiveJsonSplitter
 )
 
 from typing_extensions import List
@@ -52,28 +54,16 @@ class RagDemon:
         loader = WebBaseLoader(url)
         doc_list = loader.load()
         
-        document = doc_list[0].page_content
-        return document
+        document_str = doc_list[0].page_content
+        parsed_doc = yaml.safe_load(document_str)
+
+        return [parsed_doc]
 
     def split_document(self, document) -> List[Document]:
 
-        headers_to_split_on = [
-            ("#", "Header 1"),
-            ("##", "Header 2"),
-            ("###", "Header 3"),
-            ("####", "Header 4"),
-        ]
+        json_splitter = RecursiveJsonSplitter(max_chunk_size=1000)
 
-        md_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
-        md_splits = md_splitter.split_text(document)
-
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=50,
-            separators=[". ", "\n\n", "\n"],
-        )
-
-        return text_splitter.split_documents(md_splits)
+        return json_splitter.create_documents(document)
 
     def store_splits(self, splits: List[Document]):
         self.vector_store.add_documents(documents=splits)
