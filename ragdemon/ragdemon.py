@@ -85,14 +85,18 @@ class RagDemon:
         messages = self.prompt.invoke({"question": self.question, "context": docs_content})
         response = self.llm.invoke(messages)
         return response.content
-    
+
 
     def save_chat(self, question, response):
         # Attempt to open the existing chat history file in read mode
-        try: 
+        try:
             with open(CHAT_HISTORY_FILE, "r") as f:
-                #load the existing chatr history from the JSON file
-                history = json.load(f)
+                #load the existing chat history from the JSON file
+                try:
+                    history = json.load(f)
+                except json.JSONDecodeError:
+                    # If the file is empty or not valid JSON, initialize an empty history list
+                    history = []
         except FileNotFoundError:
             #if the file doenst exist yet, initalise and empty history list as shown.
             history = []
