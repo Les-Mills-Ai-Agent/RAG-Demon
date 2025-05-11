@@ -58,12 +58,54 @@ class RagDemon:
         parsed_doc = yaml.safe_load(document_str)
 
         return [parsed_doc]
+    
+    def extract_markdown(self, obj):
+        md_sections = []
+        
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if isinstance(value, str) and any(token in value for token in ['#', '*', '`']):
+                    md_sections.append(value)
+                elif isinstance(value, (dict, list)):
+                    md_sections.extend(self.extract_markdown(value))
+                    
+        elif isinstance(obj, list):
+            for item in obj:
+                md_sections.extend(self.extract_markdown(item))
+                
+        return md_sections
 
     def split_document(self, document) -> List[Document]:
 
+        # Create JSON splits
         json_splitter = RecursiveJsonSplitter(max_chunk_size=1000)
+        json_docs = json_splitter.create_documents(document)
+        
+        # Retrieve nested Markdown snippets
+        markdown_strings = self.extract_markdown(document)
+        combined_markdown = "\n\n".join(markdown_strings)
 
-        return json_splitter.create_documents(document)
+        # Create Markdown splits
+        headers_to_split_on = [
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+            ("###", "Header 3"),
+            ("####", "Header 4"),
+        ]
+
+        md_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
+        md_splits = md_splitter.split_text(combined_markdown)
+
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=50,
+            separators=[". ", "\n\n", "\n"],
+        )
+
+        md_docs = text_splitter.split_documents(md_splits)
+
+        # Combine and return both JSON and Markdown splits
+        return json_docs + md_docs
 
     def store_splits(self, splits: List[Document]):
         self.vector_store.add_documents(documents=splits)
