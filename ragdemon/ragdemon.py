@@ -1,23 +1,19 @@
-from langchain import hub
-from langchain_core.vectorstores import InMemoryVectorStore
-from langchain_core.documents import Document
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
-from langgraph.graph import START, StateGraph
-from typing_extensions import List, TypedDict
+from langgraph.graph import START, StateGraph, MessagesState, END
+from langchain_core.tools import tool
+from langchain_core.messages import SystemMessage
+from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.checkpoint.memory import MemorySaver
+
+from splitting import split_document
+from vector_stores import InMemoryStore, BaseVectorStore
 
 import json
 from datetime import datetime
 
 CHAT_HISTORY_FILE = "chat_data/chat_history.json"
 
-from langchain_text_splitters import (
-    RecursiveCharacterTextSplitter,
-    MarkdownHeaderTextSplitter,
-)
-
-from typing_extensions import List
 import os
 from dotenv import load_dotenv
 
@@ -25,154 +21,172 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 os.getenv("OPENAI_API_KEY")
 
-class State(TypedDict):
-    question: str
-    context: List[Document]
-    response: str
-    scores: List[float]
+def build_llm_client() -> ChatOpenAI:
+    return ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0,
+        max_tokens=None,
+        timeout=None,
+        max_retries=2,
+    )
 
-class RagDemon:
+def build_embeddings_client() -> OpenAIEmbeddings:
+    return OpenAIEmbeddings(
+        model="text-embedding-3-large",
+    )
 
-    llm: ChatOpenAI
-    embeddings: OpenAIEmbeddings
-    vector_store: InMemoryVectorStore
+llm: ChatOpenAI = build_llm_client()
+embeddings: OpenAIEmbeddings = build_embeddings_client()
+vector_store: BaseVectorStore = InMemoryStore(embeddings)
 
-    prompt: ChatPromptTemplate
+config = {"configurable": {"thread_id": "def234"}}
 
-    graph: StateGraph
-
-    def __init__(self):
-        self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0,
-            max_tokens=None,
-        )
-
-        self.embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-large",
-        )
-
-        self.vector_store = InMemoryVectorStore(self.embeddings)
-
-        self.prompt = hub.pull("rlm/rag-prompt")
-
-        graph_builder = StateGraph(State).add_sequence([self.retrieve, self.generate, self.save_chat, self.print_response])
-        graph_builder.add_edge(START, "retrieve")
-        self.graph = graph_builder.compile()
-
-    def split_document(self, document) -> List[Document]:
-
-        headers_to_split_on = [
-            ("#", "Header 1"),
-            ("##", "Header 2"),
-            ("###", "Header 3"),
-            ("####", "Header 4"),
-        ]
-
-        md_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
-        md_splits = md_splitter.split_text(document)
-
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=50,
-            separators=[". ", "\n\n", "\n"],
-        )
-
-        return text_splitter.split_documents(md_splits)
-
-    def store_splits(self, splits: List[Document]): 
-        self.vector_store.add_documents(documents=splits)
+def build_graph() -> StateGraph:
+    graph_builder = StateGraph(MessagesState)
+    tools = ToolNode([retrieve])
     
-    def retrieve(self, state: State):
-        docs, scores = zip(*self.vector_store.similarity_search_with_score(state["question"]))
-        return {
-            "context": docs,
-            "scores": scores,
-        }
+    graph_builder.add_node(query_or_respond)
+    graph_builder.add_node(tools)
+    graph_builder.add_node(generate)
+
+    graph_builder.set_entry_point("query_or_respond")
+    graph_builder.add_conditional_edges(
+        "query_or_respond",
+        tools_condition,
+        {END: END, "tools": "tools"},
+    )
+    graph_builder.add_edge("tools", "generate")
+    graph_builder.add_edge("generate", END)
+
+    memory = MemorySaver()
+
+    return graph_builder.compile(checkpointer=memory)
 
 
-    def generate(self, state: State):
-        docs_content = "\n\n".join(doc.page_content for doc in state["content"])
-        messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
-        response = self.llm.invoke(messages)
-        return {"response" : response.content}
+@tool(response_format="content_and_artifact")
+def retrieve(query: str):
+    """Retrieve information related to a query."""
+    (retrieved_docs, scores) = zip(*vector_store.similarity_search_with_scores(query, k=2))
+    serialized = "\n\n".join(
+        (f"Source: {doc.metadata}\nContent: {doc.page_content}")
+        for doc in retrieved_docs
+    )
+    return serialized, retrieved_docs
 
-    def save_chat(self, state: State):
-        # Attempt to open the existing chat history file in read mode
-        try:
-            with open(CHAT_HISTORY_FILE, "r") as f:
-                #load the existing chat history from the JSON file
-                try:
-                    history = json.load(f)
-                except json.JSONDecodeError:
-                    # If the file is empty or not valid JSON, initialize an empty history list
-                    history = []
-        except FileNotFoundError:
-            #if the file doenst exist yet, initalise and empty history list as shown.
-            history = []
+def generate(state: MessagesState):
+    """Generate answer."""
+    # Get generated ToolMessages
+    recent_tool_messages = []
+    for message in reversed(state["messages"]):
+        if message.type == "tool":
+            recent_tool_messages.append(message)
+        else:
+            break
+    tool_messages = recent_tool_messages[::-1]
 
-        # Append the new chat entry to the history with questions timestamps and responses from the Ai model.
-        history.append({
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "question": state["question"],
-            "response": state["response"]
-        })
+    # Format into prompt
+    docs_content = "\n\n".join(doc.content for doc in tool_messages)
+    system_message_content = (
+        "You are a helpful customer service assistant."
+        "Your task is to answer the user's question based on the provided context."
+        "If the question is ambiguous, assume the user is asking about the Les Mills content platform."
+        "If the question is not related to the context, respond with 'I don't know'."
+        "\n\n"
+        f"{docs_content}"
+    )
+    conversation_messages = [
+        message
+        for message in state["messages"]
+        if message.type in ("human", "system")
+        or (message.type == "ai" and not message.tool_calls)
+    ]
+    prompt = [SystemMessage(system_message_content)] + conversation_messages
 
-        #Write the updated History back to the file in JSON Format, with indentations to make sure it is neat.
-        with open(CHAT_HISTORY_FILE, "w") as f:
-            json.dump(history, f, indent=2)
+    # Run
+    response = llm.invoke(prompt)
+    return {"messages": [response]}
 
-    def show_history(self):
-        try:
-            with open(CHAT_HISTORY_FILE, "r") as f:
-                try:
-                    history = json.load(f)
-                except json.JSONDecodeError:
-                    # If the file is empty or not valid JSON, initialize an empty history list
-                    history = []
-        except FileNotFoundError:
-            print("No previous chats found.")
-            return
+# Step 1: Generate an AIMessage that may include a tool-call to be sent.
+def query_or_respond(state: MessagesState):
+    """Generate tool call for retrieval or respond."""
+    llm_with_tools = llm.bind_tools([retrieve])
+    response = llm_with_tools.invoke(state["messages"])
+    # MessagesState appends messages to state instead of overwriting
+    return {"messages": [response]}
 
-        if not history:
-            print("No previous chats found.")
-            return
+def save_chat(state: MessagesState):
+    # Attempt to open the existing chat history file in read mode
+    try:
+        with open(CHAT_HISTORY_FILE, "r") as f:
+            #load the existing chat history from the JSON file
+            try:
+                history = json.load(f)
+            except json.JSONDecodeError:
+                # If the file is empty or not valid JSON, initialize an empty history list
+                history = []
+    except FileNotFoundError:
+        #if the file doenst exist yet, initalise and empty history list as shown.
+        history = []
 
-        for idx, entry in enumerate(history, start=1):
-            print(f"\n#{idx} | {entry['timestamp']}")
-            print(f"Q: {entry['question']}")
-            print(f"A: {entry['response']}")
+    # Append the new chat entry to the history with questions timestamps and responses from the Ai model.
+    history.append({
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "question": state["question"],
+        "response": state["response"]
+    })
 
-    def print_response(self, state: State):
-        large_seperator = "\n" + "=" * 40 + "\n"
-        small_seperator = "\n" + "-" * 40 + "\n"
-        print(large_seperator, "RESPONSE", large_seperator, "\n", state["response"])
-        print(large_seperator, "CONTEXT:", large_seperator)
-        for i, doc in enumerate(state["context"]):
-            print(small_seperator, f"DOCUMENT {i + 1}", small_seperator)
-            print(f"Metadata:\n\n{doc.metadata}\n\nContent:\n\n{doc.page_content}\n\nScore: {state['scores'][i]}")
+    #Write the updated History back to the file in JSON Format, with indentations to make sure it is neat.
+    with open(CHAT_HISTORY_FILE, "w") as f:
+        json.dump(history, f, indent=2)
+
+def show_history():
+    try:
+        with open(CHAT_HISTORY_FILE, "r") as f:
+            try:
+                history = json.load(f)
+            except json.JSONDecodeError:
+                # If the file is empty or not valid JSON, initialize an empty history list
+                history = []
+    except FileNotFoundError:
+        print("No previous chats found.")
+        return
+
+    if not history:
+        print("No previous chats found.")
+        return
+
+    for idx, entry in enumerate(history, start=1):
+        print(f"\n#{idx} | {entry['timestamp']}")
+        print(f"Q: {entry['question']}")
+        print(f"A: {entry['response']}")
 
 def main():
-    # Initialize the RAGDemon application
-    rag_demon = RagDemon()
+
+    print("\n================================================================================")
 
     # Load document
     with open("sample_data/description.md", encoding="utf-8") as f:
         document = f.read()
         
     # Split and store the document in the vector store
-    splits = rag_demon.split_document(document)
-    rag_demon.store_splits(splits)
+    splits = split_document(document)
+    vector_store.add_documents(splits)
 
-    # Get user input for the question
-    question = input("Ask a question about the document (press enter to continue): ")
+    app = build_graph()
 
-    # Retrieve relevant documents and generate an answer
-    rag_demon.graph.invoke(
-        {
-            "question": question
-        }
-    )
+    while True:
+        # Get user input for the question
+        question = input("\nAsk the RAG Demon (or enter 'q' to quit): ")
+        if question.strip().lower() == "q":
+            break
+
+        for step in app.stream(
+            {"messages": [{"role": "user", "content": question}]},
+            stream_mode="values",
+            config=config,
+        ):
+            step["messages"][-1].pretty_print()
+
 
 # Test the application
 if __name__ == "__main__":
