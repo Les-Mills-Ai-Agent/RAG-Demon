@@ -39,7 +39,7 @@ llm: ChatOpenAI = build_llm_client()
 embeddings: OpenAIEmbeddings = build_embeddings_client()
 vector_store: BaseVectorStore = InMemoryStore(embeddings)
 
-config = {"configurable": {"thread_id": "def234"}}
+config = {"configurable": {"thread_id": "sseijrfbes"}}
 
 def build_graph() -> StateGraph:
     graph_builder = StateGraph(MessagesState)
