@@ -103,7 +103,7 @@ class RagDemon:
 
         # Append the new chat entry to the history with questions timestamps and responses from the Ai model.
         history.append({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "question": question,
             "response": response
         })
@@ -115,7 +115,11 @@ class RagDemon:
     def show_history(self):
         try:
             with open(CHAT_HISTORY_FILE, "r") as f:
-                history = json.load(f)
+                try:
+                    history = json.load(f)
+                except json.JSONDecodeError:
+                    # If the file is empty or not valid JSON, initialize an empty history list
+                    history = []
         except FileNotFoundError:
             print("No previous chats found.")
             return
@@ -129,6 +133,14 @@ class RagDemon:
             print(f"Q: {entry['question']}")
             print(f"A: {entry['response']}")
 
+    def print_response(self, response):
+        large_seperator = "\n" + "=" * 40 + "\n"
+        small_seperator = "\n" + "-" * 40 + "\n"
+        print(large_seperator, "RESPONSE", large_seperator, "\n", response)
+        print(large_seperator, "CONTEXT:", large_seperator)
+        for i, doc in enumerate(self.context):
+            print(small_seperator, f"DOCUMENT {i + 1}", small_seperator)
+            print(f"Metadata:\n\n{doc.metadata}\n\nContent:\n\n{doc.page_content}\n\nScore: {self.scores[0]}")
 
 
 def main():
@@ -154,11 +166,7 @@ def main():
     rag_demon.save_chat(question, response)
 
     # Print the results
-    seperator = "\n" + "=" * 40 + "\n"
-    print("RESPONSE:\n", seperator, response, seperator)
-    print("DOCUMENTS:\n", seperator)
-    for doc in rag_demon.context:
-        print(f"Metadata:\n{doc.metadata}\nContent: {doc.page_content}\nScore: {rag_demon.scores[0]}\n")
+    rag_demon.print_response(response)
 
 # Test the application
 if __name__ == "__main__":
