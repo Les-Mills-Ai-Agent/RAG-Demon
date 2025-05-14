@@ -1,107 +1,22 @@
 [
   {
-    "timestamp": "2025-05-11T23:53:52.927744",
-    "question": "what is this api for",
-    "response": "This API is designed for synchronizing content and video metadata with partner backend systems on a scheduled basis. It allows access to video-related information and enables the downloading of digital assets programmatically. The API is not intended for high-volume production environments or end-user applications."
-  },
-  {
-    "timestamp": "2025-05-14T01:58:08.276592",
-    "question": "/Users/uhhhok/Programming/Uni/Uni-2025/RnD/Les-Mill-International-Ai-Agent/.venv/bin/python /Users/uhhhok/Programming/Uni/Uni-2025/RnD/Les-Mill-International-Ai-Agent/ragdemon/ragdemon.py",
-    "response": "The Les Mills Content Portal API is designed for synchronizing content and video metadata with partner backend systems on a scheduled basis. It is not intended for high-volume production environments or end-user applications, and excessive usage may lead to termination of API access. For assistance with API integration, it's recommended to work with your internal technical team or external resources."
-  },
-  {
-    "timestamp": "2025-05-14T01:58:15.426238",
+    "timestamp": "2025-05-14 16:09:57",
     "question": "hello",
     "response": "Hello! How can I assist you today?"
   },
   {
-    "timestamp": "2025-05-14T01:59:30.918402",
-    "question": "/Users/uhhhok/Programming/Uni/Uni-2025/RnD/Les-Mill-International-Ai-Agent/.venv/bin/python /Users/uhhhok/Programming/Uni/Uni-2025/RnD/Les-Mill-International-Ai-Agent/ragdemon/ragdemon.py",
-    "response": "The Les Mills Content Portal API is designed for synchronizing content and video metadata with partner backend systems on a scheduled basis. It is not intended for high-volume production environments or end-user applications, and excessive usage may lead to termination of API access. For implementation assistance, it's recommended to work with your internal technical team or external resources."
-  },
-  {
-    "timestamp": "2025-05-14T01:59:34.494582",
+    "timestamp": "2025-05-14 16:12:11",
     "question": "hello",
     "response": "Hello! How can I assist you today?"
   },
   {
-    "timestamp": "2025-05-14T02:01:16.894442",
-    "question": "/Users/uhhhok/Programming/Uni/Uni-2025/RnD/Les-Mill-International-Ai-Agent/.venv/bin/python /Users/uhhhok/Programming/Uni/Uni-2025/RnD/Les-Mill-International-Ai-Agent/ragdemon/ragdemon.py",
-    "response": "The Les Mills Content Portal API is designed for synchronizing content and video metadata with partner backend systems on a scheduled basis. It is not intended for high-volume production environments or end-user applications, and excessive usage may lead to termination of API access. For implementation assistance, it's recommended to work with your internal technical team or external resources."
-  },
-  {
-    "timestamp": "2025-05-14T02:01:24.376316",
+    "timestamp": "2025-05-14 16:13:02",
     "question": "hello",
     "response": "Hello! How can I assist you today?"
   },
   {
-    "timestamp": "2025-05-14T02:02:41.620192",
-    "question": "/Users/uhhhok/Programming/Uni/Uni-2025/RnD/Les-Mill-International-Ai-Agent/.venv/bin/python /Users/uhhhok/Programming/Uni/Uni-2025/RnD/Les-Mill-International-Ai-Agent/ragdemon/ragdemon.py",
-    "response": "The Les Mills Content Portal API is designed for synchronizing content and video metadata with partner backend systems on a scheduled basis. It is not intended for high-volume production environments or end-user applications, and excessive usage may lead to termination of API access. For implementation assistance, it's recommended to work with your internal technical team or external resources."
-  },
-  {
-    "timestamp": "2025-05-14T02:02:46.398932",
-    "question": "hello",
-    "response": "Hello! How can I assist you today?"
-  },
-  {
-    "timestamp": "2025-05-14T02:03:17.498915",
-    "question": "hello",
-    "response": "Hello! How can I assist you today?"
-  },
-  {
-    "timestamp": "2025-05-14T02:04:14.677793",
-    "question": "hello",
-    "response": "Hello! How can I assist you today?"
-  },
-  {
-    "timestamp": "2025-05-14T02:05:28.221699",
-    "question": "what am i",
-    "response": "I don't know."
-  },
-  {
-    "timestamp": "2025-05-14T02:07:54.071031",
-    "question": "What is Les Mills?",
-    "response": "Les Mills is a company that provides fitness programs and content, accessible through their Content Portal API. This API allows partners to synchronize and download video metadata and digital assets programmatically. It is designed to facilitate access to Les Mills content while ensuring proper usage and rate limits."
-  },
-  {
-    "timestamp": "2025-05-14T02:08:42.917890",
-    "question": "hello",
-    "response": "Hello! How can I assist you today?"
-  },
-  {
-    "timestamp": "2025-05-14T02:09:45.997000",
-    "question": "what the helly",
-    "response": "I don't know."
-  },
-  {
-    "timestamp": "2025-05-14T02:11:38.435017",
-    "question": "hello",
-    "response": "Hello! How can I assist you today?"
-  },
-  {
-    "timestamp": "2025-05-14T02:13:00.154925",
-    "question": "what is content platform",
-    "response": "A content platform is a system that provides access to digital content and resources, often through an API. The Les Mills Content Portal API, for example, allows partners to programmatically access content, video metadata, and download digital assets. It facilitates the synchronization of this content with backend systems on a scheduled basis."
-  },
-  {
-    "timestamp": "2025-05-14 14:17:12",
+    "timestamp": "2025-05-14 16:13:46",
     "question": "wagwan",
     "response": "I don't know."
-  },
-  {
-    "timestamp": "2025-05-14 14:18:28",
-    "question": "hello",
-    "response": "Hello! How can I assist you today?"
-  },
-  {
-    "timestamp": "2025-05-14 14:21:36",
-    "question": "hello",
-    "response": "Hello! How can I assist you today?"
-  },
-  {
-    "timestamp": "2025-05-14 14:23:08",
-    "question": "hello",
-    "response": "Hello! How can I assist you today?"
   }
 ]

@@ -4,6 +4,9 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
+from langgraph.graph import START, StateGraph
+from typing_extensions import List, TypedDict
+
 import json
 from datetime import datetime
 
@@ -22,6 +25,11 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 os.getenv("OPENAI_API_KEY")
 
+class State(TypedDict):
+    question: str
+    context: List[Document]
+    response: str
+    scores: List[float]
 
 class RagDemon:
 
@@ -31,9 +39,7 @@ class RagDemon:
 
     prompt: ChatPromptTemplate
 
-    context: List[Document]
-    answer: str
-    scores: List[float]
+    graph: StateGraph
 
     def __init__(self):
         self.llm = ChatOpenAI(
@@ -49,6 +55,10 @@ class RagDemon:
         self.vector_store = InMemoryVectorStore(self.embeddings)
 
         self.prompt = hub.pull("rlm/rag-prompt")
+
+        graph_builder = StateGraph(State).add_sequence([self.retrieve, self.generate, self.save_chat, self.print_response])
+        graph_builder.add_edge(START, "retrieve")
+        self.graph = graph_builder.compile()
 
     def split_document(self, document) -> List[Document]:
 
@@ -70,24 +80,24 @@ class RagDemon:
 
         return text_splitter.split_documents(md_splits)
 
-    def store_splits(self, splits: List[Document]):
+    def store_splits(self, splits: List[Document]): 
         self.vector_store.add_documents(documents=splits)
     
-    def retrieve(self, question):
-        docs, scores = zip(*self.vector_store.similarity_search_with_score(question))
-        self.context = docs
-        self.scores = scores
-        self.question = question
+    def retrieve(self, state: State):
+        docs, scores = zip(*self.vector_store.similarity_search_with_score(state["question"]))
+        return {
+            "context": docs,
+            "scores": scores,
+        }
 
 
-    def generate(self):
-        docs_content = "\n\n".join(doc.page_content for doc in self.context)
-        messages = self.prompt.invoke({"question": self.question, "context": docs_content})
+    def generate(self, state: State):
+        docs_content = "\n\n".join(doc.page_content for doc in state["content"])
+        messages = self.prompt.invoke({"question": state["question"], "context": docs_content})
         response = self.llm.invoke(messages)
-        return response.content
+        return {"response" : response.content}
 
-
-    def save_chat(self, question, response):
+    def save_chat(self, state: State):
         # Attempt to open the existing chat history file in read mode
         try:
             with open(CHAT_HISTORY_FILE, "r") as f:
@@ -104,8 +114,8 @@ class RagDemon:
         # Append the new chat entry to the history with questions timestamps and responses from the Ai model.
         history.append({
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "question": question,
-            "response": response
+            "question": state["question"],
+            "response": state["response"]
         })
 
         #Write the updated History back to the file in JSON Format, with indentations to make sure it is neat.
@@ -133,15 +143,14 @@ class RagDemon:
             print(f"Q: {entry['question']}")
             print(f"A: {entry['response']}")
 
-    def print_response(self, response):
+    def print_response(self, state: State):
         large_seperator = "\n" + "=" * 40 + "\n"
         small_seperator = "\n" + "-" * 40 + "\n"
-        print(large_seperator, "RESPONSE", large_seperator, "\n", response)
+        print(large_seperator, "RESPONSE", large_seperator, "\n", state["response"])
         print(large_seperator, "CONTEXT:", large_seperator)
-        for i, doc in enumerate(self.context):
+        for i, doc in enumerate(state["context"]):
             print(small_seperator, f"DOCUMENT {i + 1}", small_seperator)
-            print(f"Metadata:\n\n{doc.metadata}\n\nContent:\n\n{doc.page_content}\n\nScore: {self.scores[0]}")
-
+            print(f"Metadata:\n\n{doc.metadata}\n\nContent:\n\n{doc.page_content}\n\nScore: {state['scores'][i]}")
 
 def main():
     # Initialize the RAGDemon application
@@ -159,14 +168,11 @@ def main():
     question = input("Ask a question about the document (press enter to continue): ")
 
     # Retrieve relevant documents and generate an answer
-    rag_demon.retrieve(question)
-    response = rag_demon.generate()
-
-    # save the interaction to the JSON Chat History file
-    rag_demon.save_chat(question, response)
-
-    # Print the results
-    rag_demon.print_response(response)
+    rag_demon.graph.invoke(
+        {
+            "question": question
+        }
+    )
 
 # Test the application
 if __name__ == "__main__":
