@@ -1,6 +1,7 @@
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
 from typing_extensions import List
+from typing import Any, List, Tuple
 import yaml
 import os
 from dotenv import load_dotenv
@@ -16,19 +17,19 @@ load_dotenv(override=True)
 os.getenv("USER_AGENT")
 
 
-def fetch_documentation(url):
+def fetch_documentation(url: str) -> dict:
     loader = WebBaseLoader(url)
     doc_list = loader.load()
 
     document_str = doc_list[0].page_content
     parsed_doc = yaml.safe_load(document_str)
 
-    return [parsed_doc]
+    return parsed_doc
 
 # This recursive function breaks down the parsed yaml document from https://api.content.lesmills.com/docs/v1/content-portal-api.yaml
-# And returns a list of the nested markdown snippets, and the cleaned "yaml" object without the markdown
-def separate_markdown_from_yaml(obj):
-    def contains_markdown(text):
+# And returns: list of nested markdown snippets, and dictionary of the cleaned "yaml" structure without the markdown
+def separate_markdown_from_yaml(obj: Any) -> Tuple[List[str], Any]:
+    def contains_markdown(text: str) -> bool:
         return any(token in text for token in ["#", "*", "`"])
     
     if isinstance(obj, str):
@@ -64,14 +65,14 @@ def separate_markdown_from_yaml(obj):
     return [], obj            
 
 
-def split_document(document) -> List[Document]:
+def split_document(document: dict) -> List[Document]:
 
     # Retrieve nested Markdown snippets, and the cleaned YAML structure without Markdown
     markdown_strings, cleaned_yaml = separate_markdown_from_yaml(document)
     
     # Create JSON splits
-    json_splitter = RecursiveJsonSplitter(max_chunk_size=1000)
-    json_docs = json_splitter.create_documents(cleaned_yaml)
+    json_splitter = RecursiveJsonSplitter(max_chunk_size=500)
+    json_docs = json_splitter.create_documents([cleaned_yaml])
 
     # Create Markdown splits
     combined_markdown = "\n\n".join(markdown_strings)
