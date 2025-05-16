@@ -25,37 +25,55 @@ def fetch_documentation(url):
 
     return [parsed_doc]
 
-
 def extract_markdown(obj):
-    md_sections = []
-
-    if isinstance(obj, dict):
-        for key, value in obj.items():
-            if isinstance(value, str) and any(
-                token in value for token in ["#", "*", "`"]
-            ):
-                md_sections.append(value)
-            elif isinstance(value, (dict, list)):
-                md_sections.extend(extract_markdown(value))
-
-    elif isinstance(obj, list):
+    def contains_markdown(text):
+        return any(token in text for token in ["#", "*", "`"])
+    
+    if isinstance(obj, str):
+        if contains_markdown(obj):
+            return [obj], None
+        else:
+            return [], obj
+        
+    if isinstance(obj, list):
+        md_list = []
+        cleaned_list = []
+        
         for item in obj:
-            md_sections.extend(extract_markdown(item))
-
-    return md_sections
+            md, cleaned = extract_markdown(item)
+            md_list.extend(md)
+            if cleaned:
+                cleaned_list.append(cleaned)
+        
+        return md_list, cleaned_list
+    
+    if isinstance(obj, dict):
+        md_list = []
+        cleaned_obj = {}
+        
+        for key, value in obj.items():
+            md, cleaned = extract_markdown(value)
+            md_list.extend(md)
+            if cleaned:
+                cleaned_obj[key] = cleaned
+        
+        return md_list, cleaned_obj
+    
+    return [], obj            
 
 
 def split_document(document) -> List[Document]:
 
+    # Retrieve nested Markdown snippets, and the cleaned YAML structure without Markdown
+    markdown_strings, cleaned_yaml = extract_markdown(document)
+    
     # Create JSON splits
     json_splitter = RecursiveJsonSplitter(max_chunk_size=1000)
-    json_docs = json_splitter.create_documents(document)
-
-    # Retrieve nested Markdown snippets
-    markdown_strings = extract_markdown(document)
-    combined_markdown = "\n\n".join(markdown_strings)
+    json_docs = json_splitter.create_documents(cleaned_yaml)
 
     # Create Markdown splits
+    combined_markdown = "\n\n".join(markdown_strings)
+
     headers_to_split_on = [
         ("#", "Header 1"),
         ("##", "Header 2"),
