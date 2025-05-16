@@ -25,7 +25,9 @@ def fetch_documentation(url):
 
     return [parsed_doc]
 
-def extract_markdown(obj):
+# This recursive function breaks down the parsed yaml document from https://api.content.lesmills.com/docs/v1/content-portal-api.yaml
+# And returns a list of the nested markdown snippets, and the cleaned "yaml" object without the markdown
+def separate_markdown_from_yaml(obj):
     def contains_markdown(text):
         return any(token in text for token in ["#", "*", "`"])
     
@@ -40,7 +42,7 @@ def extract_markdown(obj):
         cleaned_list = []
         
         for item in obj:
-            md, cleaned = extract_markdown(item)
+            md, cleaned = separate_markdown_from_yaml(item)
             md_list.extend(md)
             if cleaned:
                 cleaned_list.append(cleaned)
@@ -52,7 +54,7 @@ def extract_markdown(obj):
         cleaned_obj = {}
         
         for key, value in obj.items():
-            md, cleaned = extract_markdown(value)
+            md, cleaned = separate_markdown_from_yaml(value)
             md_list.extend(md)
             if cleaned:
                 cleaned_obj[key] = cleaned
@@ -65,7 +67,7 @@ def extract_markdown(obj):
 def split_document(document) -> List[Document]:
 
     # Retrieve nested Markdown snippets, and the cleaned YAML structure without Markdown
-    markdown_strings, cleaned_yaml = extract_markdown(document)
+    markdown_strings, cleaned_yaml = separate_markdown_from_yaml(document)
     
     # Create JSON splits
     json_splitter = RecursiveJsonSplitter(max_chunk_size=1000)
