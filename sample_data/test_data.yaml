@@ -1,0 +1,11 @@
+openapi: 3.1.0
+info:
+  version: '1.0'
+  title: Company Content Portal API
+  description: |-
+    ## This is markdown
+paths:
+  nested:
+    object:
+      description: |-
+        ## This is markdown
