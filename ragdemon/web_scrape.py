@@ -45,8 +45,7 @@ def separate_markdown_from_yaml(obj: Any) -> Tuple[List[str], Any]:
         for item in obj:
             md, cleaned = separate_markdown_from_yaml(item)
             md_list.extend(md)
-            if cleaned:
-                cleaned_list.append(cleaned)
+            cleaned_list.append(cleaned)
         
         return md_list, cleaned_list
     
@@ -57,8 +56,7 @@ def separate_markdown_from_yaml(obj: Any) -> Tuple[List[str], Any]:
         for key, value in obj.items():
             md, cleaned = separate_markdown_from_yaml(value)
             md_list.extend(md)
-            if cleaned:
-                cleaned_obj[key] = cleaned
+            cleaned_obj[key] = cleaned
         
         return md_list, cleaned_obj
     
