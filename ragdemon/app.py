@@ -1,18 +1,15 @@
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
-from langgraph.graph import START, StateGraph, MessagesState, END
-from langchain_core.tools import tool
+from langgraph.graph import StateGraph, MessagesState, END
+from langchain_core.tools import InjectedToolArg, tool
 from langchain_core.messages import SystemMessage
-from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
 from langgraph.checkpoint.memory import MemorySaver
+from typing_extensions import Annotated
 
-from splitting import split_document
-from vector_stores import InMemoryStore, BaseVectorStore
-
-import json
-from datetime import datetime
-
-CHAT_HISTORY_FILE = "chat_data/chat_history.json"
+from ragdemon.splitting import split_document
+from ragdemon.vector_stores import InMemoryStore, BaseVectorStore
+from ragdemon.apis import build_llm_client, build_embeddings_client
 
 import os
 from dotenv import load_dotenv
@@ -21,25 +18,11 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 os.getenv("OPENAI_API_KEY")
 
-def build_llm_client() -> ChatOpenAI:
-    return ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0,
-        max_tokens=None,
-        timeout=None,
-        max_retries=2,
-    )
-
-def build_embeddings_client() -> OpenAIEmbeddings:
-    return OpenAIEmbeddings(
-        model="text-embedding-3-large",
-    )
-
 llm: ChatOpenAI = build_llm_client()
 embeddings: OpenAIEmbeddings = build_embeddings_client()
 vector_store: BaseVectorStore = InMemoryStore(embeddings)
 
-config = {"configurable": {"thread_id": "sseijrfbes"}}
+config = {"configurable": {"thread_id": "bomboclaat_thread"}}
 
 def build_graph() -> StateGraph:
     graph_builder = StateGraph(MessagesState)
@@ -60,18 +43,21 @@ def build_graph() -> StateGraph:
 
     memory = MemorySaver()
 
-    return graph_builder.compile(checkpointer=memory)
+    return graph_builder.compile(checkpointer=memory, store=vector_store)
 
-
-@tool(response_format="content_and_artifact")
-def retrieve(query: str):
-    """Retrieve information related to a query."""
-    (retrieved_docs, scores) = zip(*vector_store.similarity_search_with_scores(query, k=2))
+def _retrieve_core(query: str, vector_store) -> tuple[str, list]:
+    """Core retrieval logic that can be tested independently."""
+    retrieved_docs = vector_store.similarity_search(query, k=2)
     serialized = "\n\n".join(
         (f"Source: {doc.metadata}\nContent: {doc.page_content}")
         for doc in retrieved_docs
     )
     return serialized, retrieved_docs
+
+@tool(response_format="content_and_artifact")
+def retrieve(query: str, vector_store: Annotated[any, InjectedStore()]):
+    """Retrieve information related to a query."""
+    return _retrieve_core(query, vector_store)
 
 def generate(state: MessagesState):
     """Generate answer."""
@@ -114,52 +100,6 @@ def query_or_respond(state: MessagesState):
     # MessagesState appends messages to state instead of overwriting
     return {"messages": [response]}
 
-def save_chat(state: MessagesState):
-    # Attempt to open the existing chat history file in read mode
-    try:
-        with open(CHAT_HISTORY_FILE, "r") as f:
-            #load the existing chat history from the JSON file
-            try:
-                history = json.load(f)
-            except json.JSONDecodeError:
-                # If the file is empty or not valid JSON, initialize an empty history list
-                history = []
-    except FileNotFoundError:
-        #if the file doenst exist yet, initalise and empty history list as shown.
-        history = []
-
-    # Append the new chat entry to the history with questions timestamps and responses from the Ai model.
-    history.append({
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "question": state["question"],
-        "response": state["response"]
-    })
-
-    #Write the updated History back to the file in JSON Format, with indentations to make sure it is neat.
-    with open(CHAT_HISTORY_FILE, "w") as f:
-        json.dump(history, f, indent=2)
-
-def show_history():
-    try:
-        with open(CHAT_HISTORY_FILE, "r") as f:
-            try:
-                history = json.load(f)
-            except json.JSONDecodeError:
-                # If the file is empty or not valid JSON, initialize an empty history list
-                history = []
-    except FileNotFoundError:
-        print("No previous chats found.")
-        return
-
-    if not history:
-        print("No previous chats found.")
-        return
-
-    for idx, entry in enumerate(history, start=1):
-        print(f"\n#{idx} | {entry['timestamp']}")
-        print(f"Q: {entry['question']}")
-        print(f"A: {entry['response']}")
-
 def main():
 
     print("\n================================================================================")
@@ -186,7 +126,6 @@ def main():
             config=config,
         ):
             step["messages"][-1].pretty_print()
-
 
 # Test the application
 if __name__ == "__main__":

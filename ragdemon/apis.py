@@ -13,8 +13,4 @@ def build_llm_client() -> ChatOpenAI:
 def build_embeddings_client() -> OpenAIEmbeddings:
     return OpenAIEmbeddings(
         model="text-embedding-3-large",
-        temperature=0,
-        max_tokens=None,
-        timeout=None,
-        max_retries=2,
     )
