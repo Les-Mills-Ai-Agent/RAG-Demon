@@ -73,7 +73,6 @@ python-iso639==2025.2.18
 python-magic==0.4.27
 python-oxmsg==0.0.2
 PyYAML==6.0.2
--e git+https://github.com/Les-Mills-Ai-Agent/Les-Mill-International-Ai-Agent.git@b2571f454375d6eef014b75526a8e2274126abf8#egg=ragdemon&subdirectory=src
 RapidFuzz==3.13.0
 regex==2024.11.6
 requests==2.32.3
