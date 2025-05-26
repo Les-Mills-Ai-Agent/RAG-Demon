@@ -16,7 +16,10 @@ def test_data():
     
 @pytest.fixture
 def markdown_sections():
-    return ["## This is markdown", "## This is markdown"]
+    return [
+        "# Welcome to how to use Content Portal API\nContent 1\n\n## Hello I am Header 2\nContent 2", 
+        "# How to use videos API\nContent 1\n\n## Hello I am Header 2\nContent 2"
+    ]
 
 @pytest.fixture
 def cleaned_yaml():
@@ -43,15 +46,24 @@ def test_fetch_documentation():
     assert document['info']['title'] == "LesMills Content Portal API"
     
 def test_separate_markdown_from_yaml(test_data, markdown_sections, cleaned_yaml):
-    md, cleaned = separate_markdown_from_yaml(test_data)
+    md, json = separate_markdown_from_yaml(test_data)
     
     assert md == markdown_sections
-    assert cleaned == cleaned_yaml
+    assert json == cleaned_yaml
     
+    
+# Splitting to be improved further in new story
+
 # def test_split_document(test_data):
 #     markdown_sections, cleaned_yaml = split_document(test_data)
     
-#     for key, value in markdown_sections:
-#         assert value in ["#", "*", "`"]
-        
-#     assert cleaned_yaml
+#     assert len(markdown_sections) == 4
+#     assert markdown_sections[0].metadata["Header 1"] == "Welcome to how to use Content Portal API"
+#     assert markdown_sections[0].page_content == "Content 1"
+#     assert markdown_sections[1].metadata["Header 2"] == "Hello I am Header 2"
+#     assert markdown_sections[1].page_content == "Content 2"
+    
+#     assert markdown_sections[2].metadata["Header 1"] == "How to use videos API"
+#     assert markdown_sections[2].page_content == "Content 1"
+#     assert markdown_sections[3].metadata["Header 2"] == "Hello I am Header 2"
+#     assert markdown_sections[3].page_content == "Content 2"

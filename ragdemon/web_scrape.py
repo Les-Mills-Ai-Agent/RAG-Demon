@@ -95,3 +95,10 @@ def split_document(document: dict) -> List[Document]:
 
     # Combine and return both JSON and Markdown splits
     return json_docs + md_docs
+
+def test():
+    with open("sample_data/test_data.yaml", "r") as f:
+        return yaml.safe_load(f)
+    
+md, json = separate_markdown_from_yaml(test())
+print(md)
