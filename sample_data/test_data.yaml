@@ -1,0 +1,11 @@
+openapi: 3.1.0
+info:
+  version: '1.0'
+  title: Company Content Portal API
+  description: |-
+    # Welcome to how to use Content Portal API\nContent 1\n\n## Hello I am Header 2\nContent 2
+paths:
+  items/Videos:
+    get:
+      description: |-
+        # How to use videos API\nContent 1\n\n## Hello I am Header 2\nContent 2

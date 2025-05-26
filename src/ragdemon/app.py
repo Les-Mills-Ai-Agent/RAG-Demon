@@ -7,9 +7,10 @@ from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
 from langgraph.checkpoint.memory import MemorySaver 
 from typing_extensions import Annotated
 
-from ragdemon.splitting import split_document
+# from ragdemon.splitting import split_document
 from ragdemon.vector_stores import InMemoryStore, BaseVectorStore
 from ragdemon.apis import build_llm_client, build_embeddings_client
+from ragdemon.web_scrape import fetch_documentation, split_document
 
 import os
 from dotenv import load_dotenv
@@ -105,8 +106,7 @@ def main():
     print("\n================================================================================")
 
     # Load document
-    with open("sample_data/description.md", encoding="utf-8") as f:
-        document = f.read()
+    document = fetch_documentation("https://api.content.lesmills.com/docs/v1/content-portal-api.yaml")
         
     # Split and store the document in the vector store
     splits = split_document(document)
