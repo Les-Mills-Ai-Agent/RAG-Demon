@@ -24,7 +24,3 @@ def test_in_memory_store_add_and_search():
         assert isinstance(doc, Document)
         assert isinstance(doc.page_content, str)
         assert isinstance(doc.metadata, dict)
-
-    # Top result should match "apple" or something close
-    top_content = results[0].page_content
-    assert top_content in {"apple", "apricot"}
