@@ -34,6 +34,7 @@ def separate_markdown_from_yaml(obj: Any) -> Tuple[List[str], Any]:
     
     if isinstance(obj, str):
         if contains_markdown(obj):
+            obj = obj.replace("\\n", "\n")
             return [obj], None
         else:
             return [], obj

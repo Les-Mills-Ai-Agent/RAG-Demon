@@ -31,8 +31,8 @@ def cleaned_yaml():
             "description": None
         },
         "paths": {
-            "nested": {
-                "object": {
+            "items/Videos": {
+                "get": {
                     "description": None
                 }
             }
