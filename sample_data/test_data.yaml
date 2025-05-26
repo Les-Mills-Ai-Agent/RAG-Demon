@@ -3,9 +3,9 @@ info:
   version: '1.0'
   title: Company Content Portal API
   description: |-
-    ## This is markdown
+    # Welcome to how to use Content Portal API\nContent 1\n\n## Hello I am Header 2\nContent 2
 paths:
-  nested:
-    object:
+  items/Videos:
+    get:
       description: |-
-        ## This is markdown
+        # How to use videos API\nContent 1\n\n## Hello I am Header 2\nContent 2
