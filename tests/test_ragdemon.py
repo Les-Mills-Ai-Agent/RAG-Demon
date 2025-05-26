@@ -1,29 +1,25 @@
+# test_your_module.py
+
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import Mock
 from langchain_core.documents import Document
-from ragdemon.ragdemon import RagDemon
-from langchain_openai import ChatOpenAI
-from langchain_openai.embeddings import OpenAIEmbeddings
-from langchain_core.vectorstores import InMemoryVectorStore
-import os
-from dotenv import load_dotenv
+from ragdemon.app import _retrieve_core
 
-# Load environment variables
-load_dotenv(override=True)
+def test_retrieve_core_with_real_document():
+    doc1 = Document(page_content="Content of document 1", metadata={"source": "doc1"})
+    doc2 = Document(page_content="Content of document 2", metadata={"source": "doc2"})
+    mock_docs = [doc1, doc2]
 
-def test_init_creates_llm_embeddings_and_vectorstore():
-    rag_demon = RagDemon()
-    assert isinstance(rag_demon.llm, ChatOpenAI)
-    assert isinstance(rag_demon.embeddings, OpenAIEmbeddings)
-    assert isinstance(rag_demon.vector_store, InMemoryVectorStore)
+    mock_store = Mock()
+    mock_store.similarity_search.return_value = mock_docs
 
-def test_split_document():
-    rag_demon = RagDemon()
-    document = Document(page_content="# Hello I am Header 1\nContent 1\n\n## Hello I am Header 2\nContent 2")
-    splits = rag_demon.split_document(document.page_content)
-    
-    assert len(splits) == 2
-    assert splits[0].page_content == "Content 1"
-    assert splits[0].metadata["Header 1"] == "Hello I am Header 1"
-    assert splits[1].page_content == "Content 2"
-    assert splits[1].metadata["Header 2"] == "Hello I am Header 2"
+    query = "test query"
+    serialized, returned_docs = _retrieve_core(query, mock_store)
+
+    mock_store.similarity_search.assert_called_once_with("test query", k=2)
+    assert returned_docs == mock_docs
+    expected_serialized = (
+        "Source: {'source': 'doc1'}\nContent: Content of document 1\n\n"
+        "Source: {'source': 'doc2'}\nContent: Content of document 2"
+    )
+    assert serialized == expected_serialized
