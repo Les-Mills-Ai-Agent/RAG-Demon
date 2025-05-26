@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 os.getenv("OPENAI_API_KEY")
 
-from . import web_scrape
+from ragdemon import web_scrape
 
 class RagDemon:
 
