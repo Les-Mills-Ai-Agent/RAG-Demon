@@ -93,6 +93,7 @@ def generate(state: MessagesState):
 
     # Run
     response = llm.invoke(prompt)
+    save_chat(state)
     return {"messages": [response]}
 
 # Step 1: Generate an AIMessage that may include a tool-call to be sent.
