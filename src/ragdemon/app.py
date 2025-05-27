@@ -6,6 +6,8 @@ from langchain_core.messages import SystemMessage
 from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
 from langgraph.checkpoint.memory import MemorySaver 
 from typing_extensions import Annotated
+from ragdemon.history import save_chat
+from ragdemon.history import show_history
 
 # from ragdemon.splitting import split_document
 from ragdemon.vector_stores import InMemoryStore, BaseVectorStore
