@@ -38,5 +38,15 @@
     "timestamp": "2025-05-27 18:30:51",
     "question": "menu",
     "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-05-27 18:39:53",
+    "question": "what is the les mills api key used for",
+    "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-05-27 18:40:41",
+    "question": "can i use the api on my mobile app ?",
+    "response": "The API is not meant to be used with end user applications, including mobile apps. If you have a use case that requires implementation in a customer-facing system, it is recommended to contact Les Mills Support for guidance."
   }
 ]

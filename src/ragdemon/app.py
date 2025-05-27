@@ -118,7 +118,9 @@ def main():
 
     while True:
         # Prompt user for input or special command
-        question = input("\nAsk the RAG Demon (or enter 'q' to quit, ':menu' for history): ").strip().lower()
+        raw_input = input("\nAsk the RAG Demon (or enter 'q' to quit, ':menu' for history): ").strip()
+        question = raw_input.lower()
+        # Handle special commands
 
         if question == "q":
             break
@@ -128,7 +130,7 @@ def main():
 
         # Stream response from the AI
         for step in app.stream(
-            {"messages": [{"role": "user", "content": question}]},
+            {"messages": [{"role": "user", "content": raw_input}]},
             stream_mode="values",
             config=config,
         ):
