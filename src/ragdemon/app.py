@@ -93,6 +93,7 @@ def generate(state: MessagesState):
 
     # Run
     response = llm.invoke(prompt)
+    state["messages"].append(response)
     save_chat(state)
     return {"messages": [response]}
 

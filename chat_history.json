@@ -1,0 +1,7 @@
+[
+  {
+    "timestamp": "2025-05-27 17:49:49",
+    "question": "what is the les mills api?",
+    "response": "The Les Mills API is a platform that provides access to content, video metadata, and enables partners to download digital assets programmatically. It is designed to simplify access to Les Mills content and resources while allowing for the scheduled synchronization of content and video metadata with backend systems. The API includes endpoints for retrieving video-related information and generating signed URLs for downloading files and other assets."
+  }
+]
