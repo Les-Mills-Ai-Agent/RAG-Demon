@@ -3,7 +3,7 @@ from langgraph.graph import MessagesState
 import json
 from datetime import datetime
 
-def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_history.json"):
+def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_data/chat_history.json"):
     """Save the latest user and AI message from LangGraph state to a JSON file."""
     try:
         with open(CHAT_HISTORY_FILE, "r") as f:
@@ -29,7 +29,7 @@ def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_history.json"
         with open(CHAT_HISTORY_FILE, "w") as f:
             json.dump(history, f, indent=2)
 
-def show_history(CHAT_HISTORY_FILE: str = "chat_history.json"):
+def show_history(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json"):
     """Display chat history from the JSON file in the terminal."""
     try:
         with open(CHAT_HISTORY_FILE, "r") as f:

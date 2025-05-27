@@ -1,14 +1,20 @@
 from langgraph.graph import MessagesState
-
+from langchain_core.messages import HumanMessage, AIMessage
 import json
+import os
+from io import StringIO
+import sys
 
 from ragdemon.history import save_chat, show_history
 
+
 def test_save_chat():
-    # Test data
+    # Create a proper MessagesState with human and AI messages
     state = MessagesState(
-        question="What is the capital of France?",
-        response="The capital of France is Paris."
+        messages=[
+            HumanMessage(content="What is the capital of France?"),
+            AIMessage(content="The capital of France is Paris.")
+        ]
     )
 
     CHAT_HISTORY_FILE = "test_chat_history.json"
@@ -17,18 +23,19 @@ def test_save_chat():
     save_chat(state, CHAT_HISTORY_FILE)
 
     # Verify that the chat history file was created and contains the expected data
+    assert os.path.exists(CHAT_HISTORY_FILE)
+
     with open(CHAT_HISTORY_FILE, "r") as f:
         history = json.load(f)
         assert len(history) == 1
-        assert history[0]["question"] == state["question"]
-        assert history[0]["response"] == state["response"]
+        assert history[0]["question"] == "What is the capital of France?"
+        assert history[0]["response"] == "The capital of France is Paris."
 
     # Clean up test file
-    import os
     os.remove(CHAT_HISTORY_FILE)
 
+
 def test_show_history():
-    # Test data
     CHAT_HISTORY_FILE = "test_chat_history.json"
 
     # Create a test chat history file
@@ -40,9 +47,6 @@ def test_show_history():
         }], f, indent=2)
 
     # Capture the output of the show_history function
-    from io import StringIO
-    import sys
-
     captured_output = StringIO()
     sys.stdout = captured_output
 
@@ -58,5 +62,4 @@ def test_show_history():
     assert "A: The capital of France is Paris." in output
 
     # Clean up test file
-    import os
     os.remove(CHAT_HISTORY_FILE)
