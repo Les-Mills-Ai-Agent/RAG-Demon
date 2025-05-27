@@ -8,6 +8,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from typing_extensions import Annotated
 from ragdemon.history import save_chat
 from ragdemon.history import show_history
+from ragdemon.history import show_history_menu
 
 # from ragdemon.splitting import split_document
 from ragdemon.vector_stores import InMemoryStore, BaseVectorStore
@@ -106,30 +107,33 @@ def query_or_respond(state: MessagesState):
     return {"messages": [response]}
 
 def main():
-
     print("\n================================================================================")
 
-    # Load document
+    # Load and index documentation into the vector store
     document = fetch_documentation("https://api.content.lesmills.com/docs/v1/content-portal-api.yaml")
-        
-    # Split and store the document in the vector store
     splits = split_document(document)
     vector_store.add_documents(splits)
 
     app = build_graph()
 
     while True:
-        # Get user input for the question
-        question = input("\nAsk the RAG Demon (or enter 'q' to quit): ")
-        if question.strip().lower() == "q":
-            break
+        # Prompt user for input or special command
+        question = input("\nAsk the RAG Demon (or enter 'q' to quit, ':menu' for history): ").strip().lower()
 
+        if question == "q":
+            break
+        elif question == ":menu":
+            show_history_menu()
+            continue  # return to main prompt after menu
+
+        # Stream response from the AI
         for step in app.stream(
             {"messages": [{"role": "user", "content": question}]},
             stream_mode="values",
             config=config,
         ):
             step["messages"][-1].pretty_print()
+
 
 # Test the application
 if __name__ == "__main__":

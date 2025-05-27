@@ -28,5 +28,15 @@
     "timestamp": "2025-05-27 18:23:51",
     "question": "what is the lesmills api key used for today",
     "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-05-27 18:30:18",
+    "question": "& c:/Users/harsh/Documents/Les-Mill-International-Ai-Agent/.venv/Scripts/python.exe c:/Users/harsh/Documents/Les-Mill-International-Ai-Agent/src/ragdemon/app.py",
+    "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-05-27 18:30:51",
+    "question": "menu",
+    "response": "I don't know."
   }
 ]
