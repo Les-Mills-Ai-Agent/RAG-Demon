@@ -18,5 +18,35 @@
     "timestamp": "2025-05-14 16:13:46",
     "question": "wagwan",
     "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-05-27 18:04:02",
+    "question": "what can i do with the les mills API keys, can i intergrate it into my mobile app?",
+    "response": "With the Les Mills API keys, you can access content, video metadata, and download digital assets programmatically. You can integrate this API into your mobile app to synchronize content and video metadata with your backend systems on a scheduled basis. This allows you to retrieve video-related information, query by videos, releases, programs, instructors, and more. For assistance with the integration, it's recommended to work with your internal technical team or engage external third-party technical resources."
+  },
+  {
+    "timestamp": "2025-05-27 18:23:51",
+    "question": "what is the lesmills api key used for today",
+    "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-05-27 18:30:18",
+    "question": "& c:/Users/harsh/Documents/Les-Mill-International-Ai-Agent/.venv/Scripts/python.exe c:/Users/harsh/Documents/Les-Mill-International-Ai-Agent/src/ragdemon/app.py",
+    "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-05-27 18:30:51",
+    "question": "menu",
+    "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-05-27 18:39:53",
+    "question": "what is the les mills api key used for",
+    "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-05-27 18:40:41",
+    "question": "can i use the api on my mobile app ?",
+    "response": "The API is not meant to be used with end user applications, including mobile apps. If you have a use case that requires implementation in a customer-facing system, it is recommended to contact Les Mills Support for guidance."
   }
 ]
