@@ -1,19 +1,20 @@
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
-from langgraph.graph import StateGraph, MessagesState, END
-from langchain_core.tools import InjectedToolArg, tool
-from langchain_core.messages import SystemMessage
-from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
-from langgraph.checkpoint.memory import MemorySaver 
-from typing_extensions import Annotated
-from ragdemon.history import save_chat
-from ragdemon.history import show_history
-from ragdemon.history import show_history_menu
 
-# from ragdemon.splitting import split_document
+from langchain_core.tools import tool
+from langchain_core.messages import SystemMessage
+
+from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import StateGraph, MessagesState, END
+
+from typing_extensions import Annotated
+
 from ragdemon.vector_stores import InMemoryStore, BaseVectorStore
 from ragdemon.apis import build_llm_client, build_embeddings_client
 from ragdemon.web_scrape import fetch_documentation, split_document
+from ragdemon.history import save_chat
+from ragdemon.history import show_history_menu
 
 import os
 from dotenv import load_dotenv
@@ -35,6 +36,7 @@ def build_graph() -> StateGraph:
     graph_builder.add_node(query_or_respond)
     graph_builder.add_node(tools)
     graph_builder.add_node(generate)
+    graph_builder.add_node(save_chat)
 
     graph_builder.set_entry_point("query_or_respond")
     graph_builder.add_conditional_edges(
@@ -43,7 +45,8 @@ def build_graph() -> StateGraph:
         {END: END, "tools": "tools"},
     )
     graph_builder.add_edge("tools", "generate")
-    graph_builder.add_edge("generate", END)
+    graph_builder.add_edge("generate", "save_chat")
+    graph_builder.add_edge("save_chat", END)
 
     memory = MemorySaver()
 
@@ -94,8 +97,7 @@ def generate(state: MessagesState):
 
     # Run
     response = llm.invoke(prompt)
-    state["messages"].append(response)
-    save_chat(state)
+    
     return {"messages": [response]}
 
 # Step 1: Generate an AIMessage that may include a tool-call to be sent.
