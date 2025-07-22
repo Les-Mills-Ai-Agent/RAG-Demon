@@ -58,5 +58,15 @@
     "timestamp": "2025-07-22 19:54:30",
     "question": "how do i use it ?",
     "response": "To use the Les Mills API, you would typically follow these steps:\n\n1. **Obtain Access**: You need to get access to the API, which may involve registering as a partner or following specific procedures outlined by Les Mills.\n\n2. **API Documentation**: Refer to the API specification and documentation provided by Les Mills to understand the endpoints, request formats, and response structures.\n\n3. **Integration**: Work with your internal technical team or engage external third-party technical resources to integrate the API into your systems. This may involve setting up scheduled synchronization for content and video metadata.\n\n4. **Utilize Endpoints**: Use the appropriate endpoints for your needs:\n   - For retrieving video-related information, use `https://cms.content.lesmills.com/`.\n   - For generating signed URLs and downloading files and other assets, use `https://api.content.lesmills.com/`.\n\n5. **Follow Rate Limits and Usage Guidelines**: Ensure that you adhere to the rate limits and proper usage guidelines provided in the API documentation.\n\nIf you need specific technical assistance, it's recommended to consult with your technical team or external resources."
+  },
+  {
+    "timestamp": "2025-07-22 20:53:16",
+    "question": "what is the les mills api used for ?",
+    "response": "The Les Mills Content Portal API is used to provide access to content, video metadata, and enables partners to download digital assets programmatically. It simplifies access to Les Mills content and resources while allowing for the scheduled synchronization of content and video metadata with backend systems."
+  },
+  {
+    "timestamp": "2025-07-22 20:53:27",
+    "question": "how do i do it",
+    "response": "For assistance with API integration or the development of custom solutions, it is recommended to work with your internal technical team or engage external third-party technical resources. The API documentation outlines the necessary steps for obtaining access and proper usage."
   }
 ]
