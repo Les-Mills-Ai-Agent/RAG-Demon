@@ -16,6 +16,10 @@ from ragdemon.web_scrape import fetch_documentation, split_document
 from ragdemon.history import save_chat
 from ragdemon.history import show_history_menu
 
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
 import os
 from dotenv import load_dotenv
 
@@ -23,34 +27,15 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 os.getenv("OPENAI_API_KEY")
 
+
 llm: ChatOpenAI = build_llm_client()
 embeddings: OpenAIEmbeddings = build_embeddings_client()
 vector_store: BaseVectorStore = InMemoryStore(embeddings)
 
 config = {"configurable": {"thread_id": "bomboclaat_thread"}}
 
-def build_graph() -> StateGraph:
-    graph_builder = StateGraph(MessagesState)
-    tools = ToolNode([retrieve])
-    
-    graph_builder.add_node(query_or_respond)
-    graph_builder.add_node(tools)
-    graph_builder.add_node(generate)
-    graph_builder.add_node(save_chat)
 
-    graph_builder.set_entry_point("query_or_respond")
-    graph_builder.add_conditional_edges(
-        "query_or_respond",
-        tools_condition,
-        {END: END, "tools": "tools"},
-    )
-    graph_builder.add_edge("tools", "generate")
-    graph_builder.add_edge("generate", "save_chat")
-    graph_builder.add_edge("save_chat", END)
-
-    memory = MemorySaver()
-
-    return graph_builder.compile(checkpointer=memory, store=vector_store)
+# ── MOVE THESE UP ────────────────────────────────────────────────────────────────
 
 def _retrieve_core(query: str, vector_store) -> tuple[str, list]:
     """Core retrieval logic that can be tested independently."""
@@ -97,22 +82,79 @@ def generate(state: MessagesState):
 
     # Run
     response = llm.invoke(prompt)
-    
     return {"messages": [response]}
 
-# Step 1: Generate an AIMessage that may include a tool-call to be sent.
 def query_or_respond(state: MessagesState):
     """Generate tool call for retrieval or respond."""
     llm_with_tools = llm.bind_tools([retrieve])
     response = llm_with_tools.invoke(state["messages"])
-    # MessagesState appends messages to state instead of overwriting
     return {"messages": [response]}
 
+# ── END MOVE ─────────────────────────────────────────────────────────────────────
+
+
+def build_graph() -> StateGraph:
+    graph_builder = StateGraph(MessagesState)
+    tools = ToolNode([retrieve])
+    
+    graph_builder.add_node(query_or_respond)
+    graph_builder.add_node(tools)
+    graph_builder.add_node(generate)
+    graph_builder.add_node(save_chat)
+
+    graph_builder.set_entry_point("query_or_respond")
+    graph_builder.add_conditional_edges(
+        "query_or_respond",
+        tools_condition,
+        {END: END, "tools": "tools"},
+    )
+    graph_builder.add_edge("tools", "generate")
+    graph_builder.add_edge("generate", "save_chat")
+    graph_builder.add_edge("save_chat", END)
+
+    memory = MemorySaver()
+    return graph_builder.compile(checkpointer=memory, store=vector_store)
+
+
+# Build the graph once at import time
+graph = build_graph()
+
+
+# FastAPI setup
+
+class ChatRequest(BaseModel):
+    messages: list[dict]
+
+api = FastAPI(title="Les Mills RAG API")
+api.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@api.post("/api/chat")
+async def chat(req: ChatRequest):
+    try:
+        reply = None
+        for step in graph.stream({"messages": req.messages}, stream_mode="values"):
+            msg = step["messages"][-1]
+            if getattr(msg, "type", None) in ("ai", "assistant"):
+                reply = msg.content
+        if reply is None:
+            raise RuntimeError("No assistant reply produced")
+        return {"reply": reply}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 def main():
-    print("\n================================================================================")
+    print("\n" + "="*80)
 
     # Load and index documentation into the vector store
-    document = fetch_documentation("https://api.content.lesmills.com/docs/v1/content-portal-api.yaml")
+    document = fetch_documentation(
+        "https://api.content.lesmills.com/docs/v1/content-portal-api.yaml"
+    )
     splits = split_document(document)
     vector_store.add_documents(splits)
 
@@ -120,9 +162,10 @@ def main():
 
     while True:
         # Prompt user for input or special command
-        raw_input = input("\nAsk the RAG Demon (or enter 'q' to quit, ':menu' for history): ").strip()
+        raw_input = input(
+            "\nAsk the RAG Demon (or enter 'q' to quit, ':menu' for history): "
+        ).strip()
         question = raw_input.lower()
-        # Handle special commands
 
         if question == "q":
             break
@@ -139,6 +182,5 @@ def main():
             step["messages"][-1].pretty_print()
 
 
-# Test the application
 if __name__ == "__main__":
     main()
