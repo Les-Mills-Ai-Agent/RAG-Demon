@@ -7,7 +7,16 @@ pyproject.toml
 ./ragdemon/splitting.py
 ./ragdemon/vector_stores.py
 ./ragdemon/web_scrape.py
+ragdemon/__init__.py
+ragdemon/apis.py
+ragdemon/app.py
+ragdemon/history.py
+ragdemon/server.py
+ragdemon/splitting.py
+ragdemon/vector_stores.py
+ragdemon/web_scrape.py
 ragdemon.egg-info/PKG-INFO
 ragdemon.egg-info/SOURCES.txt
 ragdemon.egg-info/dependency_links.txt
+ragdemon.egg-info/requires.txt
 ragdemon.egg-info/top_level.txt

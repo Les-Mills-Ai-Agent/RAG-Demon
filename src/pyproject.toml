@@ -6,7 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "ragdemon"
 version = "0.1.0"
 description = "Les Mills AI Agent"
-dependencies = []
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]"
+]
 
 [tool.setuptools]
 package-dir = { "" = "." }

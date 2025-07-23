@@ -2,3 +2,5 @@ Metadata-Version: 2.4
 Name: ragdemon
 Version: 0.1.0
 Summary: Les Mills AI Agent
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
