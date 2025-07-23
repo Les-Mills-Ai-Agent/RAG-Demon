@@ -4,7 +4,6 @@ import ChatInput from './components/ChatInput.jsx'
 import { getChatCompletion } from './utils/openai.js'
 import './index.css'
 
-
 export default function App() {
   const [messages, setMessages] = useState([
     {
@@ -16,12 +15,14 @@ export default function App() {
   const append = msg => setMessages(ms => [...ms, msg])
 
   const sendMessage = async text => {
-    append({ role: 'user', content: text })
+    const userMessage = { role: 'user', content: text }
     const placeholder = { role: 'assistant', content: '', status: 'loading' }
+
+    append(userMessage)
     append(placeholder)
 
     try {
-      const reply = await getChatCompletion([...messages, { role: 'user', content: text }])
+      const reply = await getChatCompletion([...messages, userMessage])
       setMessages(ms => ms.map(m =>
         m === placeholder
           ? { role: 'assistant', content: reply, status: 'success' }
@@ -29,7 +30,6 @@ export default function App() {
       ))
     } catch (err) {
       const detail = err.response?.data?.detail || err.message
-      console.error("Chat error:", detail)
       setMessages(ms => ms.map(m =>
         m === placeholder
           ? { role: 'assistant', content: '', status: 'error', error: detail }
@@ -57,7 +57,7 @@ export default function App() {
         <ChatWindow messages={messages} onRetry={handleRetry} />
       </main>
 
-      <footer className="bg-white shadow-inner border-t">
+      <footer className="bg-white shadow-inner border-t px-4 py-3">
         <ChatInput onSend={sendMessage} />
       </footer>
     </div>

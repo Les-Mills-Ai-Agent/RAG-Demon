@@ -68,5 +68,15 @@
     "timestamp": "2025-07-22 20:53:27",
     "question": "how do i do it",
     "response": "For assistance with API integration or the development of custom solutions, it is recommended to work with your internal technical team or engage external third-party technical resources. The API documentation outlines the necessary steps for obtaining access and proper usage."
+  },
+  {
+    "timestamp": "2025-07-22 21:45:46",
+    "question": "what is the Les Mills APi used for and how can i implement it in my mobile app",
+    "response": "The Les Mills Content Portal API is used to access content, video metadata, and enables partners to download digital assets programmatically. It simplifies access to Les Mills content and resources while allowing for the scheduled synchronization of content and video metadata with your backend systems.\n\nTo implement the API in your mobile app, you should follow these steps:\n\n1. **Obtain Access**: Ensure you have the necessary access to the API. This may involve registering as a partner or contacting Les Mills Support for assistance.\n\n2. **Understand the API Specification**: Familiarize yourself with the API documentation, which outlines how to make requests, the data structure, and available endpoints.\n\n3. **Integrate with Your App**: Work with your internal technical team or engage external third-party technical resources to integrate the API into your mobile app. This will involve coding the necessary API calls to fetch and display content.\n\n4. **Follow Rate Limits and Usage Guidelines**: Be mindful of the API's rate limits and proper usage guidelines to avoid excessive usage, which could lead to termination of access. It is recommended to make API calls to update your content on a weekly or bi-weekly basis.\n\nIf you have a specific use case or need further assistance, consider reaching out to Les Mills Support for tailored guidance."
+  },
+  {
+    "timestamp": "2025-07-23 16:13:12",
+    "question": "what is the les mills api used for ?",
+    "response": "The Les Mills Content Portal API is used to provide access to content, video metadata, and enables partners to download digital assets programmatically. It simplifies access to Les Mills content and resources while allowing for the scheduled synchronization of content and video metadata with backend systems."
   }
 ]

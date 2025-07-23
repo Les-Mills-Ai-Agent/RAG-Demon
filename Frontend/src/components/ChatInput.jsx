@@ -11,16 +11,12 @@ export default function ChatInput({ onSend }) {
     setText('')
   }
 
-return (
-  <form
-    onSubmit={submit}
-    className="w-full flex justify-center px-4 pb-6 pt-2 sticky bottom-0 bg-transparent z-10"
-  >
-    <div className="w-full max-w-3xl flex items-center gap-2 bg-white rounded-2xl shadow-lg px-4 py-3 border border-gray-200">
-      <button
-        type="button"
-        className="text-xl text-gray-400 hover:text-blue-500 transition"
-      >
+  return (
+    <form
+      onSubmit={submit}
+      className="w-full max-w-3xl mx-auto flex items-center gap-2 bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-lg"
+    >
+      <button type="button" className="text-xl text-gray-400 hover:text-blue-500 transition">
         📎
       </button>
       <input
@@ -35,8 +31,6 @@ return (
       >
         ➤
       </button>
-    </div>
-  </form>
-)
-
+    </form>
+  )
 }

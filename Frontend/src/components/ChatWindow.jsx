@@ -1,5 +1,5 @@
+import React from 'react'
 import ChatBubble from './ChatBubble.jsx'
-
 
 export default function ChatWindow({ messages, onRetry }) {
   return (
