@@ -88,5 +88,20 @@
     "timestamp": "2025-07-23 18:15:44",
     "question": "how can i use it ?",
     "response": "To use the Les Mills API, you need to obtain access and follow the API specifications. It is recommended to work with your internal technical team or engage external third-party technical resources for assistance with API integration or the development of custom solutions. You can access video-related information through the provided URLs for querying videos, releases, programs, instructors, and more."
+  },
+  {
+    "timestamp": "2025-07-23 18:17:31",
+    "question": "what is the les mills api used for ?",
+    "response": "The Les Mills API is used for synchronizing content and video metadata to partners' backend systems on a scheduled basis. It allows access to content, video metadata, and enables partners to download digital assets programmatically. You can retrieve video-related information by querying videos, releases, programs, instructors, and more."
+  },
+  {
+    "timestamp": "2025-07-23 18:18:03",
+    "question": "how should i intergrate it within my mobile app, please give me the instructions and steps to do so please",
+    "response": "For integrating the Les Mills API within your mobile app, you should follow these general steps:\n\n1. **Obtain Access**: Ensure you have the necessary access to the Les Mills Content Portal API. This may involve registering as a partner and obtaining API keys.\n\n2. **Review API Documentation**: Familiarize yourself with the API documentation, which outlines the endpoints, request formats, and response structures. This will help you understand how to interact with the API.\n\n3. **Set Up Your Development Environment**: Prepare your mobile app development environment. This may include setting up a project in your preferred programming language and framework.\n\n4. **Implement API Calls**:\n   - Use the appropriate endpoint to retrieve video-related information (e.g., querying by videos, releases, programs, instructors).\n   - Implement functions to handle API requests and responses. This may involve using libraries for making HTTP requests.\n\n5. **Handle Authentication**: If the API requires authentication (e.g., using API keys), ensure you implement the necessary authentication mechanism in your app.\n\n6. **Download Digital Assets**: If your app needs to download digital assets, use the appropriate endpoint to generate signed URLs and download files.\n\n7. **Test Your Integration**: Thoroughly test the API integration to ensure that it works as expected. Check for proper handling of errors and edge cases.\n\n8. **Optimize and Monitor**: Once integrated, monitor the API usage and performance. Optimize your app to handle rate limits and ensure efficient data synchronization.\n\n9. **Seek Support if Needed**: If you encounter challenges during integration, consider working with your internal technical team or engaging external third-party technical resources for assistance.\n\nMake sure to refer to the specific API documentation for detailed instructions and examples related to the Les Mills Content Portal API."
+  },
+  {
+    "timestamp": "2025-07-23 18:47:38",
+    "question": "hi what is the les mills API ?",
+    "response": "The Les Mills API is designed to provide access to content, video metadata, and enables partners to download digital assets programmatically. It simplifies the synchronization of Les Mills content and video metadata with your backend systems on a scheduled basis. The API allows you to retrieve video-related information, generate signed URLs, and download files and other assets. For assistance with API integration or custom solutions, it's recommended to work with your internal technical team or engage external third-party technical resources."
   }
 ]

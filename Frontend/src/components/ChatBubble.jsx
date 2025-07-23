@@ -2,7 +2,7 @@ import React from 'react'
 
 export default function ChatBubble({ msg, onRetry }) {
   const base =
-    'max-w-[80%] px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm shadow-sm'
+    'max-w-[70%] px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm shadow-sm animate-fadeIn'
 
   const classes =
     msg.role === 'user'
@@ -15,16 +15,14 @@ export default function ChatBubble({ msg, onRetry }) {
 
   if (msg.role === 'system') {
     return (
-      <div className="text-sm italic text-gray-500 text-center my-4">
-        {msg.content}
-      </div>
+      <div className="text-sm italic text-gray-500 text-center my-4">{msg.content}</div>
     )
   }
 
   return (
     <div className={`w-full flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div className={classes}>
-        {msg.status === 'loading' && <em>Loading…</em>}
+        {msg.status === 'loading' && <em>Typing...</em>}
         {msg.status === 'error' && (
           <>
             <div>⚠️ {msg.error}</div>
