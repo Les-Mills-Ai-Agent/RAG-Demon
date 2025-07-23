@@ -9,10 +9,10 @@ description = "Les Mills AI Agent"
 dependencies = []
 
 [tool.setuptools]
-package-dir = { "" = "src" }
+package-dir = { "" = "." }
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 
 [tool.pytest.ini_options]
 pythonpath = "src"
