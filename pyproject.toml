@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ragdemon"
 version = "0.1.0"
-description = "RAG Demon AI Agent"
+description = "Les Mills AI Agent"
 dependencies = []
 
 [tool.setuptools]
