@@ -5,10 +5,6 @@ import { getChatCompletion } from './utils/openai.js'
 import './index.css'
 
 
-<div className="bg-red-500 text-white p-4 rounded-xl">
-  Tailwind is working!
-</div>
-
 export default function App() {
   const [messages, setMessages] = useState([
     {
