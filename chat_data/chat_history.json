@@ -78,5 +78,15 @@
     "timestamp": "2025-07-23 16:13:12",
     "question": "what is the les mills api used for ?",
     "response": "The Les Mills Content Portal API is used to provide access to content, video metadata, and enables partners to download digital assets programmatically. It simplifies access to Les Mills content and resources while allowing for the scheduled synchronization of content and video metadata with backend systems."
+  },
+  {
+    "timestamp": "2025-07-23 18:15:30",
+    "question": "what is the les mills api used for ?",
+    "response": "The Les Mills API is used for synchronizing content and video metadata to partners' backend systems on a scheduled basis. It allows access to content, video metadata, and enables partners to download digital assets programmatically. The API simplifies access to Les Mills content and resources."
+  },
+  {
+    "timestamp": "2025-07-23 18:15:44",
+    "question": "how can i use it ?",
+    "response": "To use the Les Mills API, you need to obtain access and follow the API specifications. It is recommended to work with your internal technical team or engage external third-party technical resources for assistance with API integration or the development of custom solutions. You can access video-related information through the provided URLs for querying videos, releases, programs, instructors, and more."
   }
 ]
