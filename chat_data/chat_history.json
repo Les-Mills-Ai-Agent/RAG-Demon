@@ -123,5 +123,25 @@
     "timestamp": "2025-07-24 17:46:18",
     "question": "What is the les Mills API used for ?",
     "response": "The Les Mills API is used for synchronizing content and video metadata to partners' backend systems on a scheduled basis. It allows access to content, video metadata, and enables partners to download digital assets programmatically. You can retrieve video-related information by querying videos, releases, programs, instructors, and more."
+  },
+  {
+    "timestamp": "2025-07-24 18:16:19",
+    "question": "what is the Les Mills APi used for today ?",
+    "response": "The Les Mills Content Portal API is used to access content, video metadata, and enables partners to download digital assets programmatically. It simplifies access to Les Mills content and resources while allowing for the scheduled synchronization of content and video metadata with backend systems. If you have any specific use cases or questions about the API, feel free to ask!"
+  },
+  {
+    "timestamp": "2025-07-24 18:18:35",
+    "question": "What kind of content does Les Mills offer?",
+    "response": "I don't know."
+  },
+  {
+    "timestamp": "2025-07-24 18:18:38",
+    "question": "What kind of content does Les Mills offer?",
+    "response": "Les Mills offers a variety of content related to fitness, including video metadata, digital assets, and resources for their programs, releases, and instructors. The content can be accessed through their API for synchronization with partner backend systems."
+  },
+  {
+    "timestamp": "2025-07-24 18:23:48",
+    "question": "What kind of content does Les Mills offer?",
+    "response": "I don't know."
   }
 ]

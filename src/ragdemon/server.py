@@ -45,6 +45,9 @@ api.add_middleware(
 @api.post("/api/chat")
 async def chat(req: ChatRequest):
     try:
+        if not req.messages:
+            raise HTTPException(status_code=400, detail="Message list is empty.")
+
         reply = None
         for step in graph.stream({"messages": req.messages}, stream_mode="values", config=config):
             msg = step["messages"][-1]
@@ -52,14 +55,16 @@ async def chat(req: ChatRequest):
                 reply = msg.content
 
         if reply is None:
-            raise ValueError("No assistant reply generated")
+            raise RuntimeError("No assistant reply generated")
 
         return {"reply": reply}
 
+    except HTTPException:
+        raise  # re-raise cleanly
     except Exception as e:
-        # Log internally, return safe error
         print(f"Internal Server Error: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
+
 
 # Dev server entry point
 if __name__ == "__main__":
