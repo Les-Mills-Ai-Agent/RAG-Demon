@@ -4,38 +4,40 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# load env
-load_dotenv(override=True)
-if not os.getenv("OPENAI_API_KEY"):
-    raise RuntimeError("Set OPENAI_API_KEY in your .env")
-
-# import your RAG graph, shared vector store, and config
 from ragdemon.app import build_graph, vector_store, config
 from ragdemon.web_scrape import fetch_documentation, split_document
 
-# ensure chat history directory exists
-import os as _os
-_os.makedirs('chat_data', exist_ok=True)
+# Load environment variables
+load_dotenv(override=True)
 
-# index documentation before building the graph
-document = fetch_documentation(
-    "https://api.content.lesmills.com/docs/v1/content-portal-api.yaml"
-)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+
+if not OPENAI_API_KEY:
+    raise RuntimeError("Set OPENAI_API_KEY in your .env")
+
+# Ensure chat history folder exists
+os.makedirs("chat_data", exist_ok=True)
+
+# Load and index documentation
+document = fetch_documentation("https://api.content.lesmills.com/docs/v1/content-portal-api.yaml")
 splits = split_document(document)
 vector_store.add_documents(splits)
 
-# compile the state graph with indexed documents
+# Build the LangGraph pipeline
 graph = build_graph()
 
-# define request schema
+# Pydantic model for incoming requests
 class ChatRequest(BaseModel):
     messages: list[dict]
 
-# spin up FastAPI
+# Create FastAPI app
 api = FastAPI(title="Les Mills RAG API")
+
+# Add CORS middleware using env variable
 api.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[FRONTEND_ORIGIN],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -48,13 +50,18 @@ async def chat(req: ChatRequest):
             msg = step["messages"][-1]
             if getattr(msg, "type", None) in ("ai", "assistant"):
                 reply = msg.content
-        if reply is None:
-            raise RuntimeError("No assistant reply produced")
-        return {"reply": reply}
-    except Exception as e:
-        import traceback; traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
 
+        if reply is None:
+            raise ValueError("No assistant reply generated")
+
+        return {"reply": reply}
+
+    except Exception as e:
+        # Log internally, return safe error
+        print(f"Internal Server Error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
+
+# Dev server entry point
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server:api", host="0.0.0.0", port=8000, reload=True)
