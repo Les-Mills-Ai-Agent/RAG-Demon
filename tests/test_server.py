@@ -29,5 +29,6 @@ async def test_chat_endpoint_with_empty_message():
         response = await ac.post("http://localhost:8000/api/chat", json={"messages": test_messages})
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Message list is empty."
+    assert response.json()["detail"] == "Message list is empty or invalid."
+
 

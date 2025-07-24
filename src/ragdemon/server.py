@@ -45,25 +45,35 @@ api.add_middleware(
 @api.post("/api/chat")
 async def chat(req: ChatRequest):
     try:
-        if not req.messages:
-            raise HTTPException(status_code=400, detail="Message list is empty.")
+        if not req.messages or not isinstance(req.messages, list):
+            raise HTTPException(status_code=400, detail="Message list is empty or invalid.")
 
-        reply = None
-        for step in graph.stream({"messages": req.messages}, stream_mode="values", config=config):
+        # Just extract the latest message
+        latest_msg = req.messages[-1]
+
+        # Start streaming into LangGraph with only the new message
+        assistant_response = None
+        for step in graph.stream(
+            {"messages": [latest_msg]},
+            stream_mode="values",
+            config=config
+        ):
             msg = step["messages"][-1]
             if getattr(msg, "type", None) in ("ai", "assistant"):
-                reply = msg.content
+                assistant_response = msg.content
 
-        if reply is None:
-            raise RuntimeError("No assistant reply generated")
+        if assistant_response is None:
+            raise RuntimeError("No assistant message generated — check input or node config.")
 
-        return {"reply": reply}
+        return {"reply": assistant_response}
 
     except HTTPException:
-        raise  # re-raise cleanly
+        raise
     except Exception as e:
         print(f"Internal Server Error: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
+
+
 
 
 # Dev server entry point
