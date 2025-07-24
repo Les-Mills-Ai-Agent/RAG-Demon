@@ -10,10 +10,10 @@ export default function ChatWindow({ messages, onRetry }) {
 
   return (
     <div className="flex flex-col gap-4 max-w-4xl mx-auto">
-      {messages.map((m, i) => (
-        <ChatBubble key={i} msg={m} onRetry={() => onRetry(i)} />
+      {messages.map((m) => (
+        <ChatBubble key={m.id} msg={m} onRetry={() => onRetry(m.id)} />
       ))}
-      <div ref={bottomRef} /> {/* 👈 Invisible anchor */}
+      <div ref={bottomRef} />
     </div>
   )
 }
