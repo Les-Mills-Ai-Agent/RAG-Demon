@@ -3,13 +3,15 @@ import ChatWindow from './components/ChatWindow.jsx'
 import ChatInput from './components/ChatInput.jsx'
 import { getChatCompletion } from './utils/openai.js'
 import './index.css'
+import { v4 as uuidv4 } from 'uuid'
 
 export default function App() {
   const [messages, setMessages] = useState([
     {
+      id: uuidv4(),
       role: 'system',
-      content:
-        "Hi! I'm your Les Mills AI assistant. I'm here to help you with B2B inquiries, solutions, and anything else Les Mills related. How can I assist you today?",
+      content: "Hi! I'm your Les Mills AI assistant. I'm here to help you with B2B inquiries, solutions, and anything else Les Mills related. How can I assist you today?",
+      status: 'success',
       createdAt: new Date().toISOString(),
     },
   ])
@@ -23,12 +25,20 @@ export default function App() {
   const append = (msg) => setMessages((ms) => [...ms, msg])
 
   const sendMessage = async (text) => {
+    const trimmed = text.trim()
+    if (!trimmed) return // Input validation
+
     const userMessage = {
+      id: uuidv4(),
       role: 'user',
-      content: text,
+      content: trimmed,
+      status: 'success',
       createdAt: new Date().toISOString(),
     }
+
+    const placeholderId = uuidv4()
     const placeholder = {
+      id: placeholderId,
       role: 'assistant',
       content: '',
       status: 'loading',
@@ -42,9 +52,9 @@ export default function App() {
       const reply = await getChatCompletion([...messages, userMessage])
       setMessages((ms) =>
         ms.map((m) =>
-          m === placeholder
+          m.id === placeholderId
             ? {
-                role: 'assistant',
+                ...m,
                 content: reply,
                 status: 'success',
                 createdAt: new Date().toISOString(),
@@ -53,20 +63,20 @@ export default function App() {
         )
       )
     } catch (err) {
-      const detail = err.response?.data?.detail || err.message
       setMessages((ms) =>
         ms.map((m) =>
-          m === placeholder
+          m.id === placeholderId
             ? {
-                role: 'assistant',
+                ...m,
                 content: '',
                 status: 'error',
-                error: detail,
+                error: 'Something went wrong. Please try again.',
                 createdAt: new Date().toISOString(),
               }
             : m
         )
       )
+      console.error('Error fetching chat completion:', err) // Still log internally
     }
   }
 
