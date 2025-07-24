@@ -30,7 +30,6 @@ export default function ChatBubble({ msg, onRetry }) {
   return (
     <div className={`w-full flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div className="flex items-end gap-2">
-        {/* Avatar for assistant */}
         {msg.role === 'assistant' && (
           <div className="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shrink-0">
             LM
@@ -38,7 +37,7 @@ export default function ChatBubble({ msg, onRetry }) {
         )}
 
         <div className={classes}>
-          {/* Typing Animation */}
+          {/* Loading */}
           {msg.status === 'loading' && (
             <div className="flex gap-1 text-gray-500">
               <span className="animate-blink delay-0">.</span>
@@ -47,28 +46,35 @@ export default function ChatBubble({ msg, onRetry }) {
             </div>
           )}
 
-          {/* Error Message */}
+          {/* Error */}
           {msg.status === 'error' && (
             <>
-              <div>⚠️ {msg.error}</div>
-              <button
-                onClick={onRetry}
-                className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition"
-              >
-                Retry
-              </button>
+              <div>⚠️ {msg.error || 'Something went wrong.'}</div>
+              {onRetry && (
+                <button
+                  onClick={onRetry}
+                  aria-label="Retry message"
+                  className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition"
+                >
+                  Retry
+                </button>
+              )}
             </>
           )}
 
-          {/* Markdown message */}
+          {/* Success (markdown response) */}
           {msg.status === 'success' && msg.content && (
             <div className="prose prose-sm max-w-none dark:prose-invert">
               <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
           )}
 
-          {/* Raw fallback */}
-          {!msg.status && msg.content}
+          {/* Fallback if status is undefined */}
+          {msg.status === undefined && msg.content && (
+            <div className="text-sm text-gray-800 dark:text-gray-200">
+              {msg.content}
+            </div>
+          )}
 
           {/* Timestamp */}
           {formattedTime && (
