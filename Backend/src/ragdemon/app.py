@@ -10,11 +10,11 @@ from langgraph.graph import StateGraph, MessagesState, END
 
 from typing_extensions import Annotated
 
-from src.ragdemon.vector_stores import InMemoryStore, BaseVectorStore
-from src.ragdemon.apis import build_llm_client, build_embeddings_client
-from src.ragdemon.web_scrape import fetch_documentation, split_document
-from src.ragdemon.history import save_chat
-from src.ragdemon.history import show_history_menu
+from .vector_stores import InMemoryStore, BaseVectorStore
+from .apis import build_llm_client, build_embeddings_client
+from .web_scrape import fetch_documentation, split_document
+from .history import save_chat
+from .history import show_history_menu
 
 import os
 from dotenv import load_dotenv
