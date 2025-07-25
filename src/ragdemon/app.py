@@ -139,6 +139,9 @@ def main():
             step["messages"][-1].pretty_print()
 
 
+
+# Build the graph for server usage
+graph = build_graph()
 # Test the application
 if __name__ == "__main__":
     main()

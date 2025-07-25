@@ -96,3 +96,5 @@ wrapt==1.17.2
 xxhash==3.5.0
 yarl==1.20.0
 zstandard==0.23.0
+fastapi
+uvicorn[standard]
