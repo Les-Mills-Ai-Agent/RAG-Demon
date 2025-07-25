@@ -11,7 +11,7 @@ load_dotenv(override=True)
 
 @pytest.fixture
 def test_data():
-    with open("sample_data/test_data.yaml", "r") as file:
+    with open("Backend/sample_data/test_data.yaml", "r") as file:
         return yaml.safe_load(file)
     
 @pytest.fixture
