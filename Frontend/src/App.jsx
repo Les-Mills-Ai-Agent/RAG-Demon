@@ -100,10 +100,6 @@ export default function App() {
             {darkMode ? '🌙 Dark' : '☀️ Light'}
           </button>
 
-          <div className="flex items-center space-x-2">
-            <span className="h-3 w-3 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm text-gray-600 dark:text-gray-300">Online</span>
-          </div>
         </div>
       </header>
 
