@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from ragdemon.app import build_graph, vector_store, config
-from ragdemon.web_scrape import fetch_documentation, split_document
+from src.ragdemon.app import build_graph, vector_store, config
+from src.ragdemon.web_scrape import fetch_documentation, split_document
 
 # Load environment variables
 load_dotenv(override=True)

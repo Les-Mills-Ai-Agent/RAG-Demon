@@ -1,5 +1,5 @@
 from langchain_core.documents import Document
-from ragdemon.vector_stores import InMemoryStore  # replace with your actual module
+from src.ragdemon.vector_stores import InMemoryStore  # replace with your actual module
 from langchain_core.embeddings import FakeEmbeddings  # replace with your actual module
 
 def test_in_memory_store_add_and_search():

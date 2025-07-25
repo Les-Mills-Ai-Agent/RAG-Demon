@@ -1,9 +1,9 @@
 import pytest
 from langchain_core.documents import Document
 from dotenv import load_dotenv
-from ragdemon.web_scrape import fetch_documentation
-from ragdemon.web_scrape import separate_markdown_from_yaml
-from ragdemon.web_scrape import split_document
+from src.ragdemon.web_scrape import fetch_documentation
+from src.ragdemon.web_scrape import separate_markdown_from_yaml
+from src.ragdemon.web_scrape import split_document
 import yaml
 
 # Load environment variables
