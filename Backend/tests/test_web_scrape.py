@@ -1,9 +1,9 @@
 import pytest
 from langchain_core.documents import Document
 from dotenv import load_dotenv
-from ragdemon.web_scrape import fetch_documentation
-from ragdemon.web_scrape import separate_markdown_from_yaml
-from ragdemon.web_scrape import split_document
+from src.ragdemon.web_scrape import fetch_documentation
+from src.ragdemon.web_scrape import separate_markdown_from_yaml
+from src.ragdemon.web_scrape import split_document
 import yaml
 
 # Load environment variables
@@ -11,7 +11,7 @@ load_dotenv(override=True)
 
 @pytest.fixture
 def test_data():
-    with open("sample_data/test_data.yaml", "r") as file:
+    with open("Backend/sample_data/test_data.yaml", "r") as file:
         return yaml.safe_load(file)
     
 @pytest.fixture

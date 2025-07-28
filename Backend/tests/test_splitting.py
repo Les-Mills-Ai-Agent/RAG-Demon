@@ -1,7 +1,7 @@
 from langchain_core.documents import Document
 from dotenv import load_dotenv
 
-from ragdemon.splitting import split_document
+from src.ragdemon.splitting import split_document
 
 # Load environment variables
 load_dotenv(override=True)
