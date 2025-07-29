@@ -5,7 +5,6 @@ def build_llm_client() -> ChatOpenAI:
     return ChatOpenAI(
         model="gpt-4o-mini",
         temperature=0,
-        max_tokens=None,
         timeout=None,
         max_retries=2,
     )

@@ -7,6 +7,7 @@ from langchain_core.messages import SystemMessage
 from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, MessagesState, END
+from langgraph.graph.state import CompiledStateGraph
 
 from typing_extensions import Annotated
 
@@ -29,7 +30,7 @@ vector_store: BaseVectorStore = InMemoryStore(embeddings)
 
 config = {"configurable": {"thread_id": "bomboclaat_thread"}}
 
-def build_graph() -> StateGraph:
+def build_graph() -> CompiledStateGraph:
     graph_builder = StateGraph(MessagesState)
     tools = ToolNode([retrieve])
     

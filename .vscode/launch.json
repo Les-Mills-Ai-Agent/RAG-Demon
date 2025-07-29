@@ -1,0 +1,39 @@
+{
+  "configurations": [
+    {
+      "type": "aws-sam",
+      "request": "direct-invoke",
+      "name": "lambda:HelloWorldFunction (python3.13)",
+      "invokeTarget": {
+        "target": "template",
+        "templatePath": "${workspaceFolder}/Backend/src/ragdemon/lambda/template.yaml",
+        "logicalId": "HelloWorldFunction"
+      },
+      "lambda": {
+        "payload": {},
+        "environmentVariables": {},
+        "runtime": "python3.13"
+      }
+    },
+    {
+      "type": "aws-sam",
+      "request": "direct-invoke",
+      "name": "API lambda:HelloWorldFunction (python3.13)",
+      "invokeTarget": {
+        "target": "api",
+        "templatePath": "${workspaceFolder}/Backend/src/ragdemon/lambda/template.yaml",
+        "logicalId": "HelloWorldFunction"
+      },
+      "api": {
+        "path": "/hello",
+        "httpMethod": "get",
+        "payload": {
+          "json": {}
+        }
+      },
+      "lambda": {
+        "runtime": "python3.13"
+      }
+    }
+  ]
+}
