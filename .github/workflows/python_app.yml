@@ -36,7 +36,7 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Start FastAPI server
         run: |
-          nohup uvicorn Backend.src.main:app --host 127.0.0.1 --port 8000 & sleep 3
+          nohup uvicorn Backend.src.ragdemon.server:api --host 127.0.0.1 --port 8000 & sleep 3
       - name: Test with pytest
         env:
           OPENAI_API_KEY: ${{ secrets.TEST_API_KEY }}
