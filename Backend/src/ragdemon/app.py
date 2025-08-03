@@ -10,7 +10,7 @@ from langgraph.graph import StateGraph, MessagesState, END
 
 from typing_extensions import Annotated
 
-from .vector_stores import InMemoryStore, BaseVectorStore
+from .vector_stores import PineconeStore, BaseVectorStore
 from .apis import build_llm_client, build_embeddings_client
 from .web_scrape import fetch_documentation, split_document
 from .history import save_chat
@@ -18,6 +18,7 @@ from .history import show_history_menu
 
 import os
 from dotenv import load_dotenv
+from pinecone import ServerlessSpec, Pinecone
 
 # Load environment variables
 load_dotenv(override=True)
@@ -25,7 +26,17 @@ os.getenv("OPENAI_API_KEY")
 
 llm: ChatOpenAI = build_llm_client()
 embeddings: OpenAIEmbeddings = build_embeddings_client()
-vector_store: BaseVectorStore = InMemoryStore(embeddings)
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+index_name = "les-mills-index"
+if not pc.has_index(index_name):
+    pc.create_index(
+        name=index_name,
+        dimension=3072, #
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+    )
+index = pc.Index(index_name)
+vector_store: BaseVectorStore = PineconeStore(index, embeddings)
 
 config = {"configurable": {"thread_id": "bomboclaat_thread"}}
 

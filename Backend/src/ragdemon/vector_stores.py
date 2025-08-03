@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from langchain_core.documents import Document
 from typing import List
-from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_pinecone import PineconeVectorStore
 
 class BaseVectorStore(ABC):
     @abstractmethod
@@ -12,10 +12,11 @@ class BaseVectorStore(ABC):
     def similarity_search(self, query: str, k: int = 2) -> List[tuple[Document, float]]:
         pass
 
-class InMemoryStore(BaseVectorStore):
-    def __init__(self, embeddings):
+class PineconeStore(BaseVectorStore):
+    def __init__(self, index, embeddings):
+        self.index = index
         self.embeddings = embeddings
-        self.store = InMemoryVectorStore(embedding=self.embeddings)
+        self.store = PineconeVectorStore(index=self.index, embedding=self.embeddings)
 
     def add_documents(self, documents: List[Document]):
         self.store.add_documents(documents)
