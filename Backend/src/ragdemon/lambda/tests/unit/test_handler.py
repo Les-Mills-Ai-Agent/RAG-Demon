@@ -1,9 +1,4 @@
-import json
-
 import pytest
-
-from ragdemon import app
-from aws_lambda_powertools.utilities.typing import LambdaContext
 
 
 @pytest.fixture()

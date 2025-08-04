@@ -1,0 +1,102 @@
+openapi: 3.0.1
+info:
+  title: Multi-endpoint RAG API
+  version: 1.0.0
+paths:
+  /rag/bedrock:
+    post:
+      summary: Ask Bedrock a question and receive a response with sources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionRequest"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnswerResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    QuestionRequest:
+      type: object
+      properties:
+        query:
+          description: The query for Bedrock to answer
+          type: string
+        session_id:
+          description: Optional session identifier
+          type: string
+      required:
+        - query
+    AnswerResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+          description: The generated LLM response based on the retrieved chunks
+        responseParts:
+          type: array
+          description: A list of response parts with their retrieved sources
+          items:
+            $ref: "#/components/schemas/ResponsePart"
+        session_id:
+          description: The session identifier, either newly generated or taken from the request
+          type: string
+      required: [answer, responseParts, session_id]
+
+    ResponsePart:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The text content of the response part
+        references:
+          type: array
+          description: The chunks retrieved from the vector store to generate the response part
+          items:
+            $ref: "#/components/schemas/Chunk"
+      required: [content, references]
+
+    Chunk:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The text content of the chunks
+        url:
+          type: string
+          format: uri
+          description: The URL that the chunk was originally pulled from
+      required: [content, url]
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: integer
+      required: [message, code]

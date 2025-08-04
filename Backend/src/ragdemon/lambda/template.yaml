@@ -1,52 +1,61 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
+Description: |
   Multi-endpoint RAG API (Bedrock, LangChain) using AWS SAM
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 30
+    Runtime: python3.13
 
 Resources:
   BedrockRagFunction:
     Type: AWS::Serverless::Function
     Properties:
+      CodeUri: ./ragdemon
       Handler: app.bedrock_handler
+      Role: !GetAtt BedrockRagFunctionRole.Arn
       Events:
         BedrockEndpoint:
           Type: Api
           Properties:
             Path: /rag/bedrock
             Method: post
+      Runtime: python3.13
+      MemorySize: 3008
+      Timeout: 30
+      Environment: {}
 
-  LangchainRagFunction:
-    Type: AWS::Serverless::Function
+  BedrockRagFunctionRole:
+    Type: AWS::IAM::Role
     Properties:
-      Handler: app.langchain_handler
-      Events:
-        LangchainEndpoint:
-          Type: Api
-          Properties:
-            Path: /rag/langchain
-            Method: post
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AllowCloudWatchAndBedrock
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:*
+                  - bedrock:*
+                Resource: '*'
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  RagApi:
+    Description: API Gateway endpoint URL for Prod stage for RAG function
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
 
   BedrockRagFunction:
-    Description: "Bedrock RAG Lambda ARN"
+    Description: Bedrock RAG Lambda ARN
     Value: !GetAtt BedrockRagFunction.Arn
-
-  LangchainRagFunction:
-    Description: "LangChain RAG Lambda ARN"
-    Value: !GetAtt LangchainRagFunction.Arn
-
-  HelloWorldFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt HelloWorldFunctionRole.Arn

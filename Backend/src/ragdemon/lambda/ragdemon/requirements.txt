@@ -1,1 +1,4 @@
-requests
+mypy_boto3_bedrock_agent_runtime
+pydantic
+aws_lambda_powertools
+boto3
