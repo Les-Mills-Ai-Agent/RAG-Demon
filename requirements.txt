@@ -58,6 +58,7 @@ orjson==3.10.18
 ormsgpack==1.9.1
 packaging==24.2
 pathspec==0.12.1
+pdfplumber==0.7.0
 platformdirs==4.3.7
 pluggy==1.5.0
 propcache==0.3.1
