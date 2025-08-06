@@ -13,6 +13,126 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
+      DefinitionBody:
+        openapi: 3.0.1
+        info:
+          title: Multi-endpoint RAG API
+          version: 1.0.0
+        paths:
+          /rag/bedrock:
+            post:
+              summary: Ask Bedrock a question and receive a response with sources
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: "#/components/schemas/QuestionRequest"
+
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BedrockRagFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+
+              x-amazon-apigateway-request-validators:
+                validate-body:
+                  validateRequestBody: true
+                  validateRequestParameters: false
+
+              x-amazon-apigateway-request-validator: validate-body
+
+              responses:
+                "200":
+                  description: Successful response
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/AnswerResponse"
+                "400":
+                  description: Bad request
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                "403":
+                  description: Forbidden
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                "500":
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+
+        components:
+          schemas:
+            QuestionRequest:
+              type: object
+              properties:
+                query:
+                  description: The query for Bedrock to answer
+                  type: string
+                session_id:
+                  description: Optional session identifier
+                  type: string
+              required: [query]
+
+            AnswerResponse:
+              type: object
+              properties:
+                answer:
+                  type: string
+                  description: The generated LLM response based on the retrieved chunks
+                responseParts:
+                  type: array
+                  description: A list of response parts with their retrieved sources
+                  items:
+                    $ref: "#/components/schemas/ResponsePart"
+                session_id:
+                  description: The session identifier, either newly generated or returned from the request
+                  type: string
+              required: [answer, responseParts, session_id]
+
+            ResponsePart:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: The text content of the response part
+                references:
+                  type: array
+                  description: The chunks retrieved from the vector store to generate the response part
+                  items:
+                    $ref: "#/components/schemas/Chunk"
+              required: [text, references]
+
+            Chunk:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: The text content of the chunks
+                url:
+                  type: string
+                  format: uri
+
+      Auth:
+        DefaultAuthorizer: RagCognitoAuthorizer
+        Authorizers:
+          RagCognitoAuthorizer:
+            UserPoolArn: !GetAtt RagCognitoUserPool.Arn
 
   BedrockRagFunction:
     Type: AWS::Serverless::Function
@@ -20,15 +140,8 @@ Resources:
       CodeUri: ./ragdemon
       Handler: app.bedrock_handler
       Role: !GetAtt BedrockRagFunctionRole.Arn
-      Events:
-        BedrockEndpoint:
-          Type: Api
-          Properties:
-            RestApiId: !Ref RagApi
-            Path: /rag/bedrock
-            Method: post
-      Runtime: python3.13
 
+  # Defines the allowed actions of BedrockRagFunctions
   BedrockRagFunctionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -50,6 +163,44 @@ Resources:
                   - bedrock:*
                 Resource: "*"
 
+  # Ensures BedrockRagFunction can only be called by RagApi
+  BedrockRagFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt BedrockRagFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
+
+  RagCognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: RagUserPool
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+      UsernameAttributes:
+        - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+
+  RagCognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref RagCognitoUserPool
+      ClientName: RagUserPoolClient
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_USER_SRP_AUTH
+      PreventUserExistenceErrors: ENABLED
+
 Outputs:
   ApiUrl:
     Description: API Gateway endpoint URL for Prod stage for RAG function
@@ -58,3 +209,11 @@ Outputs:
   BedrockRagFunction:
     Description: Bedrock RAG Lambda ARN
     Value: !GetAtt BedrockRagFunction.Arn
+
+  RagCognitoUserPool:
+    Description: Pool of internal LMI users authorised to access the RAG-Demon application
+    Value: !GetAtt RagCognitoUserPool.Arn
+
+  RagCognitoUserPoolClientId:
+    Description: Client to access and modify the RAG-Demon UserPool
+    Value: !GetAtt RagCognitoUserPoolClient.ClientId
