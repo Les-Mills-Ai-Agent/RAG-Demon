@@ -5,6 +5,7 @@ from typing import Any, List, Tuple
 import yaml
 import os
 from dotenv import load_dotenv
+from flatten_json import flatten
 
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
@@ -26,83 +27,61 @@ def fetch_documentation(url: str) -> dict:
 
     return parsed_doc
 
-# This recursive function breaks down the parsed yaml document from https://api.content.lesmills.com/docs/v1/content-portal-api.yaml
-# And returns: list of nested markdown snippets, and dictionary of the cleaned "yaml" structure without the markdown
-def separate_markdown_from_yaml(obj: Any) -> Tuple[List[str], Any]:
+def split_document(document: dict) -> List[Document]:
+
+    # Step 1: Flatten the JSON
+    flattened_json = flatten(document, separator='.')
+
+    # Step 2: Extract markdown-containing entries
     def contains_markdown(text: str) -> bool:
         return any(token in text for token in ["#", "*", "`"])
     
-    if isinstance(obj, str):
-        if contains_markdown(obj):
-            obj = obj.replace("\\n", "\n")
-            return [obj], None
-        else:
-            return [], obj
-        
-    if isinstance(obj, list):
-        md_list = []
-        cleaned_list = []
-        
-        for item in obj:
-            md, cleaned = separate_markdown_from_yaml(item)
-            md_list.extend(md)
-            cleaned_list.append(cleaned)
-        
-        return md_list, cleaned_list
-    
-    if isinstance(obj, dict):
-        md_list = []
-        cleaned_obj = {}
-        
-        for key, value in obj.items():
-            md, cleaned = separate_markdown_from_yaml(value)
-            md_list.extend(md)
-            cleaned_obj[key] = cleaned
-        
-        return md_list, cleaned_obj
-    
-    return [], obj            
+    markdown_entries = {}
+    keys_to_remove = []
 
+    for key, value in flattened_json.items():
+        if isinstance(value, str) and contains_markdown(value):
+            markdown_entries[key] = value
+            keys_to_remove.append(key)
 
-def split_document(document: dict) -> List[Document]:
+    # Step 3: Remove markdown entries from original flattened JSON
+    for key in keys_to_remove:
+        del flattened_json[key]
 
-    # Retrieve nested Markdown snippets, and the cleaned YAML structure without Markdown
-    markdown_strings, cleaned_yaml = separate_markdown_from_yaml(document)
-    
-    # Create JSON splits
+    # Step 4: Use RecursiveJsonSplitter on the cleaned flattened JSON
     json_splitter = RecursiveJsonSplitter(max_chunk_size=500)
-    json_docs = json_splitter.create_documents([cleaned_yaml])
+    splitted_json = json_splitter.create_documents([flattened_json])
 
-    # Create Markdown splits
-    combined_markdown = "\n\n".join(markdown_strings)
+    # Add key path metadata to JSON chunks
+    for doc in splitted_json:
+        doc.metadata["source"] = "json_split"
+        # You can add additional metadata here if needed
 
+    # Step 5: Split markdown entries with MarkdownTextSplitter
     headers_to_split_on = [
         ("#", "Header 1"),
         ("##", "Header 2"),
         ("###", "Header 3"),
         ("####", "Header 4"),
     ]
+    markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
+    splitted_md = []
 
-    md_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
-    md_splits = md_splitter.split_text(combined_markdown)
+    for key, text in markdown_entries.items():
+        chunks = markdown_splitter.split_text(text)
+        for chunk in chunks:
+            chunk.metadata["source"] = "markdown_split"
+            chunk.metadata["key_path"] = key
+            splitted_md.append(chunk)
 
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=50,
-        separators=[". ", "\n\n", "\n"],
-    )
-
-    md_docs = text_splitter.split_documents(md_splits)
-
-    # Combine and return both JSON and Markdown splits
-    return json_docs + md_docs
-
+    # Combine all split documents
+    return splitted_json + splitted_md
 
 def test():
     with open("sample_data/test_data.yaml", "r") as f:
         return yaml.safe_load(f)
 
-# Only run self‑test when executed directly, not on import
-if __name__ == "__main__":
-    md, json = separate_markdown_from_yaml(test())
-    print(md)
+# # Only run self‑test when executed directly, not on import
+# if __name__ == "__main__":
+#     md, json = separate_markdown_from_yaml(test())
+#     print(md)
