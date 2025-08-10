@@ -115,8 +115,8 @@ REFUSALS
 - Requests for personal data or internal-only documentation → “Sorry, I can't assist with that.”
 
 CONTEXT (verbatim, may be long):
-{ {NO_CONTENT} }
-""".replace("{ {DOCS_CONTENT} }", docs_content)
+"{NO_CONTENT}"
+""".replace("{DOCS_CONTENT}", docs_content)
     # Filter out messages that are not relevant for the prompt
     # Only include human, system, and AI messages without tool calls    
     conversation_messages = [
