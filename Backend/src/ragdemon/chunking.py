@@ -68,7 +68,7 @@ def split_document(document: Any) -> List[Document]:
         markdown_docs = text_splitter.split_documents(markdown_splits)
         return json_docs + markdown_docs
     
-    elif isinstance(document, str) or "content" in document:
+    elif isinstance(document, str) or (isinstance(document, dict) and "content" in document):
 
         text = document.get("content", "") if isinstance(document, dict) else document
 
