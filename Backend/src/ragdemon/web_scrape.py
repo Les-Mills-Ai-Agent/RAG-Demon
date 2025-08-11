@@ -29,10 +29,10 @@ def fetch_documentation(url: str) -> dict:
 
 def split_document(document: dict) -> List[Document]:
 
-    # Step 1: Flatten the JSON
+    # Flatten json document
     flattened_json = flatten(document, separator='.')
 
-    # Step 2: Extract markdown-containing entries
+    # Extract markdown snippets
     def contains_markdown(text: str) -> bool:
         return any(token in text for token in ["#", "*", "`"])
     
@@ -44,20 +44,18 @@ def split_document(document: dict) -> List[Document]:
             markdown_entries[key] = value
             keys_to_remove.append(key)
 
-    # Step 3: Remove markdown entries from original flattened JSON
+    # Remove markdown snippets from flattened JSON
     for key in keys_to_remove:
         del flattened_json[key]
 
-    # Step 4: Use RecursiveJsonSplitter on the cleaned flattened JSON
+    # Split flattened JSON
     json_splitter = RecursiveJsonSplitter(max_chunk_size=500)
     splitted_json = json_splitter.create_documents([flattened_json])
 
     # Add key path metadata to JSON chunks
     for doc in splitted_json:
         doc.metadata["source"] = "json_split"
-        # You can add additional metadata here if needed
 
-    # Step 5: Split markdown entries with MarkdownTextSplitter
     headers_to_split_on = [
         ("#", "Header 1"),
         ("##", "Header 2"),
@@ -65,10 +63,19 @@ def split_document(document: dict) -> List[Document]:
         ("####", "Header 4"),
     ]
     markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=50,
+        separators=[". ", "\n\n", "\n"],
+    )
+    
     splitted_md = []
 
+    # Split individual markdown snippets
     for key, text in markdown_entries.items():
-        chunks = markdown_splitter.split_text(text)
+        text = text.replace("\\n", "\n")
+        docs = markdown_splitter.split_text(text)
+        chunks = text_splitter.split_documents(docs)
         for chunk in chunks:
             chunk.metadata["source"] = "markdown_split"
             chunk.metadata["key_path"] = key
@@ -77,11 +84,11 @@ def split_document(document: dict) -> List[Document]:
     # Combine all split documents
     return splitted_json + splitted_md
 
-def test():
-    with open("sample_data/test_data.yaml", "r") as f:
-        return yaml.safe_load(f)
+# def test():
+#     with open("Backend/sample_data/test_data.yaml", "r") as f:
+#         return yaml.safe_load(f)
 
 # # Only run self‑test when executed directly, not on import
 # if __name__ == "__main__":
-#     md, json = separate_markdown_from_yaml(test())
-#     print(md)
+#     splits = split_document(test())
+#     print(splits)
