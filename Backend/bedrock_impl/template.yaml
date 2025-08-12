@@ -138,7 +138,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./ragdemon
-      Handler: app.bedrock_handler
+      Handler: handler.bedrock_handler
       Role: !GetAtt BedrockRagFunctionRole.Arn
 
   # Defines the allowed actions of BedrockRagFunctions

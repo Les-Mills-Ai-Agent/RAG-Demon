@@ -8,8 +8,6 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import AnyUrl, BaseModel, Field
 
-from mypy_boto3_bedrock_agent_runtime.type_defs import RetrieveAndGenerateResponseTypeDef
-
 
 class QuestionRequest(BaseModel):
     query: str = Field(..., description='The query for Bedrock to answer')
@@ -55,39 +53,3 @@ class AnswerResponseBody(BaseModel):
         ...,
         description='The session identifier, either newly generated or taken from the request',
     )
-
-    @staticmethod
-    def from_retrieve_and_generate_response(data: RetrieveAndGenerateResponseTypeDef) -> AnswerResponseBody:
-        output = data["output"]["text"]
-        session_id = data["sessionId"]
-        citations = data["citations"]
-
-        extracted_parts = []
-
-        for citation in citations:
-            generated_response_part = citation.get("generatedResponsePart")
-            part = None
-            if generated_response_part:
-                text_response_part = generated_response_part.get("textResponsePart")
-                if text_response_part:
-                    part = text_response_part.get("text")
-            refs = citation.get("retrievedReferences", [])
-            simplified_refs = [
-                {
-                    "text": ref.get("content", {}).get("text"),
-                    "url": ref.get("location", {}).get("webLocation", {}).get("url")
-                }
-                for ref in refs if ref.get("location", {}).get("type") == "WEB"
-            ]
-            extracted_parts.append({
-                "text": part,
-                "references": simplified_refs
-            })
-
-        return AnswerResponseBody(
-            answer = output,
-            responseParts = extracted_parts,
-            session_id = session_id
-        )
-
-

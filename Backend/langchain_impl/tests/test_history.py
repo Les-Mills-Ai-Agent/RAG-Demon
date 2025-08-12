@@ -5,7 +5,7 @@ import os
 from io import StringIO
 import sys
 
-from src.ragdemon.history import save_chat, show_history
+from langchain_impl.src.history import save_chat, show_history
 
 
 def test_save_chat():

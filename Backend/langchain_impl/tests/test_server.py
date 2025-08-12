@@ -1,6 +1,6 @@
 import pytest
 from httpx import AsyncClient
-from src.ragdemon.server import api  # your FastAPI app
+from langchain_impl.src.server import api  # your FastAPI app
 
 from fastapi.testclient import TestClient
 from starlette.testclient import TestClient as StarletteTestClient  # alternative
