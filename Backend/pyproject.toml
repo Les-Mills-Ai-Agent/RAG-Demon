@@ -12,11 +12,11 @@ dependencies = [
 ]
 
 [tool.setuptools]
-package-dir = { "" = "." }
+package-dir = {"" = "langchain_impl/src"}
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["langchain_impl/src"]
 
 [tool.pytest.ini_options]
-pythonpath = "src"
+pythonpath = "langchai_impl"
 addopts = ["--import-mode=importlib"]
