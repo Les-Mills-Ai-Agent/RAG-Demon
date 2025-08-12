@@ -2,4 +2,4 @@
 .venv/
 __pycache__/
 .pytest_cache/
-backend/langchain_impl/chat_data/chat_history.json
+.langchain_impl/chat_data/chat_history.json
