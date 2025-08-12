@@ -144,7 +144,7 @@ unstructured==0.17.2
 unstructured-client==0.34.0
 urllib3==2.4.0
 uvicorn==0.35.0
-uvloop==0.21.0
+uvloop==0.21.0; sys_platform != "win32" # remove the ; sys_platform != "win32" line of code if you encounter issues intsalling it for macos 
 vcrpy==7.0.0
 watchfiles==1.1.0
 webencodings==0.5.1
