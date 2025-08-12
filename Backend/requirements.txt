@@ -109,3 +109,9 @@ wrapt==1.17.2
 xxhash==3.5.0
 yarl==1.20.0
 zstandard==0.23.0
+<<<<<<< HEAD:Backend/requirements.txt
+=======
+fastapi
+uvicorn[standard]
+pytest-asyncio
+>>>>>>> dev:requirements.txt
