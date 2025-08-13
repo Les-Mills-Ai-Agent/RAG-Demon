@@ -25,9 +25,13 @@ load_dotenv(override=True)
 os.getenv("OPENAI_API_KEY")
 
 
-#create dynamodb client
-dynamodb_client = boto3.client("dynamodb",
-    region_name=os.getenv("AWS_REGION", "us-east-1"))
+# create dynamodb client
+dynamodb_client = boto3.client(
+    "dynamodb",
+    region_name=os.getenv("AWS_REGION", "us-east-1")
+)
+# NOTE: DynamoDBSaver below uses a boto3 *resource* (Table), not the client.
+# The client is left here intentionally to preserve your original comment/history.
 
 llm: ChatOpenAI = build_llm_client()
 embeddings: OpenAIEmbeddings = build_embeddings_client()
@@ -51,7 +55,10 @@ def build_graph() -> CompiledStateGraph:
     graph_builder.add_edge("generate", END)
 
     # ---- DynamoDB checkpointer (stateless persistence by thread_id) ----
-    ddb = boto3.resource("dynamodb")
+    ddb = boto3.resource(
+        "dynamodb",
+        region_name=os.getenv("AWS_REGION", "us-east-1")
+    )
     table_name = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints")
     checkpointer = DynamoDBSaver(ddb.Table(table_name))
 
