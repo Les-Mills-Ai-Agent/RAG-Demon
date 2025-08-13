@@ -6,8 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 from dotenv import load_dotenv
 
-from .app import build_graph, vector_store  # vector_store bound at compile-time in app.py
-from .web_scrape import fetch_documentation, split_document
+from app import build_graph, vector_store
+from web_scrape import fetch_documentation, split_document
+
 
 # ---------- Env ----------
 load_dotenv(override=True)
