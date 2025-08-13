@@ -29,6 +29,7 @@ graph = build_graph()
 # Pydantic model for incoming requests
 class ChatRequest(BaseModel):
     session_id: str                 # required to set thread_id
+    messages: list[dict]            # keep your existing shape
 
 # Create FastAPI app
 api = FastAPI(title="Les Mills RAG API")

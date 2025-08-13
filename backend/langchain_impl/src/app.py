@@ -24,6 +24,11 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 os.getenv("OPENAI_API_KEY")
 
+
+#create dynamodb client
+dynamodb_client = boto3.client("dynamodb",
+    region_name=os.getenv("AWS_REGION", "us-east-1"))
+
 llm: ChatOpenAI = build_llm_client()
 embeddings: OpenAIEmbeddings = build_embeddings_client()
 vector_store: BaseVectorStore = InMemoryStore(embeddings)
