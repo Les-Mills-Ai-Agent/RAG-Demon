@@ -7,7 +7,11 @@ from langchain_core.messages import SystemMessage
 from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
 from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.graph.state import CompiledStateGraph
-from langgraph.checkpoint.dynamodb import DynamoDBSaver
+
+from langgraph_checkpoint_dynamodb import DynamoDBSaver
+
+
+
 
 from typing_extensions import Annotated
 import boto3

@@ -69,6 +69,7 @@ lxml==5.4.0
 markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 marshmallow==3.26.1
+mangum==0.8.0
 mdurl==0.1.2
 more-itertools==10.7.0
 moto==5.1.9
