@@ -58,7 +58,7 @@ async def chat(req: ChatRequest):
         for step in graph.stream(
             {"messages": [latest_msg]},
             stream_mode="values",
-            config={"configurable": {"thread_id": req.session_id}}
+            config=config  # <-- use the variable you just built
         ):
             msg = step["messages"][-1]
             if getattr(msg, "type", None) in ("ai", "assistant"):
