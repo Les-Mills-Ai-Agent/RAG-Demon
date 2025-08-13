@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from .app import build_graph, vector_store, config
+from .app import build_graph, vector_store 
 from .web_scrape import fetch_documentation, split_document
 
 # Load environment variables
@@ -16,20 +16,19 @@ FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 if not OPENAI_API_KEY:
     raise RuntimeError("Set OPENAI_API_KEY in your .env")
 
-# Ensure chat history folder exists
-os.makedirs("chat_data", exist_ok=True)
+# (No local chat_data folder required anymore)
 
 # Load and index documentation
 document = fetch_documentation("https://api.content.lesmills.com/docs/v1/content-portal-api.yaml")
 splits = split_document(document)
 vector_store.add_documents(splits)
 
-# Build the LangGraph pipeline
+# Build the LangGraph pipeline (uses DynamoDB checkpointer from app.py)
 graph = build_graph()
 
 # Pydantic model for incoming requests
 class ChatRequest(BaseModel):
-    messages: list[dict]
+    session_id: str                 # required to set thread_id
 
 # Create FastAPI app
 api = FastAPI(title="Les Mills RAG API")
@@ -48,10 +47,12 @@ async def chat(req: ChatRequest):
         if not req.messages or not isinstance(req.messages, list):
             raise HTTPException(status_code=400, detail="Message list is empty or invalid.")
 
-        # Just extract the latest message
+        # Use only the latest message; DynamoDB checkpointer handles the rest
         latest_msg = req.messages[-1]
 
-        # Start streaming into LangGraph with only the new message
+        # Set thread_id dynamically per request so LangGraph/DynamoDB can resume the conversation
+        config = {"configurable": {"thread_id": req.session_id}}
+
         assistant_response = None
         for step in graph.stream(
             {"messages": [latest_msg]},
@@ -65,16 +66,13 @@ async def chat(req: ChatRequest):
         if assistant_response is None:
             raise RuntimeError("No assistant message generated — check input or node config.")
 
-        return {"reply": assistant_response}
+        return {"reply": assistant_response, "session_id": req.session_id}
 
     except HTTPException:
         raise
     except Exception as e:
         print(f"Internal Server Error: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
-
-
-
 
 # Dev server entry point
 if __name__ == "__main__":
