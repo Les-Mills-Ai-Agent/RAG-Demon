@@ -1,2 +1,0 @@
-chat_data
-ragdemon

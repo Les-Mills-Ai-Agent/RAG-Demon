@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragdemon"
+version = "0.1.0"
+description = "Les Mills AI Agent"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]"
+]
+
+[tool.setuptools]
+package-dir = {"" = "langchain_impl/src"}
+
+[tool.setuptools.packages.find]
+where = ["langchain_impl/src"]
+
+[tool.pytest.ini_options]
+pythonpath = "langchai_impl"
+addopts = ["--import-mode=importlib"]

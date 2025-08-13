@@ -1,6 +1,1 @@
 .env
-.venv/
-__pycache__/
-.pytest_cache/
-.chat_data/chat_history.json
-backend/langchain_impl/chat_data/chat_history.json
