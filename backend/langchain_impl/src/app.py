@@ -7,8 +7,10 @@ from langchain_core.messages import SystemMessage
 from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
 from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.checkpoint.dynamodb import DynamoDBSaver
 
 from typing_extensions import Annotated
+import boto3
 
 from .vector_stores import InMemoryStore, BaseVectorStore
 from .apis import build_llm_client, build_embeddings_client
@@ -42,7 +44,13 @@ def build_graph() -> CompiledStateGraph:
     )
     graph_builder.add_edge("tools", "generate")
     graph_builder.add_edge("generate", END)
-    return graph_builder.compile(store=vector_store)
+
+    # ---- DynamoDB checkpointer (stateless persistence by thread_id) ----
+    ddb = boto3.resource("dynamodb")
+    table_name = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints")
+    checkpointer = DynamoDBSaver(ddb.Table(table_name))
+
+    return graph_builder.compile(checkpointer=checkpointer, store=vector_store)
 
 def _retrieve_core(query: str, vector_store) -> tuple[str, list]:
     """Core retrieval logic that can be tested independently."""
@@ -126,7 +134,7 @@ def main():
         for step in app.stream(
             {"messages": [{"role": "user", "content": raw_input}]},
             stream_mode="values",
-            # REMOVED: config=config  (thread_id will be provided by server.py in API mode)
+            # In server mode, pass config={"configurable":{"thread_id": <session_id>}}
         ):
             step["messages"][-1].pretty_print()
 

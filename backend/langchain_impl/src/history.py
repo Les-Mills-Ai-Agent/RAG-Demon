@@ -116,3 +116,58 @@ def show_history_menu():
             break
         else:
             print("Invalid option. Try again.")
+
+# ----- Stateless session helpers (DynamoDB with local fallback) -----
+
+SESSIONS_TABLE = os.getenv("SESSIONS_TABLE")  # e.g., "lmai-sessions"
+
+def _sessions_tbl():
+    import boto3
+    return boto3.resource("dynamodb").Table(SESSIONS_TABLE)
+
+def append_message(session_id: str, role: str, content: str) -> None:
+    """
+    Persist a single turn.
+    - If SESSIONS_TABLE is set: write to DynamoDB (PK=session_id, SK=ts).
+    - Else (local dev): append to a JSONL file namespaced by session_id.
+    """
+    if SESSIONS_TABLE:
+        _sessions_tbl().put_item(Item={
+            "session_id": session_id,
+            "ts": int(time.time() * 1000),
+            "role": role,           # "user" | "assistant" | "system"
+            "content": content
+        })
+        return
+
+    # Local fallback (per-session)
+    os.makedirs("chat_data", exist_ok=True)
+    sidecar = "chat_data/dev_messages.jsonl"
+    with open(sidecar, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"session_id": session_id, "role": role, "content": content}) + "\n")
+
+def load_history(session_id: str, limit: int = 14) -> List[Dict]:
+    """
+    Return oldest→newest list of {role, content} for a session.
+    Uses DynamoDB if configured; otherwise reads local JSONL fallback.
+    """
+    if SESSIONS_TABLE:
+        from boto3.dynamodb.conditions import Key
+        resp = _sessions_tbl().query(
+            KeyConditionExpression=Key("session_id").eq(session_id),
+            ScanIndexForward=True,
+            Limit=limit,
+        )
+        items = resp.get("Items", [])
+        return [{"role": it["role"], "content": it["content"]} for it in items]
+
+    # Local fallback
+    try:
+        with open("chat_data/dev_messages.jsonl", "r", encoding="utf-8") as f:
+            lines = [json.loads(x) for x in f]
+    except FileNotFoundError:
+        return []
+
+    msgs = [m for m in lines if m.get("session_id") == session_id]
+    return [{"role": m["role"], "content": m["content"]} for m in msgs][-limit:]
+
