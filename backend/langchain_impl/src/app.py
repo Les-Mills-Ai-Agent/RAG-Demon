@@ -5,7 +5,6 @@ from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage
 
 from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.graph.state import CompiledStateGraph
 
@@ -14,7 +13,6 @@ from typing_extensions import Annotated
 from .vector_stores import InMemoryStore, BaseVectorStore
 from .apis import build_llm_client, build_embeddings_client
 from .web_scrape import fetch_documentation, split_document
-from .history import save_chat
 from .history import show_history_menu
 
 import os
@@ -28,8 +26,6 @@ llm: ChatOpenAI = build_llm_client()
 embeddings: OpenAIEmbeddings = build_embeddings_client()
 vector_store: BaseVectorStore = InMemoryStore(embeddings)
 
-config = {"configurable": {"thread_id": "bomboclaat_thread"}}
-
 def build_graph() -> CompiledStateGraph:
     graph_builder = StateGraph(MessagesState)
     tools = ToolNode([retrieve])
@@ -37,7 +33,6 @@ def build_graph() -> CompiledStateGraph:
     graph_builder.add_node(query_or_respond)
     graph_builder.add_node(tools)
     graph_builder.add_node(generate)
-    graph_builder.add_node(save_chat)
 
     graph_builder.set_entry_point("query_or_respond")
     graph_builder.add_conditional_edges(
@@ -46,12 +41,8 @@ def build_graph() -> CompiledStateGraph:
         {END: END, "tools": "tools"},
     )
     graph_builder.add_edge("tools", "generate")
-    graph_builder.add_edge("generate", "save_chat")
-    graph_builder.add_edge("save_chat", END)
-
-    memory = MemorySaver()
-
-    return graph_builder.compile(checkpointer=memory, store=vector_store)
+    graph_builder.add_edge("generate", END)
+    return graph_builder.compile(store=vector_store)
 
 def _retrieve_core(query: str, vector_store) -> tuple[str, list]:
     """Core retrieval logic that can be tested independently."""
@@ -135,11 +126,9 @@ def main():
         for step in app.stream(
             {"messages": [{"role": "user", "content": raw_input}]},
             stream_mode="values",
-            config=config,
+            # REMOVED: config=config  (thread_id will be provided by server.py in API mode)
         ):
             step["messages"][-1].pretty_print()
-
-
 
 # Build the graph for server usage
 graph = build_graph()
