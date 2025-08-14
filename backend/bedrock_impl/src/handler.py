@@ -15,6 +15,10 @@ def get_bedrock_client() -> AgentsforBedrockRuntimeClient:
 def get_bedrock_config() -> RetrieveAndGenerateConfigurationTypeDef:
     return RetrieveAndGenerateConfigurationTypeDef(
         type="KNOWLEDGE_BASE",
+        guardrailConfiguration = {
+            "guardrailId": "3x3fwig8roag",
+            "guardrailVersion": "1"
+        },
         knowledgeBaseConfiguration={
             "knowledgeBaseId": "XBOBJWN1MQ",
             "modelArn": "anthropic.claude-3-5-sonnet-20240620-v1:0"
