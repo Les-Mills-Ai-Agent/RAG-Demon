@@ -1,23 +1,41 @@
 from langchain_core.documents import Document
-from src.ragdemon.vector_stores import InMemoryStore  # replace with your actual module
-from langchain_core.embeddings import FakeEmbeddings  # replace with your actual module
+from src.ragdemon.vector_stores import PineconeStore  # replace with your actual module
+from unittest.mock import Mock
 
-def test_in_memory_store_add_and_search():
-    # Use the embedding wrapper
-    store = InMemoryStore(embeddings=FakeEmbeddings(size=100))
+def test_pinecone_store_add_and_search():
+    # Mock embedding model and index
+    mock_embeddings = Mock()
+    mock_index = Mock()
+
+    # Mock PineconeVectorStore with mocked methods
+    mock_vector_store = Mock()
+    mock_vector_store.add_documents = Mock()
+    
+    mock_docs = [
+        Document(page_content="apple", metadata={"id": 1}),
+        Document(page_content="apricot", metadata={"id": 3})
+    ]
+    mock_vector_store.similarity_search = Mock(return_value=mock_docs)
+
+    # Create PineconeStore and override internal store with mock
+    pinecone_store = PineconeStore(index=mock_index, embeddings=mock_embeddings)
+    pinecone_store.store = mock_vector_store  # Inject the mock
 
     # Create documents
-    doc1 = Document(page_content="apple", metadata={"id": 1})
-    doc2 = Document(page_content="banana", metadata={"id": 2})
-    doc3 = Document(page_content="apricot", metadata={"id": 3})
-    docs = [doc1, doc2, doc3]
+    docs = [
+        Document(page_content="apple", metadata={"id": 1}),
+        Document(page_content="banana", metadata={"id": 2}),
+        Document(page_content="apricot", metadata={"id": 3}),
+    ]
 
-    # Add documents
-    store.add_documents(docs)
+    # Test methods
+    pinecone_store.add_documents(docs)
+    mock_vector_store.add_documents.assert_called_once_with(docs)
 
-    # Search
-    results = store.similarity_search("apple", k=2)
+    results = pinecone_store.similarity_search("apple", k=2)
+    mock_vector_store.similarity_search.assert_called_once_with("apple", k=2)
 
+    # Assertions on results
     assert isinstance(results, list)
     assert len(results) == 2
     for doc in results:
