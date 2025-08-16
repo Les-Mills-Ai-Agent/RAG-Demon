@@ -10,7 +10,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.graph.state import CompiledStateGraph
 
-from typing_extensions import Annotated
+from typing_extensions import Annotated, Any
 
 from .vector_stores import InMemoryStore, BaseVectorStore
 from .apis import build_llm_client, build_embeddings_client
@@ -64,7 +64,7 @@ def _retrieve_core(query: str, vector_store) -> tuple[str, list]:
     return serialized, retrieved_docs
 
 @tool(response_format="content_and_artifact")
-def retrieve(query: str, vector_store: Annotated[any, InjectedStore()]):
+def retrieve(query: str, vector_store: Annotated[Any, InjectedStore()]):
     """Retrieve information related to a query."""
     return _retrieve_core(query, vector_store)
 

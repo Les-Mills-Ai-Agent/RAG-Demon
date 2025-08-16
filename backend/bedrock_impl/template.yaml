@@ -137,31 +137,17 @@ Resources:
   BedrockRagFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./ragdemon
+      CodeUri: ./src
       Handler: handler.bedrock_handler
-      Role: !GetAtt BedrockRagFunctionRole.Arn
-
-  # Defines the allowed actions of BedrockRagFunctions
-  BedrockRagFunctionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
       Policies:
-        - PolicyName: AllowCloudWatchAndBedrock
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - logs:*
-                  - bedrock:*
-                Resource: "*"
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ChatHistoryTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: "*"
 
   # Ensures BedrockRagFunction can only be called by RagApi
   BedrockRagFunctionInvokePermission:
@@ -200,6 +186,24 @@ Resources:
         - ALLOW_CUSTOM_AUTH
         - ALLOW_USER_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
+
+  ChatHistoryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ChatHistory
+      AttributeDefinitions:
+        - AttributeName: PK # Session ID
+          AttributeType: S
+        - AttributeName: SK # Timestamp + message ID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
 
 Outputs:
   ApiUrl:
