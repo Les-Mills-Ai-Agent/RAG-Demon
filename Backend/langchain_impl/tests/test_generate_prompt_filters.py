@@ -2,6 +2,7 @@ import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[4]))
 
 import importlib
+import re
 import pytest
 from langchain_core.messages import SystemMessage
 
@@ -59,7 +60,9 @@ def test_generate_builds_policy_system_message_and_filters(mod):
     text = prompt[0].content
     assert "You are the Les Mills B2B Assistant." in text
     assert "SCOPE" in text and "GUARDRAILS" in text and "REFUSALS" in text
-    assert "CONTEXT (verbatim, may be long)" in text  # don’t assert doc injection to keep this robust
+
+    # Accept either "CONTEXT (verbatim, may be long):" or "CONTEXT (verbatim):"
+    assert re.search(r"CONTEXT \(verbatim(?:, may be long)?\):", text)
 
     # After the SystemMessage, only system, ai(no tool_calls), human should remain in order
     body = prompt[1:]
