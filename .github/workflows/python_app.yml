@@ -37,10 +37,20 @@ jobs:
       - name: Start FastAPI server
         env:
           OPENAI_API_KEY: ${{ secrets.TEST_API_KEY }}
+          # --- prevent AWS calls in CI ---
+          CHECKPOINTER_BACKEND: memory
+          DEPLOY_DDB: "false"
+          USER_AGENT: ragdemon-ci/1.0
+          AWS_EC2_METADATA_DISABLED: "true"
         run: |
           nohup uvicorn backend.langchain_impl.src.server:api --host 127.0.0.1 --port 8000 & sleep 3
       - name: Test with pytest
         env:
           OPENAI_API_KEY: ${{ secrets.TEST_API_KEY }}
+          # --- prevent AWS calls in CI ---
+          CHECKPOINTER_BACKEND: memory
+          DEPLOY_DDB: "false"
+          USER_AGENT: ragdemon-ci/1.0
+          AWS_EC2_METADATA_DISABLED: "true"
         run: |
           pytest || [ $? -eq 5 ]
