@@ -22,7 +22,6 @@ from langgraph_checkpoint_dynamodb import (
 
 from typing_extensions import Annotated
 from typing import List, Dict, Any
-import os
 from dotenv import load_dotenv
 
 # local modules (adjust if your paths differ)
