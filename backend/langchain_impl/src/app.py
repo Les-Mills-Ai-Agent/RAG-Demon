@@ -1,13 +1,12 @@
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph_checkpoint_dynamodb.errors import DynamoDBCheckpointError
 from botocore.exceptions import NoCredentialsError
-from http.client import NO_CONTENT
+from http.client import NO_CONTENT  # (kept if used elsewhere)
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
 
-
 from langchain_core.tools import tool
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, AIMessage, ToolMessage, AnyMessage
 
 from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
 from langgraph.graph import StateGraph, MessagesState, END
@@ -20,6 +19,7 @@ from langgraph_checkpoint_dynamodb import (
 )
 
 from typing_extensions import Annotated
+from typing import List, Dict, Any
 import os
 from dotenv import load_dotenv
 
@@ -37,6 +37,38 @@ _ = os.getenv("OPENAI_API_KEY")  # just to ensure it's loaded
 llm: ChatOpenAI = build_llm_client()
 embeddings: OpenAIEmbeddings = build_embeddings_client()
 vector_store: BaseVectorStore = InMemoryStore(embeddings)
+
+# ---------------- Utilities ----------------
+def sanitize_messages(msgs: List[AnyMessage]) -> List[AnyMessage]:
+    """
+    Remove any ToolMessage that doesn't respond to a known tool_call_id
+    present on a preceding AIMessage. Also drops tool messages at the start.
+    Prevents OpenAI 400: tool message without matching tool_calls.
+    """
+    valid_call_ids = set()
+    for m in msgs:
+        if isinstance(m, AIMessage):
+            for tc in (getattr(m, "tool_calls", None) or []):
+                call_id = getattr(tc, "id", None)
+                if not call_id and isinstance(tc, dict):
+                    call_id = tc.get("id")
+                if call_id:
+                    valid_call_ids.add(call_id)
+
+    clean: List[AnyMessage] = []
+    for m in msgs:
+        if isinstance(m, ToolMessage):
+            if getattr(m, "tool_call_id", None) in valid_call_ids:
+                clean.append(m)
+            else:
+                continue  # drop orphan
+        else:
+            clean.append(m)
+
+    while clean and isinstance(clean[0], ToolMessage):
+        clean.pop(0)
+
+    return clean
 
 # ---------------- Graph ----------------
 def build_graph() -> CompiledStateGraph:
@@ -58,19 +90,18 @@ def build_graph() -> CompiledStateGraph:
 
     # ---- DynamoDB checkpointer (auto-create PK/SK table) ----
     region = os.getenv("AWS_REGION", "us-east-1")
-    table_name = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-v2")  # NEW table name!
+    table_name = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-v2")  # keep consistent
 
     cfg = DynamoDBConfig(
         region_name=region,
         table_config=DynamoDBTableConfig(
             table_name=table_name,
-            # uses default PK/SK key names expected by this saver
+            # default PK/SK names
         ),
     )
 
-    # deploy=True will create the table with PK/SK if missing
     backend = os.getenv("CHECKPOINTER_BACKEND", "dynamodb").lower()
-    deploy = os.getenv("DEPLOY_DDB", "true").lower() == "true"  # keep previous default behavior
+    deploy = os.getenv("DEPLOY_DDB", "true").lower() == "true"  # auto-create if missing
 
     if backend == "memory":
         checkpointer = MemorySaver()
@@ -102,7 +133,7 @@ LM_SYSTEM_PROMPT_TEMPLATE = """
 You are the Les Mills B2B Assistant.
 
 SCOPE GATE (must run first)
-- Assume the request is in scope unless it is clearly unrelated to Les Mills' B2B context (clubs/gyms, corporate partners, instructors, distributors, enterprise customers, internal engineering, platform operations, integrations, content platform, or anything else related to Les Mills). 
+- Assume the request is in scope unless it is clearly unrelated to Les Mills' (clubs/gyms, corporate partners, instructors, distributors, enterprise customers, internal engineering, platform operations, integrations, content platform, or anything else related to Les Mills). 
 - If it is clearly unrelated, respond EXACTLY:
 "Sorry, I can't assist with that."
 (Do not add anything else.)
@@ -133,27 +164,34 @@ CONTEXT (verbatim):
 """.strip()
 
 def build_system_message(state: MessagesState) -> SystemMessage:
-    """Build the full system prompt with any retrieved DOCS content from recent tool messages."""
+    """
+    Build the full system prompt with any retrieved DOCS content from the most recent
+    contiguous block of tool messages at the end of history.
+    """
+    msgs = sanitize_messages(state["messages"])
     recent_tool_messages = []
-    for message in reversed(state["messages"]):
-        if message.type == "tool":
+    for message in reversed(msgs):
+        if isinstance(message, ToolMessage) or getattr(message, "type", "") == "tool":
             recent_tool_messages.append(message)
         else:
             break
-    tool_messages = recent_tool_messages[::-1]
-
-        # Format into prompt
-    docs_content = "\n\n".join(doc.content for doc in tool_messages)
+    tool_messages = list(reversed(recent_tool_messages))
+    docs_content = "\n\n".join(
+        (message.content if isinstance(message.content, str) else str(message.content))
+        for message in tool_messages
+    )
     system_message_content = LM_SYSTEM_PROMPT_TEMPLATE.replace("{DOCS_CONTENT}", docs_content or "")
     return SystemMessage(system_message_content)
 
 def generate(state: MessagesState):
-    """Generate answer; ALWAYS use the full system prompt."""
+    """Generate answer; ALWAYS use the full system prompt and sanitized history."""
     sysmsg = build_system_message(state)
+    msgs = sanitize_messages(state["messages"])
 
+    # Only include user/system and AI messages that are not tool-calling (to avoid dangling calls)
     conversation_messages = [
-        m for m in state["messages"]
-        if m.type in ("human", "system") or (m.type == "ai" and not m.tool_calls)
+        m for m in msgs
+        if getattr(m, "type", None) in ("human", "system") or (getattr(m, "type", None) == "ai" and not getattr(m, "tool_calls", None))
     ]
     prompt = [sysmsg] + conversation_messages
 
@@ -161,7 +199,7 @@ def generate(state: MessagesState):
     return {"messages": [response]}
 
 def query_or_respond(state: MessagesState):
-    """Decide to call retrieve() or not; ALWAYS read the full system prompt first."""
+    """Decide to call retrieve() or not; ALWAYS read the full system prompt first. Sanitize history before invoke."""
     llm_with_tools = llm.bind_tools([retrieve])
 
     sysmsg = build_system_message(state)
@@ -171,7 +209,8 @@ def query_or_respond(state: MessagesState):
         "Otherwise do not answer substantively here."
     )
 
-    response = llm_with_tools.invoke([sysmsg, step_nudge] + state["messages"])
+    msgs = sanitize_messages(state["messages"])
+    response = llm_with_tools.invoke([sysmsg, step_nudge] + msgs)
     return {"messages": [response]}
 
 # ---------------- CLI runner ----------------
@@ -184,7 +223,7 @@ def main():
 
     # Always provide a thread_id (critical for saver!)
     region = os.getenv("AWS_REGION", "us-east-1")
-    table = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-langchain")
+    table = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-v2")
     thread = os.getenv("DEFAULT_THREAD_ID", "cli-session")
 
     print(f"[debug] Using thread_id: {thread}  region={region}  table={table}")
@@ -200,6 +239,7 @@ def main():
             show_history_menu()
             continue
 
+        # NOTE: .stream() handles persistence via the configured checkpointer
         for step in app.stream(
             {"messages": [{"role": "user", "content": raw_input_text}]},
             stream_mode="values",
