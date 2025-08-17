@@ -5,7 +5,7 @@ import importlib
 import pytest
 from langchain_core.messages import SystemMessage
 
-MODULE_PATH = "Backend.langchain_impl.src.app"
+MODULE_PATH = "langchain_impl.src.app"
 
 
 class AIMsg:
