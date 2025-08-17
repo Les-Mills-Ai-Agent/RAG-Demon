@@ -1,17 +1,22 @@
-# Make both package and top-level modules importable for tests
 import os, sys
+from pathlib import Path
 
-# Paths
-BACKEND = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))          # .../Backend
-SRC     = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))         # .../Backend/langchain_impl/src
+HERE = Path(__file__).resolve()
+ROOT = HERE.parents[3]  # repo root (tests -> langchain_impl -> Backend -> ROOT)
+candidates = ["backend", "Backend"]
 
-for p in (BACKEND, SRC):
+paths = []
+for name in candidates:
+    base = ROOT / name
+    if base.exists():
+        paths += [str(base), str(base / "langchain_impl" / "src")]
+
+for p in paths:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-# Quick sanity (won't raise if absent; safe no-op)
-try:
-    import vector_stores, app  # top-level modules in src
-    import langchain_impl.src.app  # package path used by tests
-except Exception:
-    pass
+# Force CI-safe, stateless backend BEFORE any app/server imports
+os.environ.setdefault("CHECKPOINTER_BACKEND", "memory")
+os.environ.setdefault("DEPLOY_DDB", "false")
+os.environ.setdefault("AWS_EC2_METADATA_DISABLED", "true")
+os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")

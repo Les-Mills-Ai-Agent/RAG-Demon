@@ -1,7 +1,11 @@
 # app.py
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph_checkpoint_dynamodb.errors import DynamoDBCheckpointError
+from botocore.exceptions import NoCredentialsError
 from http.client import NO_CONTENT
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
+
 
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage
@@ -66,7 +70,17 @@ def build_graph() -> CompiledStateGraph:
     )
 
     # deploy=True will create the table with PK/SK if missing
-    checkpointer = DynamoDBSaver(cfg, deploy=True)
+    backend = os.getenv("CHECKPOINTER_BACKEND", "dynamodb").lower()
+    deploy = os.getenv("DEPLOY_DDB", "true").lower() == "true"  # keep previous default behavior
+
+    if backend == "memory":
+        checkpointer = MemorySaver()
+    else:
+        try:
+            checkpointer = DynamoDBSaver(cfg, deploy=deploy)
+        except (DynamoDBCheckpointError, NoCredentialsError) as e:
+            print(f"[checkpointer] Falling back to MemorySaver: {e}")
+            checkpointer = MemorySaver()
 
     return graph_builder.compile(checkpointer=checkpointer, store=vector_store)
 
