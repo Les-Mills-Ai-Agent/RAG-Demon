@@ -37,10 +37,12 @@ jobs:
       - name: Start FastAPI server
         env:
           OPENAI_API_KEY: ${{ secrets.TEST_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
         run: |
           nohup uvicorn Backend.src.ragdemon.server:api --host 127.0.0.1 --port 8000 & sleep 3
       - name: Test with pytest
         env:
           OPENAI_API_KEY: ${{ secrets.TEST_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
         run: |
           pytest || [ $? -eq 5 ]
