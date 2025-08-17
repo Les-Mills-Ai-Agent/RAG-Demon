@@ -222,7 +222,7 @@ def build_system_message(state: MessagesState, allow_fallback: bool = False) -> 
 
 
 def query_or_respond(state: MessagesState):
-    llm_with_tools = llm.bind_tools([retrieve], tool_choice="required")  # see step 2
+    llm_with_tools = llm.bind_tools([retrieve], tool_choice="required")  # tool_choice="required" ensures the model always calls the specified tool
     sysmsg = build_system_message(state, allow_fallback=False)  # no fallback here
     step_nudge = SystemMessage(
         "You are a helpful AI Assistant. "
