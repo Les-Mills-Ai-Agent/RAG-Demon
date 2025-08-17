@@ -206,7 +206,6 @@ def query_or_respond(state: MessagesState):
     step_nudge = SystemMessage(
         "Decision step: If the user is asking about Les Mills B2B, platform, integrations, "
         "engineering, or operations, CALL the `retrieve` tool with their query. "
-        "Otherwise do not answer substantively here."
     )
 
     msgs = sanitize_messages(state["messages"])
