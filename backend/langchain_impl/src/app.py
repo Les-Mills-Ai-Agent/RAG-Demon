@@ -1,7 +1,7 @@
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph_checkpoint_dynamodb.errors import DynamoDBCheckpointError
 from botocore.exceptions import NoCredentialsError
-from http.client import NO_CONTENT  # (kept if used elsewhere)
+from http.client import NO_CONTENT 
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
 
@@ -90,7 +90,7 @@ def build_graph() -> CompiledStateGraph:
 
     # ---- DynamoDB checkpointer (auto-create PK/SK table) ----
     region = os.getenv("AWS_REGION", "us-east-1")
-    table_name = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-v2")  # keep consistent
+    table_name = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-langchain")  # keep consistent
 
     cfg = DynamoDBConfig(
         region_name=region,
