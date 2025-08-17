@@ -25,7 +25,7 @@ class ChatStore:
             self.table = (
                 table
                 if table is not None
-                else boto3.resource("dynamodb").Table("ChatHistory")
+                else boto3.resource("dynamodb").Table("BedrockSessions")
             )
 
     def save_message(
@@ -59,7 +59,7 @@ class ChatStore:
         
     def get_latest_messages(self, user_id: str, session_id: str, n: int) -> list[AiMessage | UserMessage]:
         response = self.table.query(
-            KeyConditionExpression = Key("PK").eq(f"SESSION#{session_id}") & Key("SK").begins_with("MESSAGE#"),
+            KeyConditionExpression = Key("session_id").eq(f"SESSION#{session_id}") & Key("created_at_message_id").begins_with("MESSAGE#"),
             ScanIndexForward = False,  # descending order
             Limit = n
         )
@@ -82,7 +82,7 @@ class ChatStore:
     
     def get_session(self, session_id: str) -> Session:
         response = self.table.query(
-            KeyConditionExpression = Key("PK").eq(f"SESSION#{session_id}") & Key("SK").eq("METADATA")
+            KeyConditionExpression = Key("session_id").eq(f"SESSION#{session_id}") & Key("created_at_message_id").eq("METADATA")
         )
 
         items = response.get("Items", [])
@@ -118,21 +118,21 @@ class Message(BaseModel):
         base.pop("created_at", None)
 
         base.update({
-            "PK": f"SESSION#{self.session_id}",
-            "SK": f"MESSAGE#{self.created_at}#{self.message_id}"
+            "session_id": f"SESSION#{self.session_id}",
+            "created_at_message_id": f"MESSAGE#{self.created_at}#{self.message_id}"
         })
         return base
     
     @staticmethod
     def from_dynamodb(item: Dict[str, Any]) -> Union[AiMessage, UserMessage]:
         
-        pk = item.pop("PK", "")
-        sk = item.pop("SK", "")
+        session_id = item.pop("session_id", "")
+        created_at_message_id = item.pop("created_at_message_id", "")
 
-        session_id = pk.removeprefix("SESSION#")
-        sk = sk.removeprefix("MESSAGE#")
+        session_id = session_id.removeprefix("SESSION#")
+        created_at_message_id = created_at_message_id.removeprefix("MESSAGE#")
 
-        created_at, message_id = sk.split("#", 1)
+        created_at, message_id = created_at_message_id.split("#", 1)
 
         item["session_id"] = session_id
         item["message_id"] = message_id
@@ -173,17 +173,17 @@ class Session(BaseModel):
         base.pop("session_id", None)
 
         base.update({
-            "PK": f"SESSION#{self.session_id}",
-            "SK": "METADATA"
+            "session_id": f"SESSION#{self.session_id}",
+            "created_at_message_id": "METADATA"
         })
 
         return base
     
     def from_dynamodb(self, item: Dict[str, Any]) -> Session:
 
-        pk = item.pop("PK", "")
+        session_id = item.pop("session_id", "")
 
-        session_id = pk.removeprefix("SESSION#")
+        session_id = session_id.removeprefix("SESSION#")
 
         item["session_id"] = session_id
 

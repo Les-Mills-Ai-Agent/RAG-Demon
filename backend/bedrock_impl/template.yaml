@@ -142,7 +142,7 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
-            TableName: !Ref ChatHistoryTable
+            TableName: !Ref BedrockSessionsTable
         - Statement:
             - Effect: Allow
               Action:
@@ -187,19 +187,55 @@ Resources:
         - ALLOW_USER_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
 
-  ChatHistoryTable:
+  BedrockSessionsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: ChatHistory
+      TableName: BedrockSessions
       AttributeDefinitions:
-        - AttributeName: PK # Session ID
+        - AttributeName: session_id
           AttributeType: S
-        - AttributeName: SK # Timestamp + message ID
+        - AttributeName: created_at_message_id
           AttributeType: S
       KeySchema:
-        - AttributeName: PK
+        - AttributeName: session_id
           KeyType: HASH
-        - AttributeName: SK
+        - AttributeName: created_at_message_id
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+
+  LangchainCheckpointsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LangchainCheckpoints
+      AttributeDefinitions:
+        - AttributeName: thread_id
+          AttributeType: S
+        - AttributeName: checkpoint_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: thread_id
+          KeyType: HASH
+        - AttributeName: checkpoint_id
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+
+  LangchainWritesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LangchainWrites
+      AttributeDefinitions:
+        - AttributeName: thread_id_checkpoint_id_checkpoint_ns
+          AttributeType: S
+        - AttributeName: task_id_idx
+          AttributeType: S
+      KeySchema:
+        - AttributeName: thread_id_checkpoint_id_checkpoint_ns
+          KeyType: HASH
+        - AttributeName: task_id_idx
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
       SSESpecification:
