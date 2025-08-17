@@ -1,4 +1,3 @@
-# app.py
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph_checkpoint_dynamodb.errors import DynamoDBCheckpointError
 from botocore.exceptions import NoCredentialsError
@@ -52,7 +51,7 @@ def build_graph() -> CompiledStateGraph:
     graph_builder.add_conditional_edges(
         "query_or_respond",
         tools_condition,
-        {END: END, "tools": "tools"},
+        {"tools": "tools", END: "generate"},  # ensure we always hit generate()
     )
     graph_builder.add_edge("tools", "generate")
     graph_builder.add_edge("generate", END)
@@ -103,19 +102,19 @@ LM_SYSTEM_PROMPT_TEMPLATE = """
 You are the Les Mills B2B Assistant.
 
 SCOPE GATE (must run first)
-- If the user’s request is NOT explicitly about Les Mills’ B2B context (clubs/gyms, corporate partners, instructors, distributors, enterprise customers, internal engineering, platform operations, or integrations), respond EXACTLY:
+- If the user's request is not about the Les Mills' B2B context (clubs/gyms, corporate partners, instructors, distributors, enterprise customers, internal engineering, platform operations, or integrations, content platform, and any other thing related to Les Mills), respond EXACTLY:
 "Sorry, I can't assist with that."
 (Do not add anything else.)
 
 AMBIGUOUS INTENT
-- If intent is unclear, assume they’re asking about the Les Mills content platform and ask ONE brief clarifying question only if essential.
+- If intent is unclear, assume they're asking about the Les Mills content platform and ask ONE brief clarifying question only if essential.
 
 SOURCES & TRUTH
 - Preferred truth source is the provided CONTEXT below. Use its terminology.
 - If docs are missing or conflicting, say so plainly. For in-scope topics not covered by docs, give a safe high-level explanation and state that specific details are not in the provided docs.
 
 GUARDRAILS
-- Do not invent features, SLAs, prices, or roadmaps. If absent from docs, say you don’t have that information and suggest next steps (e.g., contact support, provide IDs/logs).
+- Do not invent features, SLAs, prices, or roadmaps. If absent from docs, say you don't have that information and suggest next steps (e.g., contact support, provide IDs/logs).
 - Never reveal secrets, tokens, internal URLs, or non-public architecture. Use placeholders like <API_KEY>, <CLIENT_ID>, <ORG_ID>.
 - Use UK English.
 
@@ -132,9 +131,8 @@ CONTEXT (verbatim):
 "{DOCS_CONTENT}"
 """.strip()
 
-def generate(state: MessagesState):
-    """Generate answer."""
-    # Collect the most recent tool messages
+def build_system_message(state: MessagesState) -> SystemMessage:
+    """Build the full system prompt with any retrieved DOCS content from recent tool messages."""
     recent_tool_messages = []
     for message in reversed(state["messages"]):
         if message.type == "tool":
@@ -146,20 +144,33 @@ def generate(state: MessagesState):
         # Format into prompt
     docs_content = "\n\n".join(doc.content for doc in tool_messages)
     system_message_content = LM_SYSTEM_PROMPT_TEMPLATE.replace("{DOCS_CONTENT}", docs_content or "")
+    return SystemMessage(system_message_content)
+
+def generate(state: MessagesState):
+    """Generate answer; ALWAYS use the full system prompt."""
+    sysmsg = build_system_message(state)
 
     conversation_messages = [
         m for m in state["messages"]
         if m.type in ("human", "system") or (m.type == "ai" and not m.tool_calls)
     ]
-    prompt = [SystemMessage(system_message_content)] + conversation_messages
+    prompt = [sysmsg] + conversation_messages
 
     response = llm.invoke(prompt)
     return {"messages": [response]}
 
 def query_or_respond(state: MessagesState):
-    """Generate tool call for retrieval or respond."""
+    """Decide to call retrieve() or not; ALWAYS read the full system prompt first."""
     llm_with_tools = llm.bind_tools([retrieve])
-    response = llm_with_tools.invoke(state["messages"])
+
+    sysmsg = build_system_message(state)
+    step_nudge = SystemMessage(
+        "Decision step: If the user is asking about Les Mills B2B, platform, integrations, "
+        "engineering, or operations, CALL the `retrieve` tool with their query. "
+        "Otherwise do not answer substantively here."
+    )
+
+    response = llm_with_tools.invoke([sysmsg, step_nudge] + state["messages"])
     return {"messages": [response]}
 
 # ---------------- CLI runner ----------------
