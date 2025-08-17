@@ -1,12 +1,14 @@
+import os
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph_checkpoint_dynamodb.errors import DynamoDBCheckpointError
 from botocore.exceptions import NoCredentialsError
 from http.client import NO_CONTENT 
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
-
+from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
-from langchain_core.messages import SystemMessage, AIMessage, ToolMessage, AnyMessage
+from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, ToolMessage, AnyMessage
+from langchain_core.messages import HumanMessage
 
 from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
 from langgraph.graph import StateGraph, MessagesState, END
@@ -89,13 +91,15 @@ def build_graph() -> CompiledStateGraph:
     graph_builder.add_edge("generate", END)
 
     # ---- DynamoDB checkpointer (auto-create PK/SK table) ----
-    region = os.getenv("AWS_REGION", "us-east-1")
-    table_name = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-langchain")  # keep consistent
+
+    AWS_REGION = os.getenv("AWS_REGION", "us-east-1")  # default if not set
+    TABLE_NAME = os.getenv("CHECKPOINT_TABLE", "lmai-checkpoints-langchain")
+
 
     cfg = DynamoDBConfig(
-        region_name=region,
+        region_name=AWS_REGION,
         table_config=DynamoDBTableConfig(
-            table_name=table_name,
+            table_name=TABLE_NAME,
             # default PK/SK names
         ),
     )
@@ -163,54 +167,84 @@ CONTEXT (verbatim):
 "{DOCS_CONTENT}"
 """.strip()
 
-def build_system_message(state: MessagesState) -> SystemMessage:
-    """
-    Build the full system prompt with any retrieved DOCS content from the most recent
-    contiguous block of tool messages at the end of history.
-    """
+def _last_human_text(state: MessagesState) -> str:
+    """Return the most recent human message text ('' if none)."""
+    for m in reversed(state["messages"]):
+        if getattr(m, "type", None) == "human":
+            return (m.content or "").strip()
+    return ""
+
+def _fallback_docs(query: str, k: int = 5) -> str:
+    """Do a direct similarity search (no tool call) and serialize results."""
+    if not query:
+        return ""
+    try:
+        docs = vector_store.similarity_search(query, k=k)
+        return "\n\n".join(
+            f"Source: {d.metadata}\nContent: {d.page_content}" for d in docs
+        )
+    except Exception as e:
+        # Keep failures invisible to the model; just return empty
+        print(f"[fallback_docs] error: {e}")
+        return ""
+
+
+def build_system_message(state: MessagesState, allow_fallback: bool = False) -> SystemMessage:
     msgs = sanitize_messages(state["messages"])
-    recent_tool_messages = []
+
+    # collect tail ToolMessages
+    recent_tool_messages: List[BaseMessage] = []
     for message in reversed(msgs):
         if isinstance(message, ToolMessage) or getattr(message, "type", "") == "tool":
             recent_tool_messages.append(message)
         else:
             break
     tool_messages = list(reversed(recent_tool_messages))
+
     docs_content = "\n\n".join(
         (message.content if isinstance(message.content, str) else str(message.content))
         for message in tool_messages
+    ).strip()
+
+    # Fallback only when explicitly allowed (i.e., in generate)
+    if allow_fallback and not docs_content:
+        # helper functions you already added:
+        # _last_human_text(state), _fallback_docs(query, k=5)
+        q = _last_human_text(state)
+        fallback = _fallback_docs(q, k=5)
+        if fallback:
+            # comment this out if you don’t want the console log
+            print("[system] using fallback docs injection (no ToolMessage present)")
+            docs_content = fallback
+
+    system_message_content = LM_SYSTEM_PROMPT_TEMPLATE.replace(
+        "{DOCS_CONTENT}", docs_content or ""
     )
-    system_message_content = LM_SYSTEM_PROMPT_TEMPLATE.replace("{DOCS_CONTENT}", docs_content or "")
     return SystemMessage(system_message_content)
 
-def generate(state: MessagesState):
-    """Generate answer; ALWAYS use the full system prompt and sanitized history."""
-    sysmsg = build_system_message(state)
-    msgs = sanitize_messages(state["messages"])
-
-    # Only include user/system and AI messages that are not tool-calling (to avoid dangling calls)
-    conversation_messages = [
-        m for m in msgs
-        if getattr(m, "type", None) in ("human", "system") or (getattr(m, "type", None) == "ai" and not getattr(m, "tool_calls", None))
-    ]
-    prompt = [sysmsg] + conversation_messages
-
-    response = llm.invoke(prompt)
-    return {"messages": [response]}
 
 def query_or_respond(state: MessagesState):
-    """Decide to call retrieve() or not; ALWAYS read the full system prompt first. Sanitize history before invoke."""
-    llm_with_tools = llm.bind_tools([retrieve])
-
-    sysmsg = build_system_message(state)
+    llm_with_tools = llm.bind_tools([retrieve], tool_choice="required")  # see step 2
+    sysmsg = build_system_message(state, allow_fallback=False)  # no fallback here
     step_nudge = SystemMessage(
-        "Decision step: If the user is asking about Les Mills B2B, platform, integrations, "
-        "engineering, or operations, CALL the `retrieve` tool with their query. "
+        "You are a helpful AI Assistant. "
     )
-
     msgs = sanitize_messages(state["messages"])
     response = llm_with_tools.invoke([sysmsg, step_nudge] + msgs)
     return {"messages": [response]}
+
+def generate(state: MessagesState):
+    sysmsg = build_system_message(state, allow_fallback=True)  # fallback allowed only here
+    msgs = sanitize_messages(state["messages"])
+    conversation_messages = [
+        m for m in msgs
+        if getattr(m, "type", None) in ("human", "system")
+        or (getattr(m, "type", None) == "ai" and not getattr(m, "tool_calls", None))
+    ]
+    prompt = [sysmsg] + conversation_messages
+    response = llm.invoke(prompt)
+    return {"messages": [response]}
+
 
 # ---------------- CLI runner ----------------
 def main():
@@ -223,8 +257,7 @@ def main():
     # Always provide a thread_id (critical for saver!)
     region = os.getenv("AWS_REGION", "us-east-1")
     table = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-v2")
-    thread = os.getenv("DEFAULT_THREAD_ID", "cli-session")
-
+    thread = os.getenv("DEFAULT_THREAD_ID", "cli-session")  # one session per app run
     print(f"[debug] Using thread_id: {thread}  region={region}  table={table}")
 
     app = build_graph().with_config({"configurable": {"thread_id": thread}})
@@ -238,12 +271,18 @@ def main():
             show_history_menu()
             continue
 
-        # NOTE: .stream() handles persistence via the configured checkpointer
+        final_msg = None
         for step in app.stream(
             {"messages": [{"role": "user", "content": raw_input_text}]},
             stream_mode="values",
         ):
-            step["messages"][-1].pretty_print()
+            msg = step["messages"][-1]
+            if getattr(msg, "type", None) in ("ai", "assistant"):
+                final_msg = msg
+
+        if final_msg:
+            final_msg.pretty_print()
+
 
 # Build the graph for server usage with a default thread_id
 graph = build_graph().with_config(

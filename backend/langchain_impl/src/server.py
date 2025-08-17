@@ -1,12 +1,31 @@
 import os
-from typing import List, Literal
+from typing import List, Literal, Optional
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 from dotenv import load_dotenv
 
-from app import build_graph, vector_store
+from langchain_core.messages import (
+    HumanMessage,
+    AIMessage,
+    SystemMessage,
+    ToolMessage,
+    BaseMessage,
+)
+
+# ---- Local config (do NOT import these from app.py) ----
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+CHECKPOINTS_TABLE = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-langchain")
+
+# Import graph + shared components from app.py
+from app import (
+    build_graph,
+    vector_store,
+    sanitize_messages,   # orphan-tool cleaner
+)
+
 from web_scrape import fetch_documentation, split_document
 
 
@@ -18,26 +37,58 @@ if not OPENAI_API_KEY:
     raise RuntimeError("Set OPENAI_API_KEY in your environment.")
 
 # allow comma-separated CORS origins: "http://localhost:5173,https://app.example.com"
-_frontend_origins = os.getenv("FRONTEND_ORIGINS", os.getenv("FRONTEND_ORIGIN", "http://localhost:5173"))
+_frontend_origins = os.getenv(
+    "FRONTEND_ORIGINS",
+    os.getenv("FRONTEND_ORIGIN", "http://localhost:5173"),
+)
 ALLOWED_ORIGINS = [o.strip() for o in _frontend_origins.split(",") if o.strip()]
 
+
 # ---------- (DEV) Index docs at import ----------
-# For production Lambdas, pre-index in your vector DB instead of doing this at startup.
-document = fetch_documentation("https://api.content.lesmills.com/docs/v1/content-portal-api.yaml")
+# For production, pre-index in your vector DB instead of doing this at startup.
+document = fetch_documentation(
+    "https://api.content.lesmills.com/docs/v1/content-portal-api.yaml"
+)
 splits = split_document(document)
 vector_store.add_documents(splits)
 
+
 # ---------- Graph ----------
-graph = build_graph()  # compiled with DynamoDB checkpointer
+graph = build_graph()  # compiled with DynamoDB checkpointer + shared store
+
 
 # ---------- Schemas ----------
 class Message(BaseModel):
-    role: Literal["user", "assistant", "system"]
+    role: Literal["user", "assistant", "system", "tool"]
     content: str = Field(min_length=1)
+    # Optional fields if you ever pass tool results from the client
+    tool_call_id: Optional[str] = None
+    name: Optional[str] = None
+
 
 class ChatRequest(BaseModel):
-    session_id: str = Field(min_length=1)   # becomes thread_id
+    # If client omits session_id, we create a fresh one (stateless by default)
+    session_id: Optional[str] = None
     messages: List[Message]
+
+
+# ---------- Helpers ----------
+def to_lc_message(m: Message) -> BaseMessage:
+    if m.role == "user":
+        return HumanMessage(content=m.content)
+    if m.role == "assistant":
+        return AIMessage(content=m.content)
+    if m.role == "system":
+        return SystemMessage(content=m.content)
+    if m.role == "tool":
+        # Only meaningful if client ever sends tool outputs; harmless otherwise
+        return ToolMessage(content=m.content, tool_call_id=m.tool_call_id or "client_tool")
+    raise ValueError(f"Unsupported role: {m.role}")
+
+
+def new_thread_id(prefix: str = "web") -> str:
+    return f"{prefix}-{uuid4()}"
+
 
 # ---------- FastAPI ----------
 api = FastAPI(title="Les Mills RAG API")
@@ -50,9 +101,11 @@ api.add_middleware(
     allow_credentials=True,
 )
 
+
 @api.get("/health")
 async def health():
     return {"status": "ok"}
+
 
 @api.post("/api/chat")
 async def chat(req: ChatRequest):
@@ -60,38 +113,56 @@ async def chat(req: ChatRequest):
         if not req.messages:
             raise HTTPException(status_code=400, detail="messages must be a non-empty list")
 
-        # Use the latest message; LangGraph + DynamoDB resumes full state by thread_id
-        latest_msg = req.messages[-1].model_dump()
+        # Fresh stateless session unless the client explicitly wants continuity
+        session_id = req.session_id or new_thread_id("web")
+        config = {"configurable": {"thread_id": session_id}}
 
-        # REQUIRED for stateless persistence
-        config = {"configurable": {"thread_id": req.session_id}}
+        # Convert inbound payload into LC messages and clean stray tool messages
+        lc_messages = [to_lc_message(m) for m in req.messages]
+        cleaned = sanitize_messages(lc_messages)
+
+        # Prepend a routing nudge so first turn reliably calls `retrieve`
+        routing_nudge = SystemMessage(
+            "Routing: For questions about Les Mills, the Content Portal, APIs, integrations, "
+            "platform, engineering, or operations, you MUST call the `retrieve` tool first. "
+            "Only skip tools if clearly unrelated."
+        )
+        messages_for_graph = [routing_nudge] + cleaned
+
+        # Helpful logs
+        print(f"[server] thread_id={session_id}  region={AWS_REGION}  table={CHECKPOINTS_TABLE}")
+        for i, m in enumerate(messages_for_graph):
+            role = getattr(m, "type", None)
+            preview = (getattr(m, "content", "") or "")[:120].replace("\n", " ")
+            print(f"[server] in[{i}] {role}: {preview!r}")
 
         assistant_response = None
+
+        # Stream using the full message list; checkpointer will hydrate prior state (if any)
         for step in graph.stream(
-            {"messages": [latest_msg]},
+            {"messages": messages_for_graph},
             stream_mode="values",
-            # If you compile WITHOUT a default store in app.py, uncomment:
-            # store=vector_store,
             config=config,
         ):
-            msg = step["messages"][-1]
-            if getattr(msg, "type", None) in ("ai", "assistant"):
-                assistant_response = msg.content
+            last = step["messages"][-1]
+            if isinstance(last, AIMessage) and getattr(last, "tool_calls", None):
+                print(f"[server] tool_calls: {len(last.tool_calls)}")
+            if getattr(last, "type", None) in ("ai", "assistant"):
+                assistant_response = last.content
 
         if not assistant_response:
             raise HTTPException(status_code=500, detail="No assistant message generated.")
 
-        return {"reply": assistant_response, "session_id": req.session_id}
+        return {"reply": assistant_response, "session_id": session_id}
 
     except ValidationError as ve:
-        # Pydantic field-level errors
         raise HTTPException(status_code=400, detail=str(ve)) from ve
     except HTTPException:
         raise
     except Exception as e:
-        # Keep stack traces in logs; return generic error to client
         print(f"[server.chat] {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred. Please try again later.")
+
 
 # Dev server entry point
 if __name__ == "__main__":
