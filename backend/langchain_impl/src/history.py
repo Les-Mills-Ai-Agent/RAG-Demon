@@ -142,7 +142,9 @@ def _sessions_tbl():
     import boto3
     res = boto3.resource("dynamodb", region_name=AWS_REGION)
     return res.Table(SESSIONS_TABLE)
-
+# This helper is separate: it writes individual user/AI messages into
+# the SESSIONS_TABLE so we can build full chat history later (for UI/debug).
+# Without this, we'd only have checkpoints, not the raw conversation log.
 def append_message(session_id: str, role: str, content: str) -> None:
     """
     Persist a single message.

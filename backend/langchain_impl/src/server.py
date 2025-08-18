@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
 from dotenv import load_dotenv
+load_dotenv(override=True)
 
 from langchain_core.messages import (
     HumanMessage,
@@ -30,7 +31,6 @@ from web_scrape import fetch_documentation, split_document
 
 
 # ---------- Env ----------
-load_dotenv(override=True)
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
@@ -56,6 +56,12 @@ vector_store.add_documents(splits)
 # ---------- Graph ----------
 graph = build_graph()  # compiled with DynamoDB checkpointer + shared store
 
+
+# We don’t use LangChain’s message objects here.
+# Instead, we make our own Pydantic model so:
+# 1. The API uses plain JSON (easy for frontend).
+# 2. FastAPI can check the data is valid.
+# 3. We aren’t tied to LangChain’s internal code.
 
 # ---------- Schemas ----------
 class Message(BaseModel):
