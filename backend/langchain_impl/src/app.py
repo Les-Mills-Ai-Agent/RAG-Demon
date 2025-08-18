@@ -224,13 +224,22 @@ def build_system_message(state: MessagesState, allow_fallback: bool = False) -> 
 
 
 def query_or_respond(state: MessagesState):
-    llm_with_tools = llm.bind_tools([retrieve], tool_choice="required")  # tool_choice="required" ensures the model always calls the specified tool
-    sysmsg = build_system_message(state, allow_fallback=False)  # no fallback here
-    step_nudge = SystemMessage(
-        "You are a helpful AI Assistant. "
-    )
+    # Force the model to pick a tool when appropriate
+    llm_with_tools = llm.bind_tools([retrieve], tool_choice="required")
+
+    sysmsg = build_system_message(state, allow_fallback=False)
+    step_nudge = SystemMessage("You are a helpful AI Assistant.")
+
     msgs = sanitize_messages(state["messages"])
-    response = llm_with_tools.invoke([sysmsg, step_nudge] + msgs)
+
+    # IMPORTANT: only pass human/system + AI-without-tool_calls
+    convo_msgs = [
+        m for m in msgs
+        if m.type in ("human", "system")
+        or (m.type == "ai" and not getattr(m, "tool_calls", None))
+    ]
+
+    response = llm_with_tools.invoke([sysmsg, step_nudge] + convo_msgs)
     return {"messages": [response]}
 
 def generate(state: MessagesState):
