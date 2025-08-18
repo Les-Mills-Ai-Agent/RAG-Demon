@@ -88,33 +88,32 @@ def build_graph() -> CompiledStateGraph:
     graph_builder.add_edge("tools", "generate")
     graph_builder.add_edge("generate", END)
 
-    # ---- DynamoDB checkpointer (auto-create PK/SK table) ----
-
-    AWS_REGION = os.getenv("AWS_REGION", "us-east-1")  # default if not set
-    TABLE_NAME = os.getenv("CHECKPOINT_TABLE", "lmai-checkpoints-langchain")
-
+        # ---- DynamoDB checkpointer (no auto-create in app runtime) ----
+    AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+    CHECKPOINTS_TABLE = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-langchain")
 
     cfg = DynamoDBConfig(
         region_name=AWS_REGION,
-        table_config=DynamoDBTableConfig(
-            table_name=TABLE_NAME,
-            # default PK/SK names
-        ),
+        table_config=DynamoDBTableConfig(table_name=CHECKPOINTS_TABLE),
     )
 
     backend = os.getenv("CHECKPOINTER_BACKEND", "dynamodb").lower()
-    deploy = os.getenv("DEPLOY_DDB", "true").lower() == "true"  # auto-create if missing
 
     if backend == "memory":
         checkpointer = MemorySaver()
     else:
         try:
-            checkpointer = DynamoDBSaver(cfg, deploy=deploy)
+            # Require the table to already exist; do not create from app code.
+            checkpointer = DynamoDBSaver(cfg, deploy=False)
         except (DynamoDBCheckpointError, NoCredentialsError) as e:
-            print(f"[checkpointer] Falling back to MemorySaver: {e}")
-            checkpointer = MemorySaver()
+            raise RuntimeError(
+                f"DynamoDB table '{CHECKPOINTS_TABLE}' is missing or not accessible in region "
+                f"{AWS_REGION}. Create it via IaC (CDK/Terraform/CFN) or run a dev bootstrap "
+                f"script, then set CHECKPOINTS_TABLE accordingly."
+            ) from e
 
     return graph_builder.compile(checkpointer=checkpointer, store=vector_store)
+
 
 def _retrieve_core(query: str, vector_store: BaseVectorStore) -> tuple[str, list]:
     """Core retrieval logic that can be tested independently."""
