@@ -1,18 +1,19 @@
+# backend/langchain_impl/src/history.py
+
 from langgraph.graph import MessagesState
-from typing import List, Dict, Optional, Tuple
-from functools import lru_cache
 from pathlib import Path
 from datetime import datetime
-import os
-import time
+from typing import List
 import json
+import os
 
 # =========================
 # Local JSON history (dev)
 # =========================
+# These helpers are **dev-only** so you can peek at Q/A pairs locally.
+# Production persistence + replay is handled by LangGraph's checkpointer.
 
 def _ensure_parent(path: str) -> None:
-    """Ensure the parent directory for a file path exists."""
     Path(path).parent.mkdir(parents=True, exist_ok=True)
 
 def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None:
@@ -28,7 +29,6 @@ def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_data/chat_his
     except FileNotFoundError:
         history = []
 
-    # state may be a dict-like or an object; handle both
     messages = state.get("messages", []) if isinstance(state, dict) else getattr(state, "messages", [])
     user_msg = next((getattr(m, "content", None) for m in reversed(messages) if getattr(m, "type", "") == "human"), None)
     ai_msg   = next((getattr(m, "content", None) for m in reversed(messages) if getattr(m, "type", "") == "ai"), None)
@@ -39,14 +39,13 @@ def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_data/chat_his
             "question": user_msg,
             "response": ai_msg,
         })
-        # Atomic write to prevent corruption
         tmp = CHAT_HISTORY_FILE + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(history, f, indent=2, ensure_ascii=False)
         os.replace(tmp, CHAT_HISTORY_FILE)
 
 def show_history(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None:
-    """Display chat history from the JSON file in the terminal (dev only)."""
+    """Print the dev chat history file."""
     try:
         with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
             try:
@@ -67,7 +66,7 @@ def show_history(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None
         print(f"A: {entry['response']}")
 
 def list_chat_summaries(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None:
-    """List chat entries with timestamps and index only (for CLI selection)."""
+    """List entry timestamps only (quick scan)."""
     try:
         with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
             try:
@@ -86,7 +85,7 @@ def list_chat_summaries(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") 
         print(f"#{idx} | {entry['timestamp']}")
 
 def view_chat_entry(index: int, CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None:
-    """View full details of a selected chat entry by index (1-based)."""
+    """View one entry by index (1-based)."""
     try:
         with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
             try:
@@ -106,7 +105,7 @@ def view_chat_entry(index: int, CHAT_HISTORY_FILE: str = "chat_data/chat_history
         print("Invalid index. Please choose a valid chat number.")
 
 def show_history_menu() -> None:
-    """Simple CLI menu to interact with dev chat history."""
+    """Tiny CLI menu for the dev history file."""
     while True:
         print("\n--- Chat History Menu ---")
         print("1. List chat timestamps")
@@ -126,83 +125,3 @@ def show_history_menu() -> None:
             break
         else:
             print("Invalid option. Try again.")
-
-# ======================================
-# DynamoDB-backed stateless session log
-# ======================================
-
-SESSIONS_TABLE = os.getenv("SESSIONS_TABLE")  # e.g., "lmai-sessions"
-AWS_REGION     = os.getenv("AWS_REGION")      # optional; default chain if unset
-
-@lru_cache(maxsize=1)
-def _sessions_tbl():
-    """Cache the DynamoDB Table handle across warm Lambda invocations."""
-    if not SESSIONS_TABLE:
-        return None
-    import boto3
-    res = boto3.resource("dynamodb", region_name=AWS_REGION)
-    return res.Table(SESSIONS_TABLE)
-# This helper is separate: it writes individual user/AI messages into
-# the SESSIONS_TABLE so we can build full chat history later (for UI/debug).
-# Without this, we'd only have checkpoints, not the raw conversation log.
-def append_message(session_id: str, role: str, content: str) -> None:
-    """
-    Persist a single message.
-    - If SESSIONS_TABLE is set: write to DynamoDB (PK=session_id, SK=ts).
-    - Else (local dev): append to a JSONL file in ./chat_data.
-    """
-    tbl = _sessions_tbl()
-    if tbl is not None:
-        tbl.put_item(Item={
-            "session_id": session_id,       # PK (S)
-            "ts": int(time.time() * 1000),  # SK (N) - ms precision
-            "role": role,                   # "user" | "assistant" | "system"
-            "content": content,
-        })
-        return
-
-    # Local fallback
-    Path("chat_data").mkdir(parents=True, exist_ok=True)
-    sidecar = "chat_data/dev_messages.jsonl"
-    with open(sidecar, "a", encoding="utf-8") as f:
-        f.write(json.dumps(
-            {"session_id": session_id, "role": role, "content": content},
-            ensure_ascii=False
-        ) + "\n")
-
-def load_history(session_id: str, limit: int = 14, last_evaluated_key: Optional[Dict] = None
-                 ) -> Tuple[List[Dict], Optional[Dict]]:
-    """
-    Return oldest→newest list of {role, content} for a session.
-
-    Returns:
-        (messages, last_evaluated_key)
-        - messages: List[{"role": str, "content": str}]
-        - last_evaluated_key: Dict or None (for DynamoDB pagination)
-    """
-    tbl = _sessions_tbl()
-    if tbl is not None:
-        from boto3.dynamodb.conditions import Key
-        kwargs = {
-            "KeyConditionExpression": Key("session_id").eq(session_id),
-            "ScanIndexForward": True,  # oldest → newest
-            "Limit": limit,
-        }
-        if last_evaluated_key:
-            kwargs["ExclusiveStartKey"] = last_evaluated_key
-
-        resp = tbl.query(**kwargs)
-        items = resp.get("Items", [])
-        msgs = [{"role": it["role"], "content": it["content"]} for it in items]
-        return msgs, resp.get("LastEvaluatedKey")
-
-    # Local fallback
-    try:
-        with open("chat_data/dev_messages.jsonl", "r", encoding="utf-8") as f:
-            lines = [json.loads(x) for x in f]
-    except FileNotFoundError:
-        return [], None
-
-    msgs = [m for m in lines if m.get("session_id") == session_id]
-    msgs = msgs[-limit:]
-    return [{"role": m["role"], "content": m["content"]} for m in msgs], None
