@@ -51,7 +51,7 @@ def sanitize_messages(msgs: List[AnyMessage]) -> List[AnyMessage]:
     valid_call_ids = set()
     for m in msgs:
         if isinstance(m, AIMessage):
-            for tc in (getattr(m, "tool_calls", None) or []):
+            for tc in (m.tool_calls or []):
                 call_id = getattr(tc, "id", None)
                 if not call_id and isinstance(tc, dict):
                     call_id = tc.get("id")
@@ -170,7 +170,7 @@ CONTEXT (verbatim):
 def _last_human_text(state: MessagesState) -> str:
     """Return the most recent human message text ('' if none)."""
     for m in reversed(state["messages"]):
-        if getattr(m, "type", None) == "human":
+        if m.type == "human":
             return (m.content or "").strip()
     return ""
 
@@ -195,7 +195,7 @@ def build_system_message(state: MessagesState, allow_fallback: bool = False) -> 
     # collect tail ToolMessages
     recent_tool_messages: List[BaseMessage] = []
     for message in reversed(msgs):
-        if isinstance(message, ToolMessage) or getattr(message, "type", "") == "tool":
+        if isinstance(message, ToolMessage) or message.type == "tool":
             recent_tool_messages.append(message)
         else:
             break
@@ -236,7 +236,7 @@ def query_or_respond(state: MessagesState):
     convo_msgs = [
         m for m in msgs
         if m.type in ("human", "system")
-        or (m.type == "ai" and not getattr(m, "tool_calls", None))
+        or (m.type == "ai" and not m.tool_calls)
     ]
 
     response = llm_with_tools.invoke([sysmsg, step_nudge] + convo_msgs)
@@ -248,7 +248,7 @@ def generate(state: MessagesState):
     conversation_messages = [
         m for m in msgs
         if m.type in ("human", "system")
-        or (m.type == "ai" and not getattr(m, "tool_calls", None))
+        or (m.type == "ai" and not m.tool_calls)
 ]
 
     prompt = [sysmsg] + conversation_messages
@@ -287,7 +287,7 @@ def main():
             stream_mode="values",
         ):
             msg = step["messages"][-1]
-            if getattr(msg, "type", None) in ("ai", "assistant"):
+            if msg.type in ("ai", "assistant"):
                 final_msg = msg
 
         if final_msg:
