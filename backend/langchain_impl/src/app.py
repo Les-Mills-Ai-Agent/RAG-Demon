@@ -238,9 +238,10 @@ def generate(state: MessagesState):
     msgs = sanitize_messages(state["messages"])
     conversation_messages = [
         m for m in msgs
-        if getattr(m, "type", None) in ("human", "system")
-        or (getattr(m, "type", None) == "ai" and not getattr(m, "tool_calls", None))
-    ]
+        if m.type in ("human", "system")
+        or (m.type == "ai" and not getattr(m, "tool_calls", None))
+]
+
     prompt = [sysmsg] + conversation_messages
     response = llm.invoke(prompt)
     return {"messages": [response]}
