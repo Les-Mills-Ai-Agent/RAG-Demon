@@ -39,6 +39,9 @@ embeddings: OpenAIEmbeddings = build_embeddings_client()
 vector_store: BaseVectorStore = InMemoryStore(embeddings)
 
 # ---------------- Utilities ----------------
+# - Removes tool messages that don’t have a matching call (avoids 400 errors).
+# - Makes sure chats don’t start with a tool message.
+# Replaces old hard-coded thread_id since DynamoDB now tracks sessions.
 def sanitize_messages(msgs: List[AnyMessage]) -> List[AnyMessage]:
     """
     Remove any ToolMessage that doesn't respond to a known tool_call_id
