@@ -46,10 +46,11 @@ class AnswerResponseBody(BaseModel):
     answer: str = Field(
         ..., description='The generated LLM response based on the retrieved chunks'
     )
-    responseParts: List[ResponsePart] = Field(
+    response_parts: List[ResponsePart] = Field(
         ..., description='A list of response parts with their retrieved sources'
     )
     session_id: str = Field(
         ...,
         description='The session identifier, either newly generated or taken from the request',
     )
+

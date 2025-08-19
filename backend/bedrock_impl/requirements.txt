@@ -74,6 +74,7 @@ mypy-boto3-bedrock-agent==1.39.5
 mypy-boto3-bedrock-agent-runtime==1.39.0
 mypy-boto3-bedrock-runtime==1.39.7
 mypy-boto3-lambda==1.39.11
+mypy-boto3-dynamodb
 mypy_extensions==1.1.0
 nest-asyncio==1.6.0
 networkx==3.4.2

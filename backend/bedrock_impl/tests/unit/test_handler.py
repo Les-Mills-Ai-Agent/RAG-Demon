@@ -1,52 +1,34 @@
 import pytest
 from mypy_boto3_bedrock_agent_runtime.type_defs import RetrieveAndGenerateResponseTypeDef, RetrieveAndGenerateConfigurationTypeDef
-from bedrock_impl.src.handler import parse_bedrock_response, generate_response
+from bedrock_impl.src.bedrock import Bedrock
+from bedrock_impl.src.models import Chunk
+from pydantic import AnyUrl
 from unittest.mock import MagicMock
 import json
 
 def test_parse_bedrock_response(bedrock_response):
+    bedrock = Bedrock(client = MagicMock())
+    response = bedrock.parse_response(response = bedrock_response)
 
-    response_json = parse_bedrock_response(bedrock_response)
-    response = json.loads(response_json)
+    assert response.answer == "This is the generated answer."
+    assert response.session_id == "abc123"
 
-    assert response["answer"] == "This is the generated answer."
-    assert response["session_id"] == "abc123"
+    assert len(response.response_parts) == 2
 
-    assert len(response["responseParts"]) == 2
-
-    first_part = response["responseParts"][0]
-    assert first_part["text"] == "Part 1 of the answer"
-    assert first_part["references"] == [
-        {
-            "text": "Reference 1 text",
-            "url": "https://example.com/ref1"
-        },
-        {
-            "text": "Reference 2 text",
-            "url": "https://example.com/ref2"
-        }
+    first_part = response.response_parts[0]
+    assert first_part.text == "Part 1 of the answer"
+    assert first_part.references == [
+        Chunk(text='Reference 1 text', url=AnyUrl('https://example.com/ref1')),
+        Chunk(text='Reference 2 text', url=AnyUrl('https://example.com/ref2')),
     ]
 
-    second_part = response["responseParts"][1]
-    assert second_part["text"] == "Part 2 of the answer"
-    assert second_part["references"] == [
-        {
-            "text": "Reference 3 text",
-            "url": "https://example.com/ref3"
-        }
+    second_part = response.response_parts[1]
+    assert second_part.text == "Part 2 of the answer"
+    assert second_part.references == [
+        Chunk(text='Reference 3 text', url=AnyUrl('https://example.com/ref3'))
     ]
     
 def test_generate_response_calls_bedrock_with_correct_params():
-
-    mock_client = MagicMock()
-    mock_config = RetrieveAndGenerateConfigurationTypeDef(
-    type = "KNOWLEDGE_BASE",
-    knowledgeBaseConfiguration = {
-        "knowledgeBaseId" : "kb123",
-        "modelArn": "provider.model:0"
-    }
-)
-
     mock_query = "What is the capital of France?"
 
     expected_response = {
@@ -55,15 +37,34 @@ def test_generate_response_calls_bedrock_with_correct_params():
         "citations": []
     }
 
-    mock_client.retrieve_and_generate.return_value = expected_response
+    # Mock the client
+    client = MagicMock()
+    client.retrieve_and_generate = MagicMock(return_value=expected_response)
 
-    result = generate_response(mock_query, mock_client, mock_config)
+    bedrock = Bedrock(client=client)
 
+    # Call the method
+    result = bedrock.generate_response(mock_query)
+
+    # Assert the response is returned correctly
     assert result == expected_response
 
-    mock_client.retrieve_and_generate.assert_called_once_with(
+    # Assert the client was called with correct params
+    client.retrieve_and_generate.assert_called_once_with(
         input={"text": mock_query},
-        retrieveAndGenerateConfiguration=mock_config
+        retrieveAndGenerateConfiguration = {
+            'type': 'KNOWLEDGE_BASE',
+            'knowledgeBaseConfiguration': {
+                'knowledgeBaseId': 'XBOBJWN1MQ',
+                'modelArn': 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+                'generationConfiguration': {
+                    'guardrailConfiguration': {
+                        'guardrailId': '3x3fwig8roag',
+                        'guardrailVersion': '1'
+                    }
+                }
+            }
+        }
     )
 
 @pytest.fixture

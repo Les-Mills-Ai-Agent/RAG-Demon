@@ -1,3 +1,4 @@
+from http.client import NO_CONTENT
 import os
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph_checkpoint_dynamodb.errors import DynamoDBCheckpointError
@@ -171,7 +172,7 @@ def _last_human_text(state: MessagesState) -> str:
     """Return the most recent human message text ('' if none)."""
     for m in reversed(state["messages"]):
         if m.type == "human":
-            return (m.content or "").strip()
+            return (str(m.content) or "").strip()
     return ""
 
 def _fallback_docs(query: str, k: int = 5) -> str:

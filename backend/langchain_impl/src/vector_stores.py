@@ -9,7 +9,7 @@ class BaseVectorStore(ABC):
         pass
 
     @abstractmethod
-    def similarity_search(self, query: str, k: int = 2) -> List[tuple[Document, float]]:
+    def similarity_search(self, query: str, k: int = 2) -> List[Document]:
         pass
 
 class InMemoryStore(BaseVectorStore):
