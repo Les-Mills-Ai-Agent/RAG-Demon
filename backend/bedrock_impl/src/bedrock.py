@@ -27,10 +27,16 @@ class Bedrock:
                 if rag_config is not None
                 else RetrieveAndGenerateConfigurationTypeDef(
                     type = "KNOWLEDGE_BASE",
-                    knowledgeBaseConfiguration = {
+                    knowledgeBaseConfiguration={
                         "knowledgeBaseId": "XBOBJWN1MQ",
                         "modelArn": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-                    },
+                        "generationConfiguration": {
+                            "guardrailConfiguration": {
+                                "guardrailId": "3x3fwig8roag",
+                                "guardrailVersion": "1",
+                            }
+                        }
+                    }
                 )
             )
 

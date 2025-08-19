@@ -1,34 +1,37 @@
 import pytest
-from httpx import AsyncClient
-from langchain_impl.src.server import api  # your FastAPI app
+import httpx
+from langchain_impl.src.server import api  # FastAPI app
 
-from fastapi.testclient import TestClient
-from starlette.testclient import TestClient as StarletteTestClient  # alternative
 
 @pytest.mark.asyncio
 async def test_chat_endpoint_with_valid_message():
-    test_messages = [
-        {"role": "user", "content": "What kind of content does Les Mills offer?"}
-    ]
+    payload = {
+        "session_id": "test-session-123",
+        "messages": [
+            {"role": "user", "content": "What is the Les Mills Content Portal?"}
+        ],
+    }
 
-    async with AsyncClient(base_url="http://testserver") as ac:
-        response = await ac.post("http://localhost:8000/api/chat", json={"messages": test_messages})
+    transport = httpx.ASGITransport(app=api)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        resp = await ac.post("/api/chat", json=payload)
 
-    assert response.status_code == 200
-    json_data = response.json()
-    assert "reply" in json_data
-    assert isinstance(json_data["reply"], str)
-    assert len(json_data["reply"]) > 0
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert isinstance(data.get("reply"), str) and len(data["reply"]) > 0
+    assert data.get("session_id") == "test-session-123"
 
 
 @pytest.mark.asyncio
 async def test_chat_endpoint_with_empty_message():
-    test_messages = []
+    payload = {
+        "session_id": "test-session-456",
+        "messages": [],  # triggers your 400 branch
+    }
 
-    async with AsyncClient(base_url="http://testserver") as ac:
-        response = await ac.post("http://localhost:8000/api/chat", json={"messages": test_messages})
+    transport = httpx.ASGITransport(app=api)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        resp = await ac.post("/api/chat", json=payload)
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Message list is empty or invalid."
-
-
+    assert resp.status_code == 400, resp.text
+    assert resp.json()["detail"] == "messages must be a non-empty list"
