@@ -14,7 +14,7 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 
-from models import AnswerResponseBody, ResponsePart
+from bedrock_impl.src.models import AnswerResponseBody, ResponsePart
 
 class ChatStore:
 
