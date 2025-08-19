@@ -1,7 +1,7 @@
 import pytest
 from mypy_boto3_bedrock_agent_runtime.type_defs import RetrieveAndGenerateResponseTypeDef, RetrieveAndGenerateConfigurationTypeDef
 from bedrock_impl.src.bedrock import Bedrock
-from models import Chunk
+from bedrock_impl.src.models import Chunk
 from pydantic import AnyUrl
 from unittest.mock import MagicMock
 import json
