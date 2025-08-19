@@ -1,12 +1,27 @@
+# backend/langchain_impl/src/history.py
+
 from langgraph.graph import MessagesState
-
-import json
+from pathlib import Path
 from datetime import datetime
+from typing import List
+import json
+import os
 
-def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_data/chat_history.json"):
-    """Save the latest user and AI message from LangGraph state to a JSON file."""
+# =========================
+# Local JSON history (dev)
+# =========================
+# These helpers are **dev-only** so you can peek at Q/A pairs locally.
+# Production persistence + replay is handled by LangGraph's checkpointer.
+
+def _ensure_parent(path: str) -> None:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+
+def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None:
+    """Append the latest human+AI pair into a pretty JSON file (dev only)."""
+    _ensure_parent(CHAT_HISTORY_FILE)
+
     try:
-        with open(CHAT_HISTORY_FILE, "r") as f:
+        with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
             try:
                 history = json.load(f)
             except json.JSONDecodeError:
@@ -14,32 +29,31 @@ def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_data/chat_his
     except FileNotFoundError:
         history = []
 
-    # Extract latest human question and AI response from state["messages"]
-    messages = state.get("messages", [])
-    user_msg = next((m.content for m in reversed(messages) if m.type == "human"), None)
-    ai_msg = next((m.content for m in reversed(messages) if m.type == "ai"), None)
+    messages = state.get("messages", []) if isinstance(state, dict) else getattr(state, "messages", [])
+    user_msg = next((getattr(m, "content", None) for m in reversed(messages) if getattr(m, "type", "") == "human"), None)
+    ai_msg   = next((getattr(m, "content", None) for m in reversed(messages) if getattr(m, "type", "") == "ai"), None)
 
     if user_msg and ai_msg:
         history.append({
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "question": user_msg,
-            "response": ai_msg
+            "response": ai_msg,
         })
+        tmp = CHAT_HISTORY_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(history, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, CHAT_HISTORY_FILE)
 
-        with open(CHAT_HISTORY_FILE, "w") as f:
-            json.dump(history, f, indent=2)
-
-def show_history(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json"):
-    """Display chat history from the JSON file in the terminal."""
+def show_history(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None:
+    """Print the dev chat history file."""
     try:
-        with open(CHAT_HISTORY_FILE, "r") as f:
+        with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
             try:
                 history = json.load(f)
             except json.JSONDecodeError:
                 history = []
     except FileNotFoundError:
-        print("No previous chats found.")
-        return
+        history = []
 
     if not history:
         print("No previous chats found.")
@@ -51,18 +65,16 @@ def show_history(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json"):
         print(f"Q: {entry['question']}")
         print(f"A: {entry['response']}")
 
-
-def list_chat_summaries(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json"):
-    """List all past chat entries with timestamps and index only (for CLI selection)."""
+def list_chat_summaries(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None:
+    """List entry timestamps only (quick scan)."""
     try:
-        with open(CHAT_HISTORY_FILE, "r") as f:
+        with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
             try:
                 history = json.load(f)
             except json.JSONDecodeError:
                 history = []
     except FileNotFoundError:
-        print("No previous chats found.")
-        return
+        history = []
 
     if not history:
         print("No previous chats found.")
@@ -72,10 +84,10 @@ def list_chat_summaries(CHAT_HISTORY_FILE: str = "chat_data/chat_history.json"):
     for idx, entry in enumerate(history, start=1):
         print(f"#{idx} | {entry['timestamp']}")
 
-def view_chat_entry(index: int, CHAT_HISTORY_FILE: str = "chat_data/chat_history.json"):
-    """View full details of a selected chat entry by index."""
+def view_chat_entry(index: int, CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None:
+    """View one entry by index (1-based)."""
     try:
-        with open(CHAT_HISTORY_FILE, "r") as f:
+        with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
             try:
                 history = json.load(f)
             except json.JSONDecodeError:
@@ -92,8 +104,8 @@ def view_chat_entry(index: int, CHAT_HISTORY_FILE: str = "chat_data/chat_history
     else:
         print("Invalid index. Please choose a valid chat number.")
 
-def show_history_menu():
-    """Simple CLI menu to interact with chat history."""
+def show_history_menu() -> None:
+    """Tiny CLI menu for the dev history file."""
     while True:
         print("\n--- Chat History Menu ---")
         print("1. List chat timestamps")
@@ -101,13 +113,12 @@ def show_history_menu():
         print("3. Back")
 
         choice = input("Choose an option: ").strip()
-
         if choice == "1":
             list_chat_summaries()
         elif choice == "2":
-            index = input("Enter chat number: ").strip()
-            if index.isdigit():
-                view_chat_entry(int(index))
+            idx = input("Enter chat number: ").strip()
+            if idx.isdigit():
+                view_chat_entry(int(idx))
             else:
                 print("Invalid input. Please enter a number.")
         elif choice == "3":
