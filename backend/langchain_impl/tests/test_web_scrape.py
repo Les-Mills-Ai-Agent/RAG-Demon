@@ -1,17 +1,20 @@
 import pytest
 from langchain_core.documents import Document
 from dotenv import load_dotenv
-from langchain_impl.src.web_scrape import fetch_documentation
-from langchain_impl.src.web_scrape import separate_markdown_from_yaml
-from langchain_impl.src.web_scrape import split_document
+from langchain_impl.web_scrape import fetch_documentation
+from langchain_impl.web_scrape import separate_markdown_from_yaml
+from langchain_impl.web_scrape import split_document
 import yaml
+
+from pathlib import Path
 
 # Load environment variables
 load_dotenv(override=True)
 
 @pytest.fixture
 def test_data():
-    with open("backend/langchain_impl/sample_data/test_data.yaml", "r") as file:
+    path = Path(__file__).parent / "test_data.yaml"
+    with open(path, "r") as file:
         return yaml.safe_load(file)
     
 @pytest.fixture

@@ -1,7 +1,6 @@
 from http.client import NO_CONTENT
 import os
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph_checkpoint_dynamodb.errors import DynamoDBCheckpointError
 from botocore.exceptions import NoCredentialsError
 from langchain_openai import ChatOpenAI
 from langchain_openai.embeddings import OpenAIEmbeddings
@@ -14,21 +13,18 @@ from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
 from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.graph.state import CompiledStateGraph
 
-from langgraph_checkpoint_dynamodb import (
+from langgraph_checkpoint_dynamodb.saver import (
     DynamoDBSaver,
-    DynamoDBConfig,
-    DynamoDBTableConfig,
 )
 
 from typing_extensions import Annotated
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
-# local modules (adjust if your paths differ)
-from vector_stores import InMemoryStore, BaseVectorStore
-from apis import build_llm_client, build_embeddings_client
-from web_scrape import fetch_documentation, split_document
-from history import show_history_menu
+from langchain_impl.vector_stores import InMemoryStore, BaseVectorStore
+from langchain_impl.apis import build_llm_client, build_embeddings_client
+from langchain_impl.web_scrape import fetch_documentation, split_document
+from langchain_impl.history import show_history_menu
 
 # ---------------- Env ----------------
 load_dotenv(override=True)
@@ -94,12 +90,8 @@ def build_graph() -> CompiledStateGraph:
 
         # ---- DynamoDB checkpointer (no auto-create in app runtime) ----
     AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-    CHECKPOINTS_TABLE = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-langchain")
-
-    cfg = DynamoDBConfig(
-        region_name=AWS_REGION,
-        table_config=DynamoDBTableConfig(table_name=CHECKPOINTS_TABLE),
-    )
+    CHECKPOINTS_TABLE = os.getenv("CHECKPOINTS_TABLE", "No table in env")
+    WRITES_TABLE = os.getenv("WRITES_TABLE", "No table in env")
 
     backend = os.getenv("CHECKPOINTER_BACKEND", "dynamodb").lower()
 
@@ -108,8 +100,8 @@ def build_graph() -> CompiledStateGraph:
     else:
         try:
             # Require the table to already exist; do not create from app code.
-            checkpointer = DynamoDBSaver(cfg, deploy=False)
-        except (DynamoDBCheckpointError, NoCredentialsError) as e:
+            checkpointer = DynamoDBSaver(writes_table_name=WRITES_TABLE, checkpoints_table_name=CHECKPOINTS_TABLE)
+        except Exception as e:
             raise RuntimeError(
                 f"DynamoDB table '{CHECKPOINTS_TABLE}' is missing or not accessible in region "
                 f"{AWS_REGION}. Create it via IaC (CDK/Terraform/CFN) or run a dev bootstrap "

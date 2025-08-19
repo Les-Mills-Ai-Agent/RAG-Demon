@@ -13,12 +13,8 @@ import os
 # These helpers are **dev-only** so you can peek at Q/A pairs locally.
 # Production persistence + replay is handled by LangGraph's checkpointer.
 
-def _ensure_parent(path: str) -> None:
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-
 def save_chat(state: MessagesState, CHAT_HISTORY_FILE: str = "chat_data/chat_history.json") -> None:
     """Append the latest human+AI pair into a pretty JSON file (dev only)."""
-    _ensure_parent(CHAT_HISTORY_FILE)
 
     try:
         with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:

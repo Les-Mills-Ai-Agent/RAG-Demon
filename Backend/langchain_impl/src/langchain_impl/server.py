@@ -1,6 +1,7 @@
 import os
 from typing import List, Literal, Optional
 from uuid import uuid4
+import uvicorn
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,21 +14,23 @@ from langchain_core.messages import (
     AIMessage,
     SystemMessage,
     ToolMessage,
-    BaseMessage,
+    AnyMessage,
 )
+
+from langchain_core.runnables import RunnableConfig
 
 # ---- Local config (do NOT import these from app.py) ----
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 CHECKPOINTS_TABLE = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-langchain")
 
 # Import graph + shared components from app.py
-from app import (
+from langchain_impl.app import (
     build_graph,
     vector_store,
     sanitize_messages,   # orphan-tool cleaner
 )
 
-from web_scrape import fetch_documentation, split_document
+from langchain_impl.web_scrape import fetch_documentation, split_document
 
 
 # ---------- Env ----------
@@ -79,7 +82,7 @@ class ChatRequest(BaseModel):
 
 
 # ---------- Helpers ----------
-def to_lc_message(m: Message) -> BaseMessage:
+def to_lc_message(m: Message) -> AnyMessage:
     if m.role == "user":
         return HumanMessage(content=m.content)
     if m.role == "assistant":
@@ -121,7 +124,7 @@ async def chat(req: ChatRequest):
 
         # Fresh stateless session unless the client explicitly wants continuity
         session_id = req.session_id or new_thread_id("web")
-        config = {"configurable": {"thread_id": session_id}}
+        config = RunnableConfig({"configurable": {"thread_id": session_id}})
 
         # Convert inbound payload into LC messages and clean stray tool messages
         lc_messages = [to_lc_message(m) for m in req.messages]
@@ -172,5 +175,4 @@ async def chat(req: ChatRequest):
 
 # Dev server entry point
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run("server:api", host="0.0.0.0", port=8000, reload=True)

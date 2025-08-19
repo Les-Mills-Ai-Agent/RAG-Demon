@@ -1,5 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "./Backend/langchain_impl/src"
-    ]
-}

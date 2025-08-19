@@ -1,10 +1,4 @@
-import os, sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[2] / "langchain_impl" / "src"
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
+import os
 # keep the test env defaults
 os.environ.setdefault("CHECKPOINTER_BACKEND", "memory")
 os.environ.setdefault("DEPLOY_DDB", "false")

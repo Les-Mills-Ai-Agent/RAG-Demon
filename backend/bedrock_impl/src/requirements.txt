@@ -1,5 +1,0 @@
-mypy_boto3_bedrock_agent_runtime
-mypy_boto3_dynamodb
-pydantic
-aws_lambda_powertools
-boto3

@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import Mock
 from langchain_core.documents import Document
-from langchain_impl.src.app import _retrieve_core
+from langchain_impl.app import _retrieve_core
 
 def test_retrieve_core_with_real_document():
     doc1 = Document(page_content="Content of document 1", metadata={"source": "doc1"})

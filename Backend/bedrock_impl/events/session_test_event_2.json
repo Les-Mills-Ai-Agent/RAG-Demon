@@ -1,0 +1,10 @@
+{
+  "body": "{\"query\": \"What was my last question?\", \"session_id\": \"test-session-id\"}",
+  "requestContext": {
+    "authorizer": {
+      "claims": {
+        "sub": "test-user-id"
+      }
+    }
+  }
+}

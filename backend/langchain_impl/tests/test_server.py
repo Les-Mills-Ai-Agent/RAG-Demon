@@ -1,6 +1,6 @@
 import pytest
 import httpx
-from langchain_impl.src.server import api  # FastAPI app
+from langchain_impl.server import api  # FastAPI app
 
 
 @pytest.mark.asyncio

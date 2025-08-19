@@ -1,11 +1,10 @@
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[4]))
-import importlib
 import re
 import pytest
 from langchain_core.messages import SystemMessage
+from langchain_impl.app import generate
 
-MODULE_PATH = "langchain_impl.src.app"
+from langgraph.graph import MessagesState
+from langchain_core.messages import ToolMessage, SystemMessage, AIMessage, HumanMessage
 
 
 class AIMsg:
@@ -25,30 +24,24 @@ class RecordingLLM:
         return AIMsg("ok")  # content doesn't matter here
 
 
-@pytest.fixture
-def mod(monkeypatch):
-    appmod = importlib.import_module(MODULE_PATH)
-    monkeypatch.setattr(appmod, "llm", RecordingLLM(), raising=True)
-    return appmod
-
-
 def _state_with_messages():
     # Two tool messages (appear most-recent-first in real run; generate reverses)
-    tool1 = type("T", (), {"type": "tool", "content": "SNIPPET-1"})
-    tool2 = type("T", (), {"type": "tool", "content": "SNIPPET-2"})
+
+    tool1 = ToolMessage("SNIPPET-1")
+    tool2 = ToolMessage("SNIPPET-2")
     # Mixed conversation
-    sysm = type("M", (), {"type": "system", "content": "prior system"})
-    ai_with_tool = type("M", (), {"type": "ai", "content": "ai toolcall", "tool_calls": [{"id": "x"}]})
-    ai_no_tool = type("M", (), {"type": "ai", "content": "plain ai", "tool_calls": None})
-    human = type("M", (), {"type": "human", "content": "user asks something"})
+    sys1 = SystemMessage("prior system")
+    ai_with_tool = AIMessage("ai toolcall", tool_calls=[{"id": "x"}])
+    ai_no_tool = AIMessage("plain ai")
+    human = HumanMessage("human asks something")
 
     # generate() walks messages reversed to gather tool messages, then filters the rest.
-    return {"messages": [tool1, tool2, sysm, ai_with_tool, ai_no_tool, human]}
+    return MessagesState({"messages": [tool1, tool2, sys1, ai_with_tool, ai_no_tool, human]})
 
 
 def test_generate_builds_policy_system_message_and_filters(mod):
     state = _state_with_messages()
-    result = mod.generate(state)
+    result = generate(state)
 
     # LLM got a prompt
     prompt = mod.llm.last_prompt

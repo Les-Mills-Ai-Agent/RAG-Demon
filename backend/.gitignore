@@ -1,7 +1,8 @@
+.venv
+.pytest_cache
 .env
-.venv/
+__pycache__
 __pycache__/
-.pytest_cache/
-.langchain_impl/chat_data/chat_history.json
-.env
-.aws-sam
+**/__pycache__/
+**.pyc
+**.pyo

@@ -1,26 +1,24 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Literal, ClassVar, Mapping, Callable, Union
+from typing import Any, Dict, List, Optional, Literal, Union
 
 from pydantic import AnyUrl, BaseModel, Field, model_serializer
 
 from uuid import uuid4
 
-from mypy_boto3_dynamodb.service_resource import Table as DynamoDBTable
+from mypy_boto3_dynamodb.service_resource import Table
 from datetime import datetime, timezone
 from typing import Any
 import boto3
 from boto3.dynamodb.conditions import Key
-from botocore.exceptions import ClientError
 
-
-from bedrock_impl.src.models import AnswerResponseBody, ResponsePart
+from bedrock_impl.models import ResponsePart
 
 class ChatStore:
 
     def __init__(
         self,
-        table: DynamoDBTable | None = None
+        table: Table | None = None
         ) -> None:
             self.table = (
                 table

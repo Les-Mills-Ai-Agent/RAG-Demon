@@ -5,8 +5,8 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.data_classes import APIGatewayProxyEvent, event_source
 
-from bedrock_impl.src.bedrock import Bedrock
-from bedrock_impl.src.store import ChatStore
+from bedrock_impl.bedrock import Bedrock
+from bedrock_impl.store import ChatStore
 
 logger = Logger('lambda-rag')
 

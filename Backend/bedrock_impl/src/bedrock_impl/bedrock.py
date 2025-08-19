@@ -1,14 +1,12 @@
 from typing import Optional
-from bedrock_impl.src.models import QuestionRequest, AnswerResponseBody
-from bedrock_impl.src.store import AiMessage, UserMessage
+from bedrock_impl.models import QuestionRequest, AnswerResponseBody
+from bedrock_impl.store import AiMessage, UserMessage
 
 import boto3
 
 from mypy_boto3_bedrock_agent_runtime.type_defs import RetrieveAndGenerateResponseTypeDef, RetrieveAndGenerateConfigurationTypeDef
 from mypy_boto3_bedrock_agent_runtime import AgentsforBedrockRuntimeClient
 from mypy_boto3_dynamodb.service_resource import Table
-
-
 
 class Bedrock:
 
