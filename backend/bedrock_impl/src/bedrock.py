@@ -1,6 +1,6 @@
 from typing import Optional
-from backend.bedrock_impl.src.models import QuestionRequest, AnswerResponseBody
-from backend.bedrock_impl.src.store import AiMessage, UserMessage
+from bedrock_impl.src.models import QuestionRequest, AnswerResponseBody
+from bedrock_impl.src.store import AiMessage, UserMessage
 
 import boto3
 

@@ -1,5 +1,5 @@
-from backend.bedrock_impl.src.store import AiMessage, Message
-from backend.bedrock_impl.src.models import ResponsePart, Chunk
+from bedrock_impl.src.store import AiMessage, Message
+from bedrock_impl.src.models import ResponsePart, Chunk
 
 from pydantic import AnyUrl
 
