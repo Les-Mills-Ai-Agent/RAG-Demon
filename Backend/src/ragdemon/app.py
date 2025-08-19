@@ -16,6 +16,8 @@ from .web_scrape import fetch_documentation, split_document
 from .history import save_chat
 from .history import show_history_menu
 
+from .document_loader import parse_and_split
+
 import os
 from dotenv import load_dotenv
 
@@ -113,7 +115,7 @@ def main():
 
     # Load and index documentation into the vector store
     document = fetch_documentation("https://api.content.lesmills.com/docs/v1/content-portal-api.yaml")
-    splits = split_document(document)
+    splits = parse_and_split(document)
     vector_store.add_documents(splits)
 
     app = build_graph()
