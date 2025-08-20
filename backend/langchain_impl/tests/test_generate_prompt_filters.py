@@ -1,5 +1,6 @@
 import re
 import pytest
+from unittest.mock import patch
 from langchain_core.messages import SystemMessage
 from langchain_impl.app import generate
 
@@ -27,24 +28,29 @@ class RecordingLLM:
 def _state_with_messages():
     # Two tool messages (appear most-recent-first in real run; generate reverses)
 
-    tool1 = ToolMessage("SNIPPET-1")
-    tool2 = ToolMessage("SNIPPET-2")
+    tool1 = ToolMessage(content="SNIPPET-1", tool_call_id="tool1")
+    tool2 = ToolMessage(content="SNIPPET-2", tool_call_id="tool2")
     # Mixed conversation
-    sys1 = SystemMessage("prior system")
-    ai_with_tool = AIMessage("ai toolcall", tool_calls=[{"id": "x"}])
-    ai_no_tool = AIMessage("plain ai")
-    human = HumanMessage("human asks something")
+    sys1 = SystemMessage(content="prior system")
+    ai_with_tool = AIMessage(content="ai toolcall", tool_calls=[{"id": "x", "name": "tool1", "args": {}}])
+    ai_no_tool = AIMessage(content="plain ai")
+    human = HumanMessage(content="human asks something")
 
     # generate() walks messages reversed to gather tool messages, then filters the rest.
     return MessagesState({"messages": [tool1, tool2, sys1, ai_with_tool, ai_no_tool, human]})
 
 
-def test_generate_builds_policy_system_message_and_filters(mod):
+def test_generate_builds_policy_system_message_and_filters():
     state = _state_with_messages()
+    recording_llm = RecordingLLM()
+
+    # Patch the global llm in langchain_impl.app
+    with patch("langchain_impl.app.llm", recording_llm):
+        result = generate(state)
     result = generate(state)
 
     # LLM got a prompt
-    prompt = mod.llm.last_prompt
+    prompt = recording_llm.last_prompt
     assert prompt is not None and len(prompt) >= 2
 
     # First item is SystemMessage with our guardrails
