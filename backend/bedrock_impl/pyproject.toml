@@ -22,6 +22,10 @@ packages = [
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
+flake8 = "^7.3.0"
+
+[tool.poetry.scripts]
+export-requirements = "scripts.export_requirements:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

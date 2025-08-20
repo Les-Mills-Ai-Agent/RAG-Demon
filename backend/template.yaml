@@ -137,7 +137,7 @@ Resources:
   BedrockRagFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src
+      CodeUri: bedrock_impl/src/bedrock_impl
       Handler: handler.bedrock_handler
       Policies:
         - AWSLambdaBasicExecutionRole

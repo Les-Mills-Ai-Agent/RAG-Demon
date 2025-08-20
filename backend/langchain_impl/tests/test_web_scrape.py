@@ -13,7 +13,7 @@ load_dotenv(override=True)
 
 @pytest.fixture
 def test_data():
-    path = Path(__file__).parent / "test_data.yaml"
+    path = Path(__file__).parent / "data" / "test_data.yaml"
     with open(path, "r") as file:
         return yaml.safe_load(file)
     
