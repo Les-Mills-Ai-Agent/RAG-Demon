@@ -1,29 +1,32 @@
 import React, { useState } from 'react'
 
-export default function ChatInput({ onSend }) {
-  const [text, setText] = useState('')
-  const [error, setError] = useState(false)
+interface ChatInputProps {
+  onSend: (message: string) => void;
+}
 
-  const submit = (e) => {
-    e.preventDefault()
-    const trimmed = text.trim()
+const ChatInput: React.FC<ChatInputProps> = ({ onSend }) => {
+  const [text, setText] = useState < string > ('');
+  const [error, setError] = useState < boolean > (false);
+
+  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const trimmed = text.trim();
     if (!trimmed) {
-      setError(true)
-      return
+      setError(true);
+      return;
     }
 
-    onSend(trimmed)
-    setText('')
-    setError(false)
+    onSend(trimmed);
+    setText('');
+    setError(false);
   }
 
   return (
     <>
       <form
         onSubmit={submit}
-        className={`w-full max-w-3xl mx-auto flex items-center gap-3 bg-white border ${
-          error ? 'border-red-500' : 'border-gray-300'
-        } rounded-full px-4 py-2 shadow transition-all duration-200`}
+        className={`w-full max-w-3xl mx-auto flex items-center gap-3 bg-white border ${error ? 'border-red-500' : 'border-gray-300'
+          } rounded-full px-4 py-2 shadow transition-all duration-200`}
       >
         <input
           type="text"
@@ -31,8 +34,8 @@ export default function ChatInput({ onSend }) {
           placeholder="Ask anything..."
           value={text}
           onChange={(e) => {
-            setText(e.target.value)
-            if (error) setError(false)
+            setText(e.target.value);
+            if (error) setError(false);
           }}
         />
         <button
@@ -50,3 +53,5 @@ export default function ChatInput({ onSend }) {
     </>
   )
 }
+
+export default ChatInput;

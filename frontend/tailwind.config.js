@@ -3,7 +3,7 @@ export default {
     darkMode: 'class', //required for toggle
   content: [
     "./index.html",
-    "./src/**/*.{js,jsx}",
+    "./src/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
