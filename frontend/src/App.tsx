@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react'
-import ChatWindow from './components/ChatWindow.jsx'
-import ChatInput from './components/ChatInput.jsx'
-import { getChatCompletion } from './utils/openai.js'
-import './index.css'
-import { v4 as uuidv4 } from 'uuid'
+import React, { useState, useEffect } from 'react';
+import ChatWindow from './components/ChatWindow';
+import ChatInput from './components/ChatInput';
+import { getChatCompletion } from './utils/openai';
+import './index.css';
+import { v4 as uuidv4 } from 'uuid';
+import { Message } from './types/message.ts';
 
 export default function App() {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     {
       id: uuidv4(),
       role: 'system',
@@ -14,76 +15,76 @@ export default function App() {
       status: 'success',
       createdAt: new Date().toISOString(),
     },
-  ])
+  ]);
 
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState<boolean>(false);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode)
-  }, [darkMode])
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
 
-  const append = (msg) => setMessages((ms) => [...ms, msg])
+  const append = (msg: Message) => setMessages((ms) => [...ms, msg]);
 
-  const sendMessage = async (text) => {
-    const trimmed = text.trim()
-    if (!trimmed) return // Input validation
+  const sendMessage = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return; // Input validation
 
-    const userMessage = {
+    const userMessage: Message = {
       id: uuidv4(),
       role: 'user',
       content: trimmed,
       status: 'success',
       createdAt: new Date().toISOString(),
-    }
+    };
 
-    const placeholderId = uuidv4()
-    const placeholder = {
+    const placeholderId = uuidv4();
+    const placeholder: Message = {
       id: placeholderId,
       role: 'assistant',
       content: '',
       status: 'loading',
       createdAt: new Date().toISOString(),
-    }
+    };
 
-    append(userMessage)
-    append(placeholder)
+    append(userMessage);
+    append(placeholder);
 
     try {
-      const reply = await getChatCompletion([...messages, userMessage])
+      const reply = await getChatCompletion([...messages, userMessage]);
       setMessages((ms) =>
         ms.map((m) =>
           m.id === placeholderId
             ? {
-                ...m,
-                content: reply,
-                status: 'success',
-                createdAt: new Date().toISOString(),
-              }
+              ...m,
+              content: reply,
+              status: 'success',
+              createdAt: new Date().toISOString(),
+            }
             : m
         )
-      )
+      );
     } catch (err) {
       setMessages((ms) =>
         ms.map((m) =>
           m.id === placeholderId
             ? {
-                ...m,
-                content: '',
-                status: 'error',
-                error: 'Something went wrong. Please try again.',
-                createdAt: new Date().toISOString(),
-              }
+              ...m,
+              content: '',
+              status: 'error',
+              error: 'Something went wrong. Please try again.',
+              createdAt: new Date().toISOString(),
+            }
             : m
         )
-      )
-      console.error('Error fetching chat completion:', err) // Still log internally
+      );
+      console.error('Error fetching chat completion:', err); // Still log internally
     }
-  }
+  };
 
   const handleRetry = () => {
-    const lastUser = [...messages].reverse().find((m) => m.role === 'user')
-    if (lastUser) sendMessage(lastUser.content)
-  }
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    if (lastUser) sendMessage(lastUser.content);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
@@ -99,7 +100,6 @@ export default function App() {
           >
             {darkMode ? '🌙 Dark' : '☀️ Light'}
           </button>
-
         </div>
       </header>
 
@@ -111,5 +111,5 @@ export default function App() {
         <ChatInput onSend={sendMessage} />
       </footer>
     </div>
-  )
+  );
 }

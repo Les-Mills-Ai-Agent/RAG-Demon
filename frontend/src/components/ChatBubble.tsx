@@ -1,19 +1,24 @@
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import dayjs from 'dayjs'
+import { Message } from '../types/message';
 
-export default function ChatBubble({ msg, onRetry }) {
+interface ChatBubbleProps {
+  msg: Message;
+  onRetry?: () => void;
+}
+
+const ChatBubble: React.FC<ChatBubbleProps> = ({ msg, onRetry }) => {
   const base =
     'max-w-[70%] px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm shadow-sm animate-fadeIn'
 
   const classes =
     msg.role === 'user'
       ? `${base} bg-blue-100 text-gray-800 self-end dark:bg-blue-300 dark:text-black`
-      : `${base} ${
-          msg.status === 'error'
-            ? 'bg-red-100 text-red-700 dark:bg-red-400'
-            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100'
-        } self-start`
+      : `${base} ${msg.status === 'error'
+        ? 'bg-red-100 text-red-700 dark:bg-red-400'
+        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100'
+      } self-start`
 
   if (msg.role === 'system') {
     return (
@@ -87,3 +92,5 @@ export default function ChatBubble({ msg, onRetry }) {
     </div>
   )
 }
+
+export default ChatBubble;
