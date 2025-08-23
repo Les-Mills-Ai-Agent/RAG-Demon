@@ -19,7 +19,7 @@ from langgraph_checkpoint_dynamodb.saver import (
 
 from typing_extensions import Annotated
 from typing import List, Dict, Any
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 from langchain_impl.vector_stores import InMemoryStore, BaseVectorStore
 from langchain_impl.apis import build_llm_client, build_embeddings_client
@@ -27,7 +27,7 @@ from langchain_impl.web_scrape import fetch_documentation, split_document
 from langchain_impl.history import show_history_menu
 
 # ---------------- Env ----------------
-load_dotenv(override=True)
+load_dotenv(find_dotenv(usecwd=True))
 _ = os.getenv("OPENAI_API_KEY")  # just to ensure it's loaded
 
 # ---------------- Clients & store ----------------
