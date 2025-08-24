@@ -5,6 +5,7 @@ import { getChatCompletion } from './utils/openai';
 import './index.css';
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from './types/message.ts';
+import { useAuth } from 'react-oidc-context';            
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([
@@ -86,6 +87,27 @@ export default function App() {
     if (lastUser) sendMessage(lastUser.content);
   };
 
+  // ---------- AUTH GATE (ADDED) ----------
+  const auth = useAuth();                                     
+  if (auth.isLoading) {                                      
+    return <div className="p-4">Loading…</div>;               
+  }                                                           
+  if (auth.error) {                                           
+    return <div className="p-4">Error: {auth.error.message}</div>; 
+  }                                                           
+  if (!auth.isAuthenticated) {                                
+    return (                                                  
+      <div className="min-h-screen flex items-center justify-center p-6">  {}
+        <button                                             
+          onClick={() => auth.signinRedirect()}               
+          className="px-4 py-2 rounded bg-black text-white dark:bg-white dark:text-black" 
+        >                                                    
+          Sign in with Cognito                                
+        </button>                                            
+      </div>                                                  
+    );                                                        
+  }                                     
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
       <header className="bg-white dark:bg-gray-800 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
@@ -100,6 +122,18 @@ export default function App() {
           >
             {darkMode ? '🌙 Dark' : '☀️ Light'}
           </button>
+
+          {}
+          <span className="text-sm text-gray-600 dark:text-gray-300">
+            {auth.user?.profile?.email}
+          </span>
+          <button
+            onClick={() => auth.signoutRedirect()}
+            className="text-sm px-3 py-1 rounded bg-gray-900 text-white dark:bg-gray-200 dark:text-gray-900"
+          >
+            Sign out
+          </button>
+          {/* ------------------------------- */}
         </div>
       </header>
 
