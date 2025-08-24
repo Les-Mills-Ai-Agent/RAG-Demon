@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Message } from './types/message.ts';
 import { useAuth } from 'react-oidc-context';
 import LoginCelebration from './components/LoginCelebration';
+import ConfirmSignOut from './components/ConfirmSignOut';
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([
@@ -91,9 +92,16 @@ export default function App() {
   // ---------- AUTH ----------
   const auth = useAuth();
 
-  // Celebration state MUST be declared before any early returns
+  // Celebration state
   const [showCelebrate, setShowCelebrate] = useState(false);
   const wasAuthed = useRef(false);
+
+  // Sign-out confirmation modal state
+  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
+  const onSignoutConfirm = () =>
+    auth.signoutRedirect({
+      post_logout_redirect_uri: window.location.origin + '/callback',
+    });
 
   // Auto-login when not authenticated
   useEffect(() => {
@@ -119,13 +127,23 @@ export default function App() {
   }, [auth.isAuthenticated]);
 
   // Early returns AFTER all hooks are declared
-  if (auth.isLoading || auth.activeNavigator) return <div className="p-4">Loading…</div>;
+  if (auth.isLoading || auth.activeNavigator)
+    return <div className="p-4">Loading…</div>;
   if (auth.error) return <div className="p-4">Error: {auth.error.message}</div>;
   if (!auth.isAuthenticated) return null;
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
-      <LoginCelebration visible={showCelebrate} />
+      <LoginCelebration
+        visible={showCelebrate}
+        userEmail={auth.user?.profile?.email || 'User'}
+      />
+
+      <ConfirmSignOut
+        open={showSignoutConfirm}
+        onCancel={() => setShowSignoutConfirm(false)}
+        onConfirm={onSignoutConfirm}
+      />
 
       <header className="bg-white dark:bg-gray-800 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
         <h1 className="text-xl font-bold text-gray-800 dark:text-white">
@@ -144,11 +162,7 @@ export default function App() {
             {auth.user?.profile?.email}
           </span>
           <button
-            onClick={() =>
-              auth.signoutRedirect({
-                post_logout_redirect_uri: window.location.origin + '/callback',
-              })
-            }
+            onClick={() => setShowSignoutConfirm(true)}
             className="text-sm px-3 py-1 rounded bg-gray-900 text-white dark:bg-gray-200 dark:text-gray-900"
           >
             Sign out
