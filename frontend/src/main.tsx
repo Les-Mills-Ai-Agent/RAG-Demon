@@ -10,7 +10,7 @@ const oidcConfig = {
   authority: import.meta.env.VITE_COGNITO_AUTHORITY,   // e.g. https://your-domain.auth.us-east-1.amazoncognito.com use the one in AWS Congnito and set it in your ENV File
   client_id: import.meta.env.VITE_COGNITO_CLIENT_ID,   // your Cognito App Client ID use the one in AWS Congnito and set it in your ENV File
   redirect_uri: window.location.origin + "/callback",
-  post_logout_redirect_uri: window.location.origin + "/",
+  post_logout_redirect_uri: window.location.origin + "/callback",
   response_type: "code",
   scope: "openid email profile",
   automaticSilentRenew: true,
