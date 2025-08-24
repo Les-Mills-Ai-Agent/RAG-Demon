@@ -98,10 +98,18 @@ export default function App() {
 
   // Sign-out confirmation modal state
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
-  const onSignoutConfirm = () =>
-    auth.signoutRedirect({
-      post_logout_redirect_uri: window.location.origin + '/callback',
-    });
+  const onSignoutConfirm = () => {
+    // one-time flag: skip celebration on the very next login
+    sessionStorage.setItem('skipNextLoginCelebrate', '1');
+
+    const authority = import.meta.env.VITE_COGNITO_AUTHORITY;
+    const clientId  = import.meta.env.VITE_COGNITO_CLIENT_ID;
+    const logoutUri = encodeURIComponent(window.location.origin + '/callback');
+
+    window.location.href =
+      `${authority}/logout?client_id=${clientId}&logout_uri=${logoutUri}`;
+  };
+
 
   // Auto-login when not authenticated
   useEffect(() => {
