@@ -92,35 +92,47 @@ export default function App() {
   // ---------- AUTH ----------
   const auth = useAuth();
 
+  // On refresh/close, clear any in-memory user (defensive)
+  useEffect(() => {
+    const handler = () => auth.removeUser();
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [auth]);
+
   // Celebration state
   const [showCelebrate, setShowCelebrate] = useState(false);
   const wasAuthed = useRef(false);
 
   // Sign-out confirmation modal state
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
-  const onSignoutConfirm = () => {
+  const onSignoutConfirm = async () => {
     // one-time flag: skip celebration on the very next login
     sessionStorage.setItem('skipNextLoginCelebrate', '1');
 
-    const authority = import.meta.env.VITE_COGNITO_AUTHORITY;
-    const clientId  = import.meta.env.VITE_COGNITO_CLIENT_ID;
-    const logoutUri = encodeURIComponent(window.location.origin + '/callback');
+    const postLogout = window.location.origin + '/signed-out';
 
-    window.location.href =
-      `${authority}/logout?client_id=${clientId}&logout_uri=${logoutUri}`;
+    await auth.signoutRedirect({
+      post_logout_redirect_uri: postLogout,
+      extraQueryParams: {
+        client_id: import.meta.env.VITE_COGNITO_CLIENT_ID,
+        logout_uri: postLogout,
+      },
+    });
   };
-
 
   // Auto-login when not authenticated
   useEffect(() => {
-    const onCallback = window.location.pathname.startsWith('/callback');
+    const path = window.location.pathname;
+    const onCallback = path.startsWith('/callback');
+    const onSignedOut = path.startsWith('/signed-out');
     if (
       !auth.isLoading &&
       !auth.isAuthenticated &&
       !auth.activeNavigator &&
-      !onCallback
+      !onCallback &&
+      !onSignedOut
     ) {
-      auth.signinRedirect();
+      auth.signinRedirect({ prompt: 'login' });
     }
   }, [auth.isLoading, auth.isAuthenticated, auth.activeNavigator]);
 
@@ -138,7 +150,16 @@ export default function App() {
   if (auth.isLoading || auth.activeNavigator)
     return <div className="p-4">Loading…</div>;
   if (auth.error) return <div className="p-4">Error: {auth.error.message}</div>;
-  if (!auth.isAuthenticated) return null;
+
+  // If we're on /signed-out and unauthenticated, bounce to login
+  if (!auth.isAuthenticated) {
+    const onSignedOut = window.location.pathname.startsWith('/signed-out');
+    if (onSignedOut) {
+      auth.signinRedirect({ prompt: 'login' });
+      return <div className="p-4">Redirecting to login…</div>;
+    }
+    return null;
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
@@ -158,7 +179,7 @@ export default function App() {
           Les Mills AI Assistant
         </h1>
 
-        <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="text-sm px-3 py-1 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:shadow transition"
