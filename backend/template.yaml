@@ -199,7 +199,7 @@ Resources:
                 description: The id of the conversation/session
 
               x-amazon-apigateway-integration:
-                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Bruh.Arn}/invocations
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
                 httpMethod: POST
                 type: aws_proxy
 
@@ -254,7 +254,7 @@ Resources:
                 description: The id of the user
 
               x-amazon-apigateway-integration:
-                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Bruh2.Arn}/invocations
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
                 httpMethod: POST
                 type: aws_proxy
 
@@ -449,6 +449,21 @@ Resources:
               Action:
                 - bedrock:*
               Resource: "*"
+
+    ConversationHandlingFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: bedrock_impl/src/bedrock_impl
+        Handler: handler.conversation_handler
+        Policies:
+          - AWSLambdaBasicExecutionRole
+          - DynamoDBReadPolicy:
+              TableName: !Ref BedrockSessionsTable
+          - Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:*
+                Resource: "*"
 
   # Ensures BedrockRagFunction can only be called by RagApi
   BedrockRagFunctionInvokePermission:

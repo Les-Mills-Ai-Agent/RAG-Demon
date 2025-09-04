@@ -105,3 +105,9 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
             },
             "body": "Internal server error"
         }
+
+@event_source(data_class = APIGatewayProxyEvent)
+def conversation_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict[str, Any]:
+    """
+    AWS Lambda handler for fetching conversations (sessions).
+    """
