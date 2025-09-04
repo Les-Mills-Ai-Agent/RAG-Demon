@@ -12,7 +12,7 @@ def test_parse_bedrock_response(bedrock_response):
     bedrock = Bedrock(client = MagicMock())
     response = bedrock.parse_response(response = bedrock_response)
 
-    assert response.answer == "This is the generated answer."
+    assert response.content == "This is the generated answer."
     assert response.session_id == "abc123"
 
     assert len(response.response_parts) == 2
