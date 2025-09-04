@@ -213,7 +213,7 @@ Resources:
                       schema:
                       type: array
                       items:
-                        $ref: "#/components/schemas/Conversation"
+                        $ref: "#/components/schemas/Message"
                 "400":
                   description: Bad request
                   content:
@@ -299,22 +299,35 @@ Resources:
 
         components:
           schemas:
-          Conversation:
-            type: object
-            properties:
-              session_id:
-                type: string
-              user_id:
-                type: string
-              created_at:
-                type: string
-                format: date-time
-                example: "2024-08-23T13:28:00Z"
-              last_updated:
-                type: string
-                format: date-time
-                example: "2024-08-23T13:28:00Z"
-            required: [session_id, user_id, created_at, last_updated]
+            Message:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                created_at_message_id:
+                  type: string
+                body:
+                  type: string
+                role:
+                  type: string
+              required: [session_id, created_at_message_id, body, role]
+
+            Conversation:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                user_id:
+                  type: string
+                created_at:
+                  type: string
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+                last_updated:
+                  type: string
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+              required: [session_id, user_id, created_at, last_updated]
 
             RAGRequest:
               type: object
