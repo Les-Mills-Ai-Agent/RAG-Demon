@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { Message, newUserMessage, UserMessage } from "../models/models";
+import {
+  Message,
+  newUserMessage,
+  UserMessage,
+  ErrorResponse,
+} from "../models/models";
 
 interface ChatInputProps {
   onSubmit: (query: Message) => void;
@@ -8,14 +13,14 @@ interface ChatInputProps {
 
 const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, disabled }) => {
   const [input, setInput] = useState<string>("");
-  const [error, setError] = useState<boolean>(false);
+  const [inputError, setInputError] = useState<boolean>(false);
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const trimmed = input.trim();
     if (!trimmed) {
-      setError(true);
+      setInputError(true);
       return;
     }
 
@@ -23,7 +28,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, disabled }) => {
 
     onSubmit(message);
     setInput("");
-    setError(false);
+    setInputError(false);
   };
 
   return (
@@ -31,7 +36,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, disabled }) => {
       <form
         onSubmit={submit}
         className={`w-full max-w-3xl mx-auto flex items-center gap-3 bg-white border ${
-          error ? "border-red-500" : "border-gray-300"
+          inputError ? "border-red-500" : "border-gray-300"
         } rounded-full px-4 py-2 shadow transition-all duration-200`}
       >
         <input
@@ -41,7 +46,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, disabled }) => {
           value={input}
           onChange={(e) => {
             setInput(e.target.value);
-            if (error) setError(false);
+            if (inputError) setInputError(false);
           }}
         />
         <button
@@ -57,7 +62,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, disabled }) => {
           ➤
         </button>
       </form>
-      {error && (
+      {inputError && (
         <p className="text-sm text-red-500 text-center mt-1">
           Please enter a valid message.
         </p>

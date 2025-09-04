@@ -21,7 +21,6 @@ const ChatWindow = () => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [backendImpl, setBackendImpl] = useState<BackendImpl>("bedrock");
-  const [retry, setRetry] = useState<boolean>(false);
 
   const lastUserMessage = messages
     .slice()
@@ -73,6 +72,8 @@ const ChatWindow = () => {
     <div className="flex flex-col gap-4 w-full h-full">
       <div className="flex-1 overflow-y-auto flex flex-col gap-4">
         {messages.map((message) => {
+          const isLastUserMessage =
+            message.message_id === lastUserMessage?.message_id;
           return (
             <ChatBubble
               key={message.message_id}
@@ -87,6 +88,7 @@ const ChatWindow = () => {
             msg={placeholderMessage}
             isLoading={query.isLoading}
             error={query.error}
+            onRetry={query.refetch}
           />
         )}
         <div ref={bottomRef} />

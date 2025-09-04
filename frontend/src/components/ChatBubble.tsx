@@ -10,8 +10,6 @@ interface ChatBubbleProps {
   onRetry?: () => void;
 }
 
-type Status = "success" | "error" | "loading";
-
 const ChatBubble: React.FC<ChatBubbleProps> = ({
   msg,
   isLoading,
