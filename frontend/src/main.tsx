@@ -40,6 +40,7 @@ const oidcConfig = {
   onSigninCallback: () => {
     // Clean up the /callback URL
     window.history.replaceState({}, document.title, window.location.pathname);
+    window.history.replaceState({}, document.title, '/home');
   },
 };
 
