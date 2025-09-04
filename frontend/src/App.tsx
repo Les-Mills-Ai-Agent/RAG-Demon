@@ -92,13 +92,6 @@ export default function App() {
   // ---------- AUTH ----------
   const auth = useAuth();
 
-  // On refresh/close, clear any in-memory user (defensive)
-  useEffect(() => {
-    const handler = () => auth.removeUser();
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [auth]);
-
   // Celebration state
   const [showCelebrate, setShowCelebrate] = useState(false);
   const wasAuthed = useRef(false);

@@ -4,7 +4,7 @@ import App from './App.tsx';
 import './index.css';
 
 import { AuthProvider } from 'react-oidc-context';
-import { WebStorageStateStore, InMemoryWebStorage } from 'oidc-client-ts';
+import { WebStorageStateStore } from 'oidc-client-ts';
 
 // Hosted UI base, e.g. https://<domain>.auth.<region>.amazoncognito.com  (no trailing slash)
 const authority = import.meta.env.VITE_COGNITO_AUTHORITY as string;
@@ -18,13 +18,15 @@ const oidcConfig = {
   redirect_uri: window.location.origin + '/callback',
   post_logout_redirect_uri: window.location.origin + '/signed-out',
   response_type: 'code',
-  scope: 'openid email profile',
+  scope: 'openid email profile', // adjust as needed
 
-  // Non-persistent auth: no silent renew + in-memory store
-  automaticSilentRenew: false,
-  userStore: new WebStorageStateStore({ store: new InMemoryWebStorage() }),
+  // Persist session across refreshes (sessionStorage) and renew tokens
+  automaticSilentRenew: true,
+  userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+  // If you prefer persistence across full browser restarts, use localStorage instead:
+  // userStore: new WebStorageStateStore({ store: window.localStorage }),
 
-  // Inline metadata to avoid CORS on metadataUrl
+  // Inline metadata (avoids a fetch to .well-known/openid-configuration)
   metadata: {
     issuer, // IdP issuer
     authorization_endpoint: `${authority}/oauth2/authorize`,
@@ -36,6 +38,7 @@ const oidcConfig = {
   },
 
   onSigninCallback: () => {
+    // Clean up the /callback URL
     window.history.replaceState({}, document.title, window.location.pathname);
   },
 };
