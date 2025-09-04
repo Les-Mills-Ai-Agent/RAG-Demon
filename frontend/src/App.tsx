@@ -1,90 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import ChatWindow from './components/ChatWindow';
-import ChatInput from './components/ChatInput';
-import { getChatCompletion } from './utils/openai';
-import './index.css';
-import { v4 as uuidv4 } from 'uuid';
-import { Message } from './types/message.ts';
+import React, { useState, useEffect } from "react";
+import ChatWindow from "./components/ChatWindow";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./queryClient";
+import ChatInput from "./components/ChatInput";
+import { getChatCompletion } from "./utils/openai";
+import "./index.css";
+import { v4 as uuidv4 } from "uuid";
+// import { Message } from "./types/message";
+import { UseQueryResult } from "@tanstack/react-query";
+import {
+  ErrorResponse,
+  Message,
+  RAGRequest,
+  RAGResponse,
+} from "./models/models";
+import { useBedrock } from "./hooks/useBedrock";
+
+type BackendImpl = "bedrock" | "langchain";
 
 export default function App() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: uuidv4(),
-      role: 'system',
-      content: "Hi! I'm your Les Mills AI assistant. I'm here to help you with B2B inquiries, solutions, and anything else Les Mills related. How can I assist you today?",
-      status: 'success',
-      createdAt: new Date().toISOString(),
-    },
-  ]);
-
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
+    document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
-
-  const append = (msg: Message) => setMessages((ms) => [...ms, msg]);
-
-  const sendMessage = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return; // Input validation
-
-    const userMessage: Message = {
-      id: uuidv4(),
-      role: 'user',
-      content: trimmed,
-      status: 'success',
-      createdAt: new Date().toISOString(),
-    };
-
-    const placeholderId = uuidv4();
-    const placeholder: Message = {
-      id: placeholderId,
-      role: 'assistant',
-      content: '',
-      status: 'loading',
-      createdAt: new Date().toISOString(),
-    };
-
-    append(userMessage);
-    append(placeholder);
-
-    try {
-      const reply = await getChatCompletion([...messages, userMessage]);
-      setMessages((ms) =>
-        ms.map((m) =>
-          m.id === placeholderId
-            ? {
-              ...m,
-              content: reply,
-              status: 'success',
-              createdAt: new Date().toISOString(),
-            }
-            : m
-        )
-      );
-    } catch (err) {
-      setMessages((ms) =>
-        ms.map((m) =>
-          m.id === placeholderId
-            ? {
-              ...m,
-              content: '',
-              status: 'error',
-              error: 'Something went wrong. Please try again.',
-              createdAt: new Date().toISOString(),
-            }
-            : m
-        )
-      );
-      console.error('Error fetching chat completion:', err); // Still log internally
-    }
-  };
-
-  const handleRetry = () => {
-    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
-    if (lastUser) sendMessage(lastUser.content);
-  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
@@ -98,18 +37,16 @@ export default function App() {
             onClick={() => setDarkMode(!darkMode)}
             className="text-sm px-3 py-1 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:shadow transition"
           >
-            {darkMode ? '🌙 Dark' : '☀️ Light'}
+            {darkMode ? "🌙 Dark" : "☀️ Light"}
           </button>
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-        <ChatWindow messages={messages} onRetry={handleRetry} />
+        <QueryClientProvider client={queryClient}>
+          <ChatWindow />
+        </QueryClientProvider>
       </main>
-
-      <footer className="bg-white dark:bg-gray-800 shadow-inner border-t dark:border-gray-700 px-4 py-3">
-        <ChatInput onSend={sendMessage} />
-      </footer>
     </div>
   );
 }

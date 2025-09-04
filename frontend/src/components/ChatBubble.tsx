@@ -1,49 +1,53 @@
-import React from 'react'
-import ReactMarkdown from 'react-markdown'
-import dayjs from 'dayjs'
-import { Message } from '../types/message';
+import React, { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import dayjs from "dayjs";
+import { Message, AiMessage, ErrorResponse } from "../models/models";
 
 interface ChatBubbleProps {
   msg: Message;
+  isLoading: boolean;
+  error: ErrorResponse | null;
   onRetry?: () => void;
 }
 
-const ChatBubble: React.FC<ChatBubbleProps> = ({ msg, onRetry }) => {
+type Status = "success" | "error" | "loading";
+
+const ChatBubble: React.FC<ChatBubbleProps> = ({
+  msg,
+  isLoading,
+  error,
+  onRetry,
+}) => {
   const base =
-    'max-w-[70%] px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm shadow-sm animate-fadeIn'
+    "max-w-[70%] px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm shadow-sm animate-fadeIn";
 
   const classes =
-    msg.role === 'user'
+    msg.role === "user"
       ? `${base} bg-blue-100 text-gray-800 self-end dark:bg-blue-300 dark:text-black`
-      : `${base} ${msg.status === 'error'
-        ? 'bg-red-100 text-red-700 dark:bg-red-400'
-        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100'
-      } self-start`
+      : `${base} ${
+          error
+            ? "bg-red-100 text-red-700 dark:bg-red-400"
+            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100"
+        } self-start`;
 
-  if (msg.role === 'system') {
-    return (
-      <div className="text-sm italic text-gray-500 text-center my-4">
-        {msg.content}
-      </div>
-    )
-  }
-
-  const formattedTime = msg.createdAt
-    ? dayjs(msg.createdAt).format('h:mm A')
-    : null
+  const formattedTime = msg.created_at
+    ? dayjs(msg.created_at).format("h:mm A")
+    : null;
 
   return (
-    <div className={`w-full flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+    <div
+      className={`w-full flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+    >
       <div className="flex items-end gap-2">
-        {msg.role === 'assistant' && (
+        {msg.role === "ai" && (
           <div className="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shrink-0">
-            LM
+            LMI
           </div>
         )}
 
         <div className={classes}>
           {/* Loading */}
-          {msg.status === 'loading' && (
+          {isLoading && (
             <div className="flex gap-1 text-gray-500">
               <span className="animate-blink delay-0">.</span>
               <span className="animate-blink delay-200">.</span>
@@ -52,9 +56,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ msg, onRetry }) => {
           )}
 
           {/* Error */}
-          {msg.status === 'error' && (
+          {error && (
             <>
-              <div>⚠️ {msg.error || 'Something went wrong.'}</div>
+              <div>⚠️ {error.message || "Something went wrong."}</div>
               {onRetry && (
                 <button
                   onClick={onRetry}
@@ -68,16 +72,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ msg, onRetry }) => {
           )}
 
           {/* Success (markdown response) */}
-          {msg.status === 'success' && msg.content && (
+          {!error && !isLoading && (
             <div className="prose prose-sm max-w-none dark:prose-invert">
               <ReactMarkdown>{msg.content}</ReactMarkdown>
-            </div>
-          )}
-
-          {/* Fallback if status is undefined */}
-          {msg.status === undefined && msg.content && (
-            <div className="text-sm text-gray-800 dark:text-gray-200">
-              {msg.content}
             </div>
           )}
 
@@ -90,7 +87,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ msg, onRetry }) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default ChatBubble;

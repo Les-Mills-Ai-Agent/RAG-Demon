@@ -17,12 +17,28 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
     """
     try:
         if not event.body:
-            return {"statusCode": 400, "body": "Missing request body"}
+            return {
+                "statusCode": 400,
+                "body": "Missing request body",
+                'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                },
+            }
         
         user_id = event.request_context.authorizer.claims.get("sub")
         
         if not user_id:
-            return {"statusCode": 400, "body": "Missing cognito user ID"}
+            return {
+                "statusCode": 400,
+                'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                },
+                "body": "Missing cognito user ID"
+            }
         
         bedrock = Bedrock()
         chat_store = ChatStore()
@@ -33,7 +49,7 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
 
         chat_store.save_message(
             role = 'user',
-            body = request.query,
+            body = request.content,
             session_id = session_id,
         )
 
@@ -43,13 +59,13 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
             n = 5
         )
         
-        response = bedrock.generate_response(request.query, query_context)
+        response = bedrock.generate_response(request.content, query_context)
         response = bedrock.parse_response(response)
 
 
         chat_store.save_message(
             role = 'ai',
-            body = response.answer,
+            body = response.content,
             session_id = session_id,
             response_parts = response.response_parts
         )
@@ -58,13 +74,34 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
 
         return {
             "statusCode": 200,
-            "body": response.model_dump_json(),
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
+            "body": response.model_dump_json()
         }
 
     except ValidationError as ve:
         logger.error("Validation error:", ve)
-        return {"statusCode": 400, "body": "Bad request"}
+        return {
+            "statusCode": 400,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
+            "body": "Bad request"
+        }
 
     except Exception as e:
         logger.error("Internal error:", e)
-        return {"statusCode": 500, "body": "Internal server error"}
+        return {
+            "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
+            "body": "Internal server error"
+        }

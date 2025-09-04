@@ -1,5 +1,5 @@
 from typing import Optional
-from bedrock_impl.models import QuestionRequest, AnswerResponseBody
+from bedrock_impl.models import RAGRequest, RAGResponse
 from bedrock_impl.store import AiMessage, UserMessage
 
 import boto3
@@ -7,6 +7,9 @@ import boto3
 from mypy_boto3_bedrock_agent_runtime.type_defs import RetrieveAndGenerateResponseTypeDef, RetrieveAndGenerateConfigurationTypeDef
 from mypy_boto3_bedrock_agent_runtime import AgentsforBedrockRuntimeClient
 from mypy_boto3_dynamodb.service_resource import Table
+
+from uuid import uuid4
+from datetime import datetime, timezone
 
 class Bedrock:
 
@@ -38,11 +41,11 @@ class Bedrock:
                 )
             )
 
-    def parse_request(self, body: str) -> QuestionRequest:
+    def parse_request(self, body: str) -> RAGRequest:
         """
         Parse and validate the incoming JSON request body into a QuestionRequest.
         """
-        return QuestionRequest.model_validate_json(body)
+        return RAGRequest.model_validate_json(body)
 
     def generate_response(self, query: str, context: Optional[list[AiMessage | UserMessage]] = None) -> RetrieveAndGenerateResponseTypeDef:
         try:
@@ -60,13 +63,12 @@ class Bedrock:
         except Exception as e:
              raise RuntimeError(f"Bedrock API call failed: {e}") from e
 
-    def parse_response(self, response: RetrieveAndGenerateResponseTypeDef) -> AnswerResponseBody:
-        """
-        Parse the Bedrock response and return an AnswerResponseBody.
-        """
-        output = response.get("output", {}).get("text")
+    def parse_response(self, response: RetrieveAndGenerateResponseTypeDef) -> RAGResponse:
+        message_id = str(uuid4())
+        output = response.get("output").get("text")
         session_id = response.get("sessionId")
         citations = response.get("citations", [])
+        created_at = datetime.now(timezone.utc)
 
         extracted_parts = []
 
@@ -93,8 +95,10 @@ class Bedrock:
                 "references": simplified_refs,
             })
 
-        return AnswerResponseBody(
-            answer = output,
+        return RAGResponse(
+            message_id = message_id,
+            content = output,
             response_parts = extracted_parts,
-            session_id = session_id
+            session_id = session_id,
+            created_at = created_at
         )
