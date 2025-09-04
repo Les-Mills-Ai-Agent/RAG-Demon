@@ -187,7 +187,7 @@ Resources:
                       schema:
                         $ref: "#/components/schemas/ErrorResponse"
 
-          /rag/bedrock/conversation/{session_id}:
+          /rag/bedrock/messages/{session_id}:
             get:
               summary: Fetch all messages within a conversation/session
               parameters:
@@ -242,7 +242,7 @@ Resources:
                           message:
                             type: string              
 
-          /rag/bedrock/conversation/{user_id}:
+          /rag/bedrock/conversations/{user_id}:
             get:
               summary: Fetch all conversations that belong to a given user
               parameters:
