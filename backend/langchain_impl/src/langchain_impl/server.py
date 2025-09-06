@@ -6,8 +6,8 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
-from dotenv import load_dotenv
-load_dotenv(override=True)
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv(usecwd=True))  # loads the repo-root .env reliably
 
 from langchain_core.messages import (
     HumanMessage,
