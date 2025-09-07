@@ -13,6 +13,11 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        MaxAge: 3600
       DefinitionBody:
         openapi: 3.0.1
         info:
@@ -27,7 +32,7 @@ Resources:
                 content:
                   application/json:
                     schema:
-                      $ref: "#/components/schemas/QuestionRequest"
+                      $ref: "#/components/schemas/RAGRequest"
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BedrockRagFunction.Arn}/invocations
@@ -47,55 +52,61 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/AnswerResponse"
+                        $ref: "#/components/schemas/RAGResponse"
                 "400":
                   description: Bad request
                   content:
                     application/json:
                       schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
+                        $ref: "#/components/schemas/ErrorResponse"
+                "401":
+                  description: Unauthorized
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
                 "403":
                   description: Forbidden
                   content:
                     application/json:
                       schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
+                        $ref: "#/components/schemas/ErrorResponse"
                 "500":
                   description: Internal server error
                   content:
                     application/json:
                       schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
+                        $ref: "#/components/schemas/ErrorResponse"
 
         components:
           schemas:
-            QuestionRequest:
+            RAGRequest:
               type: object
               properties:
-                query:
+                message_id:
+                  description: Unique identifier of this message
+                  type: string
+                content:
                   description: The query for Bedrock to answer
                   type: string
                 session_id:
                   description: Optional session identifier
                   type: string
-              required: [query]
+                created_at:
+                  type: string
+                  format: date-time
+              required: [message_id, content, created_at]
 
-            AnswerResponse:
+            RAGResponse:
               type: object
               properties:
-                answer:
+                message_id:
+                  description: Unique identifier of this message
+                  type: string
+                content:
                   type: string
                   description: The generated LLM response based on the retrieved chunks
-                responseParts:
+                response_parts:
                   type: array
                   description: A list of response parts with their retrieved sources
                   items:
@@ -103,7 +114,29 @@ Resources:
                 session_id:
                   description: The session identifier, either newly generated or returned from the request
                   type: string
-              required: [answer, responseParts, session_id]
+                created_at:
+                  type: string
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+              required:
+                [message_id, content, response_parts, session_id, created_at]
+
+            ErrorResponse:
+              type: object
+              properties:
+                status:
+                  type: number
+                  description: The HTTP status code of the response
+                  example: 401
+                error:
+                  type: string
+                  description: The machine readable error identifier
+                  example: INVALID_TOKEN
+                message:
+                  type: string
+                  description: The human readable error message
+                  example: "The provided token is invalid."
+              required: [status, error, message]
 
             ResponsePart:
               type: object
@@ -127,9 +160,28 @@ Resources:
                 url:
                   type: string
                   format: uri
+              required: [text, url]
+
+            Conversation:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                user_id:
+                  type: string
+                created_at:
+                  type: string
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+                last_updated:
+                  type: string
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+              required: [session_id, user_id, created_at, last_updated]
 
       Auth:
         DefaultAuthorizer: RagCognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
         Authorizers:
           RagCognitoAuthorizer:
             UserPoolArn: !GetAtt RagCognitoUserPool.Arn
@@ -137,8 +189,8 @@ Resources:
   BedrockRagFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: bedrock_impl/src/bedrock_impl
-      Handler: handler.bedrock_handler
+      CodeUri: bedrock_impl/src
+      Handler: bedrock_impl.handler.bedrock_handler
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
@@ -162,13 +214,13 @@ Resources:
     Type: AWS::Cognito::UserPool
     Properties:
       UserPoolName: RagUserPool
-      Policies:
-        PasswordPolicy:
-          MinimumLength: 8
-          RequireLowercase: true
-          RequireNumbers: true
-          RequireSymbols: true
-          RequireUppercase: true
+      # Policies:
+      #   PasswordPolicy:
+      #     MinimumLength: 8
+      #     RequireLowercase: true
+      #     RequireNumbers: true
+      #     RequireSymbols: true
+      #     RequireUppercase: true
       UsernameAttributes:
         - email
       AdminCreateUserConfig:
