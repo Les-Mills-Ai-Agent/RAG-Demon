@@ -16,7 +16,10 @@ export function useBedrock(message?: UserMessage) {
     queryKey: ["bedrock", request?.message_id],
     queryFn: () => getBedrockResponse(request!, auth.user?.id_token!),
     enabled: !!request,
-    staleTime: 5 * 60 * 1000,
+    staleTime: Infinity,
     retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
 }
