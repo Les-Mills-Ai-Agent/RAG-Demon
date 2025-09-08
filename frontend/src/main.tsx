@@ -1,10 +1,10 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './index.css';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
 
-import { AuthProvider } from 'react-oidc-context';
-import { WebStorageStateStore } from 'oidc-client-ts';
+import { AuthProvider } from "react-oidc-context";
+import { WebStorageStateStore } from "oidc-client-ts";
 
 // Hosted UI base, e.g. https://<domain>.auth.<region>.amazoncognito.com  (no trailing slash)
 const authority = import.meta.env.VITE_COGNITO_AUTHORITY as string;
@@ -15,10 +15,10 @@ const issuer = import.meta.env.VITE_COGNITO_ISSUER as string;
 const oidcConfig = {
   authority,
   client_id: import.meta.env.VITE_COGNITO_CLIENT_ID as string,
-  redirect_uri: window.location.origin + '/callback',
-  post_logout_redirect_uri: window.location.origin + '/signed-out',
-  response_type: 'code',
-  scope: 'openid email profile', // adjust as needed
+  redirect_uri: window.location.origin + "/callback",
+  post_logout_redirect_uri: window.location.origin + "/signed-out",
+  response_type: "code",
+  scope: "openid email profile", // adjust as needed
 
   // Persist session across refreshes (sessionStorage) and renew tokens
   automaticSilentRenew: true,
@@ -40,11 +40,11 @@ const oidcConfig = {
   onSigninCallback: () => {
     // Clean up the /callback URL
     window.history.replaceState({}, document.title, window.location.pathname);
-    window.history.replaceState({}, document.title, '/home');
+    window.history.replaceState({}, document.title, "/home");
   },
 };
 
-const rootElement: HTMLElement | null = document.getElementById('root');
+const rootElement: HTMLElement | null = document.getElementById("root");
 
 if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
