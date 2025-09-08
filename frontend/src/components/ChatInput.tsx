@@ -1,57 +1,74 @@
-import React, { useState } from 'react'
+import React, { useState } from "react";
+import {
+  Message,
+  newUserMessage,
+  UserMessage,
+  ErrorResponse,
+} from "../models/models";
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSubmit: (query: Message) => void;
+  disabled: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSend }) => {
-  const [text, setText] = useState < string > ('');
-  const [error, setError] = useState < boolean > (false);
+const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, disabled }) => {
+  const [input, setInput] = useState<string>("");
+  const [inputError, setInputError] = useState<boolean>(false);
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const trimmed = text.trim();
+
+    const trimmed = input.trim();
     if (!trimmed) {
-      setError(true);
+      setInputError(true);
       return;
     }
 
-    onSend(trimmed);
-    setText('');
-    setError(false);
-  }
+    const message: UserMessage = newUserMessage(trimmed);
+
+    onSubmit(message);
+    setInput("");
+    setInputError(false);
+  };
 
   return (
     <>
       <form
         onSubmit={submit}
-        className={`w-full max-w-3xl mx-auto flex items-center gap-3 bg-white border ${error ? 'border-red-500' : 'border-gray-300'
-          } rounded-full px-4 py-2 shadow transition-all duration-200`}
+        className={`w-full max-w-3xl mx-auto flex items-center gap-3 bg-white border ${
+          inputError ? "border-red-500" : "border-gray-300"
+        } rounded-full px-4 py-2 shadow transition-all duration-200`}
       >
         <input
           type="text"
           className="flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none"
           placeholder="Ask anything..."
-          value={text}
+          value={input}
           onChange={(e) => {
-            setText(e.target.value);
-            if (error) setError(false);
+            setInput(e.target.value);
+            if (inputError) setInputError(false);
           }}
         />
         <button
           type="submit"
-          className="text-white bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-full transition text-sm font-semibold"
+          className={`text-sm font-semibold px-4 py-2 rounded-full transition
+    ${
+      disabled
+        ? "text-gray-500 bg-gray-300 cursor-not-allowed"
+        : "text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
+    }`}
+          disabled={disabled}
         >
           ➤
         </button>
       </form>
-      {error && (
+      {inputError && (
         <p className="text-sm text-red-500 text-center mt-1">
           Please enter a valid message.
         </p>
       )}
     </>
-  )
-}
+  );
+};
 
 export default ChatInput;

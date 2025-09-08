@@ -1,93 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
-import ChatWindow from './components/ChatWindow';
-import ChatInput from './components/ChatInput';
-import { getChatCompletion } from './utils/openai';
-import './index.css';
-import { v4 as uuidv4 } from 'uuid';
-import { Message } from './types/message.ts';
-import { useAuth } from 'react-oidc-context';
-import LoginCelebration from './components/LoginCelebration';
-import ConfirmSignOut from './components/ConfirmSignOut';
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./queryClient";
+import React, { useState, useEffect, useRef } from "react";
+import ChatWindow from "./components/ChatWindow";
+import ChatInput from "./components/ChatInput";
+import "./index.css";
+import { v4 as uuidv4 } from "uuid";
+import { useAuth } from "react-oidc-context";
+import LoginCelebration from "./components/LoginCelebration";
+import ConfirmSignOut from "./components/ConfirmSignOut";
 
 export default function App() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: uuidv4(),
-      role: 'system',
-      content:
-        "Hi! I'm your Les Mills AI assistant. I'm here to help you with B2B inquiries, solutions, and anything else Les Mills related. How can I assist you today?",
-      status: 'success',
-      createdAt: new Date().toISOString(),
-    },
-  ]);
-
   const [darkMode, setDarkMode] = useState<boolean>(false);
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
+    document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
-
-  const append = (msg: Message) => setMessages((ms) => [...ms, msg]);
-
-  const sendMessage = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-
-    const userMessage: Message = {
-      id: uuidv4(),
-      role: 'user',
-      content: trimmed,
-      status: 'success',
-      createdAt: new Date().toISOString(),
-    };
-
-    const placeholderId = uuidv4();
-    const placeholder: Message = {
-      id: placeholderId,
-      role: 'assistant',
-      content: '',
-      status: 'loading',
-      createdAt: new Date().toISOString(),
-    };
-
-    append(userMessage);
-    append(placeholder);
-
-    try {
-      const reply = await getChatCompletion([...messages, userMessage]);
-      setMessages((ms) =>
-        ms.map((m) =>
-          m.id === placeholderId
-            ? {
-                ...m,
-                content: reply,
-                status: 'success',
-                createdAt: new Date().toISOString(),
-              }
-            : m
-        )
-      );
-    } catch (err) {
-      setMessages((ms) =>
-        ms.map((m) =>
-          m.id === placeholderId
-            ? {
-                ...m,
-                content: '',
-                status: 'error',
-                error: 'Something went wrong. Please try again.',
-                createdAt: new Date().toISOString(),
-              }
-            : m
-        )
-      );
-      console.error('Error fetching chat completion:', err);
-    }
-  };
-
-  const handleRetry = () => {
-    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
-    if (lastUser) sendMessage(lastUser.content);
-  };
 
   // ---------- AUTH ----------
   const auth = useAuth();
@@ -100,14 +26,14 @@ export default function App() {
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
   const onSignoutConfirm = async () => {
     // one-time flag: skip celebration on the very next login
-    sessionStorage.setItem('skipNextLoginCelebrate', '1');
+    sessionStorage.setItem("skipNextLoginCelebrate", "1");
 
-    const postLogout = window.location.origin + '/signed-out';
+    const postLogout = window.location.origin + "/signed-out";
 
     await auth.signoutRedirect({
       post_logout_redirect_uri: postLogout,
       extraQueryParams: {
-        client_id: import.meta.env.VITE_COGNITO_CLIENT_ID,
+        client_id: import.meta.env.VITE_COGNITO_CLIENT_ID as string,
         logout_uri: postLogout,
       },
     });
@@ -116,8 +42,8 @@ export default function App() {
   // Auto-login when not authenticated
   useEffect(() => {
     const path = window.location.pathname;
-    const onCallback = path.startsWith('/callback');
-    const onSignedOut = path.startsWith('/signed-out');
+    const onCallback = path.startsWith("/callback");
+    const onSignedOut = path.startsWith("/signed-out");
     if (
       !auth.isLoading &&
       !auth.isAuthenticated &&
@@ -125,7 +51,7 @@ export default function App() {
       !onCallback &&
       !onSignedOut
     ) {
-      auth.signinRedirect({ prompt: 'login' });
+      auth.signinRedirect({ prompt: "login" });
     }
   }, [auth.isLoading, auth.isAuthenticated, auth.activeNavigator]);
 
@@ -146,9 +72,9 @@ export default function App() {
 
   // If we're on /signed-out and unauthenticated, bounce to login
   if (!auth.isAuthenticated) {
-    const onSignedOut = window.location.pathname.startsWith('/signed-out');
+    const onSignedOut = window.location.pathname.startsWith("/signed-out");
     if (onSignedOut) {
-      auth.signinRedirect({ prompt: 'login' });
+      auth.signinRedirect({ prompt: "login" });
       return <div className="p-4">Redirecting to login…</div>;
     }
     return null;
@@ -158,7 +84,7 @@ export default function App() {
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
       <LoginCelebration
         visible={showCelebrate}
-        userEmail={auth.user?.profile?.email || 'User'}
+        userEmail={auth.user?.profile?.email || "User"}
       />
 
       <ConfirmSignOut
@@ -172,12 +98,12 @@ export default function App() {
           Les Mills AI Assistant
         </h1>
 
-      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="text-sm px-3 py-1 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:shadow transition"
           >
-            {darkMode ? '🌙 Dark' : '☀️ Light'}
+            {darkMode ? "🌙 Dark" : "☀️ Light"}
           </button>
 
           <span className="text-sm text-gray-600 dark:text-gray-300">
@@ -193,12 +119,10 @@ export default function App() {
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-        <ChatWindow messages={messages} onRetry={handleRetry} />
+        <QueryClientProvider client={queryClient}>
+          <ChatWindow />
+        </QueryClientProvider>
       </main>
-
-      <footer className="bg-white dark:bg-gray-800 shadow-inner border-t dark:border-gray-700 px-4 py-3">
-        <ChatInput onSend={sendMessage} />
-      </footer>
     </div>
   );
 }

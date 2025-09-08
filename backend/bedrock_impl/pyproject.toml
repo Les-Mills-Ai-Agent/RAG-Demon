@@ -20,9 +20,13 @@ packages = [
   { include = "bedrock_impl", from = "src" }
 ]
 
+[tool.poetry.dependencies]
+bedrock_impl_local = { path = "src/bedrock_impl", develop = true }
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
 flake8 = "^7.3.0"
+datamodel-code-generator = "^0.33.0"
 
 [tool.poetry.scripts]
 export-requirements = "scripts.export_requirements:main"

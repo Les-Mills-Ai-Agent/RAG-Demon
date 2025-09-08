@@ -6,3 +6,4 @@ __pycache__
 **.pyo
 requirements.txt
 .aws-sam
+auth_test.sh
