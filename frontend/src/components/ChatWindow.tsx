@@ -4,6 +4,7 @@ import { AiMessage, Message } from "../models/models";
 import { useBedrock } from "../hooks/useBedrock";
 import { useLangchain } from "../hooks/useLangchain";
 import ChatInput from "./ChatInput";
+import { UserMessage } from "../models/models";
 
 type BackendImpl = "bedrock" | "langchain";
 
@@ -43,12 +44,19 @@ const ChatWindow = ({ backendImpl: backendProp = "bedrock" }: ChatWindowProps) =
     });
   };
 
-  // Hooks (unchanged)
-  const bedrockQuery = useBedrock(lastUserMessage);
-  const langchainQuery = useLangchain(lastUserMessage, { enabled: backendImpl === "langchain" });
+// inside the component, before calling the hooks:
+const bedrockMsg =
+  backendImpl === "bedrock" ? (lastUserMessage as UserMessage | undefined) : undefined;
 
-  // Switch based on selected backend
-  const query = backendImpl === "bedrock" ? bedrockQuery : langchainQuery;
+const langchainMsg =
+  backendImpl === "langchain" ? (lastUserMessage as UserMessage | undefined) : undefined;
+
+// call hooks with a single argument each (no options object)
+const bedrockQuery   = useBedrock(bedrockMsg);
+const langchainQuery = useLangchain(langchainMsg);
+
+// pick the active one
+const query = backendImpl === "bedrock" ? bedrockQuery : langchainQuery;
 
   useEffect(() => {
     if (query.isSuccess && query.data) {
