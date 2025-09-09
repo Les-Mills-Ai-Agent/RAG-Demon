@@ -1,26 +1,26 @@
 import React, { useEffect, useRef, useState } from "react";
 import ChatBubble from "./ChatBubble";
-import { AiMessage, Message, RAGRequest } from "../models/models";
-import { v4 as uuid } from "uuid";
+import { AiMessage, Message } from "../models/models";
 import { useBedrock } from "../hooks/useBedrock";
-import { UseQueryResult } from "@tanstack/react-query";
-import { ErrorResponse, RAGResponse, UserMessage } from "../models/models";
-import { getChatCompletion } from "../utils/openai";
-import ChatInput from "./ChatInput";
 import { useLangchain } from "../hooks/useLangchain";
-import { OmitKeyof } from "@tanstack/react-query";
-
-// interface ChatWindowProps {
-//   messages: Message[];
-//   onRetry: (id: string) => void;
-// }
+import ChatInput from "./ChatInput";
 
 type BackendImpl = "bedrock" | "langchain";
 
-const ChatWindow = () => {
+// NEW: accept a prop from App to pick the backend
+type ChatWindowProps = {
+  backendImpl?: BackendImpl; // optional; defaults to "bedrock"
+};
+
+const ChatWindow = ({ backendImpl: backendProp = "bedrock" }: ChatWindowProps) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [backendImpl, setBackendImpl] = useState<BackendImpl>("bedrock");
+
+  // NEW: keep existing state but sync it to the prop
+  const [backendImpl, setBackendImpl] = useState<BackendImpl>(backendProp);
+  useEffect(() => {
+    setBackendImpl(backendProp);
+  }, [backendProp]);
 
   const lastUserMessage = messages
     .slice()
@@ -38,16 +38,16 @@ const ChatWindow = () => {
 
   const addMessage = (message: Message) => {
     setMessages((ms) => {
-      // Prevent duplicates
       if (ms.some((m) => m.message_id === message.message_id)) return ms;
       return [...ms, message];
     });
   };
 
-  // useBedrock runs automatically when lastUserMessage changes
+  // Hooks (unchanged)
   const bedrockQuery = useBedrock(lastUserMessage);
-  const langchainQuery = useLangchain();
+  const langchainQuery = useLangchain(lastUserMessage, { enabled: backendImpl === "langchain" });
 
+  // Switch based on selected backend
   const query = backendImpl === "bedrock" ? bedrockQuery : langchainQuery;
 
   useEffect(() => {
@@ -71,18 +71,14 @@ const ChatWindow = () => {
   return (
     <div className="flex flex-col gap-4 w-full h-full">
       <div className="flex-1 overflow-y-auto flex flex-col gap-4">
-        {messages.map((message) => {
-          const isLastUserMessage =
-            message.message_id === lastUserMessage?.message_id;
-          return (
-            <ChatBubble
-              key={message.message_id}
-              msg={message}
-              isLoading={false}
-              error={null}
-            />
-          );
-        })}
+        {messages.map((message) => (
+          <ChatBubble
+            key={message.message_id}
+            msg={message}
+            isLoading={false}
+            error={null}
+          />
+        ))}
         {(query.isLoading || query.error) && (
           <ChatBubble
             msg={placeholderMessage}
