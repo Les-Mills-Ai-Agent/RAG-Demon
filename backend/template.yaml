@@ -200,7 +200,7 @@ Resources:
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
-                httpMethod: POST
+                httpMethod: GET
                 type: aws_proxy
 
               x-amazon-apigateway-request-validator: validate-params-only
@@ -255,7 +255,7 @@ Resources:
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
-                httpMethod: POST
+                httpMethod: GET
                 type: aws_proxy
 
               x-amazon-apigateway-request-validator: validate-params-only
@@ -450,7 +450,7 @@ Resources:
                 - bedrock:*
               Resource: "*"
 
-    ConversationHandlingFunction:
+  ConversationHandlingFunction:
       Type: AWS::Serverless::Function
       Properties:
         CodeUri: bedrock_impl/src/bedrock_impl
