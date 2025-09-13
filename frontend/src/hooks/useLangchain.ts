@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ErrorResponse, RAGResponse, UserMessage, Message } from "../models/models";
+import type { ErrorResponse, RAGResponse, UserMessage, Message } from "../models/models";
 import { getLangchainResponse } from "../services/langchainRagService";
 
 export function useLangchain(
@@ -9,7 +9,7 @@ export function useLangchain(
   const enabled = !!message && (opts?.enabled ?? true);
 
   return useQuery<RAGResponse, ErrorResponse>({
-    queryKey: ["langchain", (message as any)?.message_id],
+    queryKey: ["langchain", message?.message_id],
     enabled,
     queryFn: () => getLangchainResponse(message as UserMessage),
     staleTime: 5 * 60 * 1000,

@@ -8,7 +8,7 @@ import { UserMessage } from "../models/models";
 
 type BackendImpl = "bedrock" | "langchain";
 
-// NEW: accept a prop from App to pick the backend
+// accept a prop from App to pick the backend
 type ChatWindowProps = {
   backendImpl?: BackendImpl; // optional; defaults to "bedrock"
 };
@@ -17,11 +17,8 @@ const ChatWindow = ({ backendImpl: backendProp = "bedrock" }: ChatWindowProps) =
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // NEW: keep existing state but sync it to the prop
-  const [backendImpl, setBackendImpl] = useState<BackendImpl>(backendProp);
-  useEffect(() => {
-    setBackendImpl(backendProp);
-  }, [backendProp]);
+  // Removed local mirrored state; just read the prop
+  const backendImpl = backendProp;
 
   const lastUserMessage = messages
     .slice()
@@ -39,24 +36,21 @@ const ChatWindow = ({ backendImpl: backendProp = "bedrock" }: ChatWindowProps) =
 
   const addMessage = (message: Message) => {
     setMessages((ms) => {
+      // prevent duplicates
       if (ms.some((m) => m.message_id === message.message_id)) return ms;
       return [...ms, message];
     });
   };
 
-// inside the component, before calling the hooks:
-const bedrockMsg =
-  backendImpl === "bedrock" ? (lastUserMessage as UserMessage | undefined) : undefined;
-
-const langchainMsg =
-  backendImpl === "langchain" ? (lastUserMessage as UserMessage | undefined) : undefined;
-
-// call hooks with a single argument each (no options object)
-const bedrockQuery   = useBedrock(bedrockMsg);
-const langchainQuery = useLangchain(langchainMsg);
-
-// pick the active one
-const query = backendImpl === "bedrock" ? bedrockQuery : langchainQuery;
+  // call hooks with a single argument each (no options object)
+  const langchainQuery = useLangchain(
+    lastUserMessage && lastUserMessage.role === "user" ? (lastUserMessage as UserMessage) : undefined
+  );
+  const bedrockQuery = useBedrock(
+    lastUserMessage && lastUserMessage.role === "user" ? (lastUserMessage as UserMessage) : undefined
+  );
+  // pick the active one
+  const query = backendImpl === "bedrock" ? bedrockQuery : langchainQuery;
 
   useEffect(() => {
     if (query.isSuccess && query.data) {

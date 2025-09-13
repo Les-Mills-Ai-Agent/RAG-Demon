@@ -126,10 +126,6 @@ export default function App() {
 
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
         <QueryClientProvider client={queryClient}>
-          {/* REMOVE this duplicate if it exists */}
-          {/* <ChatWindow /> */}
-
-          {/* KEEP this one, but pass backendImpl */}
           <ChatWindow
             backendImpl={engine === "bedrock" ? "bedrock" : "langchain"}
           />

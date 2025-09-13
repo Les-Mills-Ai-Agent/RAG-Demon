@@ -15,7 +15,7 @@ export default function EngineSwitcher({ value, onChange, className }: Props) {
         value={value}
         onChange={(e) => onChange(e.target.value as "openai" | "bedrock")}
       >
-        <option value="openai">OpenAI / LangChain</option>
+        <option value="openai">OpenAI</option>
         <option value="bedrock">AWS Bedrock</option>
       </select>
     </div>
