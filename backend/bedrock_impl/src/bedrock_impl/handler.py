@@ -116,7 +116,7 @@ def conversation_handler(event: APIGatewayProxyEvent, context: LambdaContext) ->
 
     try:
         path = event.path
-        path_params = event.path_parameters or {}
+        path_params = event.pathParameters or {}
         chat_store = ChatStore()
 
         if "/messages/" in path:
