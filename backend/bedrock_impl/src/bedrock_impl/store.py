@@ -93,7 +93,7 @@ class ChatStore:
     
     def get_messages(self, session_id: str) -> list[AiMessage | UserMessage]:
         response = self.table.query(
-            KeyConditionExpression = Key("session_id").eq(f"SESSION#{session_id}") & Key("created_at_message_id").begins_with("MESSAGE#"),
+            KeyConditionExpression = Key("session_id").eq(f"{session_id}") & Key("created_at_message_id").begins_with("MESSAGE#"),
             ScanIndexForward = True, 
         )
         messages = response.get("Items", [])
