@@ -17,6 +17,7 @@ const ChatWindow = ({
   backendImpl: backendProp = "bedrock",
 }: ChatWindowProps) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [sessionId, setSessionId] = useState<string>();
   const [messages, setMessages] = useState<Message[]>([]);
 
   // Removed local mirrored state; just read the prop
@@ -61,6 +62,7 @@ const ChatWindow = ({
         created_at: query.data.created_at,
         role: "ai",
       };
+      setSessionId(query.data.session_id);
       addMessage(aiMessage);
     }
   }, [query.data, query.isSuccess]);
@@ -90,7 +92,11 @@ const ChatWindow = ({
         )}
         <div ref={bottomRef} />
       </div>
-      <ChatInput onSubmit={addMessage} disabled={query.isLoading} />
+      <ChatInput
+        onSubmit={addMessage}
+        disabled={query.isLoading}
+        session_id={sessionId}
+      />
     </div>
   );
 };

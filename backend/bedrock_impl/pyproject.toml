@@ -20,8 +20,8 @@ packages = [
   { include = "bedrock_impl", from = "src" }
 ]
 
-[tool.poetry.dependencies]
-bedrock_impl_local = { path = "src/bedrock_impl", develop = true }
+# [tool.poetry.dependencies]
+# bedrock_impl_local = { path = "src/bedrock_impl", develop = true }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"

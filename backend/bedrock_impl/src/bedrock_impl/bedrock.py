@@ -37,6 +37,37 @@ class Bedrock:
                             "guardrailConfiguration": {
                                 "guardrailId": "3x3fwig8roag",
                                 "guardrailVersion": "3",
+                            },
+                            "promptTemplate": {
+                                "textPromptTemplate": """
+                                    <task>
+                                        You are a specialized customer support assistant for Les Mills B2B customers.
+                                        Your task is to answer the customer's question accurately using only the information
+                                        provided in the retrieved context and previous chat history.
+                                    </task>
+                                    <instructions>
+                                        - Read the customer's question, retrieved context, and chat history carefully
+                                        - Base your answer EXCLUSIVELY on the information in the retrieved context
+                                        - If the retrieved context does not contain the answer to the question, respond with 
+                                        \"I don't have enough information to answer this question based on the available context.\"
+                                        - Maintain a professional, helpful tone appropriate for B2B customer support
+                                        - Ask the user for further clarification or context if it would help to answer the question accurately
+                                        - Provide concise, accurate answers without adding information beyond what's in the context
+                                        - Reference specific parts of the context to support your answer when applicable
+                                    </instructions>
+                                    
+                                    <conversation>
+                                        $input$
+                                    </conversation>
+                                    
+                                    <retrieved_context>
+                                        $search_results$
+                                    </retrieved_context>
+                                    
+                                    Please formulate your response based solely on the above information.
+                                    Begin your answer directly addressing the customer's question without
+                                    repeating or summarizing the question itself.
+                                """
                             }
                         }
                     }
@@ -52,15 +83,15 @@ class Bedrock:
     def generate_response(self, query: str, context: Optional[list[AiMessage | UserMessage]] = None) -> RetrieveAndGenerateResponseTypeDef:
         try:
             if context:
-                prompt = f"Query: {query} | Context: {[str(message) + "\n" for message in context]}"
+                input = query + str([str(msg) + " | " for msg in context])
             else:
-                prompt = query
+                input = query
 
             return self.client.retrieve_and_generate(
                 input = {
-                    "text": prompt
+                    "text": input
                 },
-                retrieveAndGenerateConfiguration = self.rag_config,
+                retrieveAndGenerateConfiguration = self.rag_config
             )
         except Exception as e:
              raise RuntimeError(f"Bedrock API call failed: {e}") from e

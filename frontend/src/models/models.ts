@@ -17,11 +17,14 @@ export type AiMessage = Simplify<RAGResponse & { role: "ai" }>;
 
 export type Message = UserMessage | AiMessage;
 
-export function newUserMessage(query: string): UserMessage {
+export function newUserMessage(
+  query: string,
+  session_id?: string
+): UserMessage {
   return {
     message_id: uuid(),
     content: query,
-    session_id: undefined,
+    session_id: session_id,
     created_at: new Date().toISOString(),
     role: "user",
   };
