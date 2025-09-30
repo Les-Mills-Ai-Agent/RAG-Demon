@@ -80,61 +80,6 @@ Resources:
                       schema:
                         $ref: "#/components/schemas/ErrorResponse"
 
-          /rag/bedrock/conversation/{session_id}:
-            get:
-              summary: Fetch all messages within a conversation/session
-              parameters:
-              - in: path
-                name: session_id
-                required: true
-                schema:
-                  type: string
-                description: The id of the conversation/session
-
-              x-amazon-apigateway-integration:
-                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Bruh.Arn}/invocations
-                httpMethod: POST
-                type: aws_proxy
-
-              x-amazon-apigateway-request-validator: validate-params-only
-
-              responses:
-                "200":
-                  description: Successful response
-                  content:
-                    application/json:
-                      schema:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/Conversation"
-                "400":
-                  description: Bad request
-                  content:
-                    application/json:
-                      schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
-                "403":
-                  description: Forbidden
-                  content:
-                    application/json:
-                      schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
-                "500":
-                  description: Internal server error
-                  content:
-                    application/json:
-                      schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string              
-
           /rag/bedrock/conversation/{user_id}:
             get:
               summary: Fetch all conversations that belong to a given user
@@ -147,7 +92,7 @@ Resources:
                 description: The id of the user
 
               x-amazon-apigateway-integration:
-                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Bruh2.Arn}/invocations
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
                 httpMethod: POST
                 type: aws_proxy
 
@@ -219,83 +164,19 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
+                        $ref: "#/components/schemas/ErrorResponse"
                 "403":
                   description: Forbidden
                   content:
                     application/json:
                       schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
+                        $ref: "#/components/schemas/ErrorResponse"
                 "500":
                   description: Internal server error
                   content:
                     application/json:
                       schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string              
-
-          /rag/bedrock/conversations/{user_id}:
-            get:
-              summary: Fetch all conversations that belong to a given user
-              parameters:
-              - in: path
-                name: user_id
-                required: true
-                schema:
-                  type: string
-                description: The id of the user
-
-              x-amazon-apigateway-integration:
-                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
-                httpMethod: GET
-                type: aws_proxy
-
-              x-amazon-apigateway-request-validator: validate-params-only
-
-              responses:
-                "200":
-                  description: Successful response
-                  content:
-                    application/json:
-                      schema:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/Conversation"
-                "400":
-                  description: Bad request
-                  content:
-                    application/json:
-                      schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
-                "403":
-                  description: Forbidden
-                  content:
-                    application/json:
-                      schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
-                "500":
-                  description: Internal server error
-                  content:
-                    application/json:
-                      schema:
-                        type: object
-                        properties:
-                          message:
-                            type: string
+                        $ref: "#/components/schemas/ErrorResponse"             
 
         components:
           schemas:
