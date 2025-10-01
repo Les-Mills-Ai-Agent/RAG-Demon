@@ -90,6 +90,24 @@ class ChatStore:
         # Convert the first (and only) item to a Session object
         session_item = items[0]
         return Session.model_validate(session_item)
+    
+    def get_messages(self, session_id: str) -> list[AiMessage | UserMessage]:
+        response = self.table.query(
+            KeyConditionExpression = Key("session_id").eq(f"{session_id}") & Key("created_at_message_id").begins_with("MESSAGE#"),
+            ScanIndexForward = True, 
+        )
+        messages = response.get("Items", [])
+        return [Message.from_dynamodb(message) for message in messages]
+    
+    def get_conversations(self, user_id: str) -> list[Session]:
+        response = self.table.scan(
+            FilterExpression=Key("user_id").eq(user_id) & Key("created_at_message_id").eq("METADATA")
+        )
+
+        items = response.get("Items", [])
+        conversations = [Session.model_validate(item) for item in items]
+
+        return conversations
 
 
 class Message(BaseModel):
