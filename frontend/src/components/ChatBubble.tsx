@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import dayjs from "dayjs";

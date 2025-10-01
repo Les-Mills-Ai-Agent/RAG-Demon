@@ -105,7 +105,6 @@ export default function App() {
 
         <div className="flex items-center gap-4">
 
-           <EngineSwitcher value={engine} onChange={setEngine} /> {/* NEW */}
           <EngineSwitcher value={engine} onChange={setEngine} /> {/* NEW */}
           <button
             onClick={() => setDarkMode(!darkMode)}
