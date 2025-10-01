@@ -1,13 +1,16 @@
 import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import dayjs from "dayjs";
-import { Message, AiMessage, ErrorResponse } from "../models/models";
+import { Message, ErrorResponse } from "../models/models";
+import { useFeedback } from "./FeedbackProvider";
 
 interface ChatBubbleProps {
   msg: Message;
   isLoading: boolean;
   error: ErrorResponse | null;
   onRetry?: () => void;
+  lastUserText?: string;
 }
 
 const ChatBubble: React.FC<ChatBubbleProps> = ({
@@ -15,9 +18,10 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   isLoading,
   error,
   onRetry,
+  lastUserText,
 }) => {
   const base =
-    "max-w-[70%] px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm shadow-sm animate-fadeIn";
+    "relative max-w-[70%] px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm shadow-sm animate-fadeIn";
 
   const classes =
     msg.role === "user"
@@ -31,6 +35,42 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   const formattedTime = msg.created_at
     ? dayjs(msg.created_at).format("h:mm A")
     : null;
+
+  // 3-dot menu state & refs (AI bubbles only)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // feedback context
+  const { setLastExchange, open } = useFeedback();
+
+  // close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener("click", onClick);
+    return () => window.removeEventListener("click", onClick);
+  }, [menuOpen]);
+
+  const handleGiveFeedback = () => {
+    setLastExchange({
+      question: lastUserText ?? "",
+      answer: msg.content ?? "",
+      timestamp: new Date().toISOString(),
+    });
+    open();
+    setMenuOpen(false);
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(msg.content || "");
+    } catch {}
+    setMenuOpen(false);
+  };
 
   return (
     <div
@@ -83,6 +123,53 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
             </div>
           )}
         </div>
+
+        {/* Three-dots menu: OUTSIDE the bubble, bottom-right, AI only */}
+        {msg.role === "ai" && !isLoading && !error && (
+          <div ref={menuRef} className="relative self-end">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen((o) => !o);
+              }}
+              className="p-1 ml-1 rounded-full hover:bg-gray-200/70 dark:hover:bg-gray-600"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="Message options"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                className="w-5 h-5 text-gray-500 dark:text-gray-300"
+              >
+                <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </button>
+
+            {menuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 mt-2 w-44 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 z-10"
+              >
+                <button
+                  onClick={handleGiveFeedback}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  role="menuitem"
+                >
+                  Give feedback
+                </button>
+                <button
+                  onClick={handleCopy}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  role="menuitem"
+                >
+                  Copy message
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

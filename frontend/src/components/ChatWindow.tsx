@@ -70,15 +70,26 @@ const ChatWindow = ({ backendImpl: backendProp = "bedrock" }: ChatWindowProps) =
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Helper: find the nearest previous user message text before index `idx`
+  const lastUserBefore = (idx: number): string => {
+    for (let i = idx - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m && m.role === "user") return m.content ?? "";
+    }
+    return "";
+  };
+
   return (
     <div className="flex flex-col gap-4 w-full h-full">
       <div className="flex-1 overflow-y-auto flex flex-col gap-4">
-        {messages.map((message) => (
+        {messages.map((message, idx) => (
           <ChatBubble
             key={message.message_id}
             msg={message}
             isLoading={false}
             error={null}
+            // ➕ pass lastUserText only for AI bubbles (for the feedback modal)
+            lastUserText={message.role === "ai" ? lastUserBefore(idx) : undefined}
           />
         ))}
         {(query.isLoading || query.error) && (
