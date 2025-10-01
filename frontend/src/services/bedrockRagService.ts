@@ -9,6 +9,7 @@ export async function getBedrockResponse(
     headers: {
       Authorization: token,
     },
+    timeout: Infinity,
   });
   return response.data;
 }

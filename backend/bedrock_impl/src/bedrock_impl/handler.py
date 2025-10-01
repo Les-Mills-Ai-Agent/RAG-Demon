@@ -62,6 +62,7 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
         response = bedrock.generate_response(request.content, query_context)
         response = bedrock.parse_response(response)
 
+        logger.debug(f"Parsed response: {response}")
 
         chat_store.save_message(
             role = 'ai',
