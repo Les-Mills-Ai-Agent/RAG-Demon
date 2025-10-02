@@ -1,5 +1,5 @@
 from typing import Any
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from aws_lambda_powertools import Logger
@@ -12,6 +12,15 @@ import json
 
 logger = Logger('lambda-rag')
 
+class Response(BaseModel):
+    status_code: int
+    body: str
+    headers: dict[str, Any] = {
+                            'Access-Control-Allow-Headers': 'Content-Type',
+                            'Access-Control-Allow-Origin': '*',
+                            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                        }
+
 @event_source(data_class = APIGatewayProxyEvent)
 def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict[str, Any]:
     """
@@ -19,28 +28,12 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
     """
     try:
         if not event.body:
-            return {
-                "statusCode": 400,
-                "body": "Missing request body",
-                'headers': {
-                    'Access-Control-Allow-Headers': 'Content-Type',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
-                },
-            }
+            return Response(status_code=400, body="Missing request body").model_dump()
         
         user_id = event.request_context.authorizer.claims.get("sub")
         
         if not user_id:
-            return {
-                "statusCode": 400,
-                'headers': {
-                    'Access-Control-Allow-Headers': 'Content-Type',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
-                },
-                "body": "Missing cognito user ID"
-            }
+            return Response(status_code=400, body="Missing cognito user ID").model_dump()
         
         bedrock = Bedrock()
         chat_store = ChatStore()
@@ -75,27 +68,11 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
 
         response.session_id = session_id
 
-        return {
-            "statusCode": 200,
-            'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
-            },
-            "body": response.model_dump_json()
-        }
+        return Response(status_code=200, body=response.model_dump_json()).model_dump()
 
     except ValidationError as ve:
-        logger.error("Validation error:", ve)
-        return {
-            "statusCode": 400,
-            'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
-            },
-            "body": "Bad request"
-        }
+        logger.exception("Validation error")
+        return Response(status_code=400, body=f"Validation error: {ve.errors()}").model_dump()
 
     except Exception as e:
         logger.error("Internal error:", e)
@@ -167,6 +144,16 @@ def conversation_handler(event: APIGatewayProxyEvent, context: LambdaContext) ->
                 },
                 "body": json.dumps([conversation.model_dump() for conversation in conversations]),
             }
+        else:
+            return {
+                    "statusCode": 404,
+                    'headers': {
+                        'Access-Control-Allow-Headers': 'Content-Type',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                    },
+                    "body": "Not found"
+                }
     
     except ValidationError as ve:
         logger.error("Validation error:", ve)
