@@ -14,7 +14,7 @@ export async function sendFeedback(item: any, token?: string) {
     });
     return res.data;
   } catch (error: any) {
-    console.error("❌ Feedback submission failed:", error.response?.data || error.message);
+    console.error(" Feedback submission failed:", error.response?.data || error.message);
     throw error;
   }
 }

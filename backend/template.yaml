@@ -246,7 +246,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: bedrock_impl/src
-      Handler: feedback_handler.handler
+      Handler: bedrock_impl.feedback_handler.handler
       # Runtime inherits from Globals (python3.13)
       Environment:
         Variables:
