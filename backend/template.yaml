@@ -78,6 +78,44 @@ Resources:
                       schema:
                         $ref: "#/components/schemas/ErrorResponse"
 
+          #feedback endpoint integrated to FeedbackFunction
+          /feedback:
+            post:
+              summary: Submit user feedback for the last exchange
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        pk:         { type: string }
+                        sk:         { type: string }
+                        sessionId:  { type: string, nullable: true }
+                        issueType:  { type: string }
+                        severity:   { type: string, enum: [Low, Medium, High] }
+                        notes:      { type: string }
+                        includeContext: { type: boolean }
+                        question:   { type: string, nullable: true }
+                        answer:     { type: string, nullable: true }
+                        submittedAt:{ type: string, format: date-time }
+                        metadata:
+                          type: object
+                          properties:
+                            userAgent:   { type: string }
+                            language:    { type: string }
+                            tzOffsetMin: { type: number }
+                      required: [pk, sk, issueType, severity, submittedAt]
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FeedbackFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+              responses:
+                "200": { description: Stored }
+                "400": { description: Invalid payload }
+                "401": { description: Unauthorized }
+                "500": { description: Server error }
+
         components:
           schemas:
             RAGRequest:
@@ -201,11 +239,37 @@ Resources:
                 - bedrock:*
               Resource: "*"
 
+  # feedback feature
+  FeedbackFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bedrock_impl/src
+      Handler: feedback_handler.handler
+      # Runtime inherits from Globals (python3.13)
+      Environment:
+        Variables:
+          TABLE_NAME: FeedbackTable
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action: ["dynamodb:PutItem"]
+              Resource: !GetAtt FeedbackTable.Arn
+
   # Ensures BedrockRagFunction can only be called by RagApi
   BedrockRagFunctionInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !GetAtt BedrockRagFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
+
+  # allow API Gateway to call FeedbackFunction
+  FeedbackFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt FeedbackFunction.Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
@@ -238,6 +302,24 @@ Resources:
         - ALLOW_CUSTOM_AUTH
         - ALLOW_USER_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
+
+  FeedbackTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: FeedbackTable
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        SSESpecification:
+          SSEEnabled: true
 
   BedrockSessionsTable:
     Type: AWS::DynamoDB::Table
