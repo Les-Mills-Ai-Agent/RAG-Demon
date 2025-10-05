@@ -5,8 +5,16 @@ import api from "../utils/api";
  * If your API requires auth, pass an id_token for the Authorization header.
  */
 export async function sendFeedback(item: any, token?: string) {
-  const res = await api.post("/feedback", item, {
-    headers: token ? { Authorization: token } : undefined,
-  });
-  return res.data;
+  try {
+    const res = await api.post("/feedback", item, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: token } : {}), // add token if provided
+      },
+    });
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Feedback submission failed:", error.response?.data || error.message);
+    throw error;
+  }
 }

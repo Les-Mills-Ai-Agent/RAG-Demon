@@ -98,7 +98,9 @@ Resources:
                         includeContext: { type: boolean }
                         question:   { type: string, nullable: true }
                         answer:     { type: string, nullable: true }
-                        submittedAt:{ type: string, format: date-time }
+                        submittedAt:
+                          type: string
+                          format: date-time
                         metadata:
                           type: object
                           properties:
