@@ -8,10 +8,15 @@ import {
 
 interface ChatInputProps {
   onSubmit: (query: Message) => void;
+  session_id?: string;
   disabled: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, disabled }) => {
+const ChatInput: React.FC<ChatInputProps> = ({
+  onSubmit,
+  session_id,
+  disabled,
+}) => {
   const [input, setInput] = useState<string>("");
   const [inputError, setInputError] = useState<boolean>(false);
 
@@ -24,7 +29,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSubmit, disabled }) => {
       return;
     }
 
-    const message: UserMessage = newUserMessage(trimmed);
+    const message: UserMessage = newUserMessage(trimmed, session_id);
 
     onSubmit(message);
     setInput("");

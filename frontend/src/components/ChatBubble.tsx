@@ -110,8 +110,29 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
 
           {/* Success (markdown response) */}
           {!error && !isLoading && (
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
+            <div>
+              {msg.role === "user" && msg.content}
+
+              {msg.role === "ai" &&
+                msg.response_parts.map((part, i) => (
+                  <div key={i}>
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      {part.text}
+                    </div>
+
+                    {part.references.length > 0 &&
+                      part.references.map((reference, j) => (
+                        <a
+                          href={reference.url}
+                          target="_blank" // Opens in new tab
+                          rel="noopener noreferrer" // Security shit
+                          className="text-blue-600 dark:text-blue-400 no-underline ml-0.5"
+                        >
+                          [{j + 1}]
+                        </a>
+                      ))}
+                  </div>
+                ))}
             </div>
           )}
 

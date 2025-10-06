@@ -13,8 +13,11 @@ type ChatWindowProps = {
   backendImpl?: BackendImpl; // optional; defaults to "bedrock"
 };
 
-const ChatWindow = ({ backendImpl: backendProp = "bedrock" }: ChatWindowProps) => {
+const ChatWindow = ({
+  backendImpl: backendProp = "bedrock",
+}: ChatWindowProps) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [sessionId, setSessionId] = useState<string>();
   const [messages, setMessages] = useState<Message[]>([]);
 
   // Removed local mirrored state; just read the prop
@@ -35,20 +38,17 @@ const ChatWindow = ({ backendImpl: backendProp = "bedrock" }: ChatWindowProps) =
   };
 
   const addMessage = (message: Message) => {
-    setMessages((ms) => {
+    setMessages((messages) => {
       // prevent duplicates
-      if (ms.some((m) => m.message_id === message.message_id)) return ms;
-      return [...ms, message];
+      if (messages.some((m) => m.message_id === message.message_id))
+        return messages;
+      return [...messages, message];
     });
   };
 
   // call hooks with a single argument each (no options object)
-  const langchainQuery = useLangchain(
-    lastUserMessage && lastUserMessage.role === "user" ? (lastUserMessage as UserMessage) : undefined
-  );
-  const bedrockQuery = useBedrock(
-    lastUserMessage && lastUserMessage.role === "user" ? (lastUserMessage as UserMessage) : undefined
-  );
+  const langchainQuery = useLangchain(lastUserMessage);
+  const bedrockQuery = useBedrock(lastUserMessage);
   // pick the active one
   const query = backendImpl === "bedrock" ? bedrockQuery : langchainQuery;
 
@@ -62,6 +62,7 @@ const ChatWindow = ({ backendImpl: backendProp = "bedrock" }: ChatWindowProps) =
         created_at: query.data.created_at,
         role: "ai",
       };
+      setSessionId(query.data.session_id);
       addMessage(aiMessage);
     }
   }, [query.data, query.isSuccess]);
@@ -102,7 +103,11 @@ const ChatWindow = ({ backendImpl: backendProp = "bedrock" }: ChatWindowProps) =
         )}
         <div ref={bottomRef} />
       </div>
-      <ChatInput onSubmit={addMessage} disabled={query.isLoading} />
+      <ChatInput
+        onSubmit={addMessage}
+        disabled={query.isLoading}
+        session_id={sessionId}
+      />
     </div>
   );
 };

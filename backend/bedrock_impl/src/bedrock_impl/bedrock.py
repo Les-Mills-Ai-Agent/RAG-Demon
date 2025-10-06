@@ -6,10 +6,12 @@ import boto3
 
 from mypy_boto3_bedrock_agent_runtime.type_defs import RetrieveAndGenerateResponseTypeDef, RetrieveAndGenerateConfigurationTypeDef
 from mypy_boto3_bedrock_agent_runtime import AgentsforBedrockRuntimeClient
-from mypy_boto3_dynamodb.service_resource import Table
+from aws_lambda_powertools import Logger
 
 from uuid import uuid4
 from datetime import datetime, timezone
+
+logger = Logger(service="rag-bedrock-lambda")
 
 class Bedrock:
 
@@ -34,7 +36,7 @@ class Bedrock:
                         "generationConfiguration": {
                             "guardrailConfiguration": {
                                 "guardrailId": "3x3fwig8roag",
-                                "guardrailVersion": "1",
+                                "guardrailVersion": "3",
                             }
                         }
                     }

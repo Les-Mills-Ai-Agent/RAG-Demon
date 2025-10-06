@@ -62,7 +62,7 @@ def test_generate_response_calls_bedrock_with_correct_params():
                 'generationConfiguration': {
                     'guardrailConfiguration': {
                         'guardrailId': '3x3fwig8roag',
-                        'guardrailVersion': '1'
+                        'guardrailVersion': '3'
                     }
                 }
             }
