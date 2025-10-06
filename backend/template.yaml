@@ -115,10 +115,37 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                "200": { description: Stored }
-                "400": { description: Invalid payload }
-                "401": { description: Unauthorized }
-                "500": { description: Server error }
+                "200":
+                  description: Stored
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          status: { type: string, example: "ok" }
+                          id:     { type: string, example: "FEEDBACK#123456" }
+                        required: [status, id]
+
+                "400":
+                  description: Invalid payload
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+
+                "401":
+                  description: Unauthorized
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+
+                "500":
+                  description: Server error
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
                 
           /rag/bedrock/conversation/{user_id}:
             get:
@@ -220,22 +247,33 @@ Resources:
 
         components:
           schemas:
-            Conversation:
+            ErrorResponse:
               type: object
+              required: [code, message]
               properties:
-                session_id:
+                code:
                   type: string
-                user_id:
+                  description: Stable, machine-readable error code
+                  example: InvalidPayload
+                message:
                   type: string
-                created_at:
+                  description: Human-readable error summary
+                  example: "pk is required"
+                requestId:
                   type: string
-                  format: date-time
-                  example: "2024-08-23T13:28:00Z"
-                last_updated:
-                  type: string
-                  format: date-time
-                  example: "2024-08-23T13:28:00Z"
-              required: [session_id, user_id, created_at, last_updated]
+                  description: API Gateway request id (for support correlation)
+                  example: "c9d2e8b1-1b0a-4b4a-9ad3-6c5b2c4a7e6a"
+                details:
+                  description: Optional structured fields for validation errors or context
+                  oneOf:
+                    - type: object
+                      additionalProperties: true
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          field:  { type: string, example: "pk" }
+                          reason: { type: string, example: "missing" }
 
             RAGRequest:
               type: object
@@ -277,23 +315,6 @@ Resources:
                   example: "2024-08-23T13:28:00Z"
               required:
                 [message_id, content, response_parts, session_id, created_at]
-
-            ErrorResponse:
-              type: object
-              properties:
-                status:
-                  type: number
-                  description: The HTTP status code of the response
-                  example: 401
-                error:
-                  type: string
-                  description: The machine readable error identifier
-                  example: INVALID_TOKEN
-                message:
-                  type: string
-                  description: The human readable error message
-                  example: "The provided token is invalid."
-              required: [status, error, message]
 
             ResponsePart:
               type: object

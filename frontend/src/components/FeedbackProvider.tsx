@@ -37,18 +37,31 @@ export const useFeedback = (): FeedbackContextValue => {
 const getSessionId = () => (window as any).__LES_MILLS_SESSION__ || uuidv4();
 
 /** Build the DynamoDB item we POST to backend (kept here for testability) */
-const buildFeedbackItem = (payload: FeedbackPayload, lastExchange: Exchange | null, sessionId: string) => {
+const buildFeedbackItem = (
+  payload: FeedbackPayload,
+  lastExchange: Exchange | null,
+  sessionId: string,
+  authUser?: any
+) => {
   const submittedAt = new Date().toISOString();
+
+  // Use user id or email as PK, fallback to anonymous if not logged in
+  const userId =
+    authUser?.profile?.sub ||
+    authUser?.profile?.email ||
+    "anonymous";
+
   return {
-    pk: "APP#lesmills",
+    pk: `USER#${userId}`, // changed from "APP#lesmills"
     sk: `FEEDBACK#${submittedAt}#${uuidv4()}`, // unique SK per submission
     sessionId,
     issueType: payload.issueType,
     severity: payload.severity,
     notes: payload.notes || "",
-    includeContext: payload.includeContext,
-    question: payload.includeContext ? lastExchange?.question ?? null : null,
-    answer:   payload.includeContext ? lastExchange?.answer   ?? null : null,
+    // REQUIRED CHANGE: always include context (no opt-out)
+    includeContext: true,
+    question: lastExchange?.question ?? null,
+    answer:   lastExchange?.answer   ?? null,
     submittedAt,
     metadata: { userAgent: navigator.userAgent, language: navigator.language, tzOffsetMin: new Date().getTimezoneOffset() },
   };
@@ -74,14 +87,33 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
 
-  // Submit feedback to backend (includes auth token if present)
-  const submit = useCallback(async (payload: FeedbackPayload) => {
-    setSubmitting(true); setError(null); setOk(false);
-    const item = buildFeedbackItem(payload, lastExchange, getSessionId());
-    try { await sendFeedback(item, auth.user?.id_token); setOk(true); setIsOpen(false); }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to submit feedback"); }
-    finally { setSubmitting(false); }
-  }, [lastExchange, auth.user?.id_token]);
+// Submit feedback to backend (includes auth token; required)
+const submit = useCallback(async (payload: FeedbackPayload) => {
+  setSubmitting(true);
+  setError(null);
+  setOk(false);
+
+  const item = buildFeedbackItem(payload, lastExchange, getSessionId());
+
+  // Guard: id_token must exist
+  const token = auth.user?.id_token;
+  if (!token) {
+    setSubmitting(false);
+    setError("Missing auth token. Please sign in again.");
+    return;
+  }
+
+  try {
+    await sendFeedback(item, token); // token is guaranteed string here
+    setOk(true);
+    setIsOpen(false);
+  } catch (e: unknown) {
+    setError(e instanceof Error ? e.message : "Failed to submit feedback");
+  } finally {
+    setSubmitting(false);
+  }
+}, [lastExchange, auth.user]);
+
 
   // Stable value for consumers
   const value = useMemo(() => ({
@@ -167,11 +199,6 @@ function FeedbackModal() {
             <label className="grid gap-1 text-sm">
               <span className="text-gray-700 dark:text-gray-200 font-medium">Notes</span>
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What went wrong (or right)?" className="w-full min-h-[100px] rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            </label>
-
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={includeContext} onChange={(e) => setIncludeContext(e.target.checked)} className="rounded border-gray-300 dark:border-gray-600" />
-              Include the last question &amp; answer in my report
             </label>
 
             {/* Footer: status + actions */}
