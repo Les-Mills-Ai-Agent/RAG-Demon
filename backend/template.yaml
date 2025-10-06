@@ -27,13 +27,48 @@ Parameters:
     Default: arn:aws:iam::527748639759:role/BedrockKnowledgeBaseRole
 
 Conditions:
-  IsProd: !Equals [!Ref Environment, Prod]
+  IsProd: !Equals [!Ref Environment, prod]
+  IsTest: !Equals [!Ref Environment, test]
 
 Resources:
+  RagFrontend:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: ragdemon-frontend
+      Repository: https://github.com/Harsh-Maharaj/RAG-Demon
+      AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
+      EnvironmentVariables:
+        - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
+          Name: VITE_COGNITO_AUTHORITY
+        - Value: !GetAtt RagCognitoUserPoolClient.ClientId
+          Name: VITE_COGNITO_CLIENT_ID
+        - Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+          Name: BEDROCK_API_URL
+      Platform: WEB
+      EnableBranchAutoDeletion: true
+
+  RagFrontendDevBranch:
+    Type: AWS::Amplify::Branch
+    Condition: IsTest
+    Properties:
+      AppId: !GetAtt RagFrontend.AppId
+      Stage: DEVELOPMENT
+      BranchName: dev
+      EnableAutoBuild: true
+
+  RagFrontendMainBranch:
+    Type: AWS::Amplify::Branch
+    Condition: IsProd
+    Properties:
+      AppId: !GetAtt RagFrontend.AppId
+      Stage: PRODUCTION
+      BranchName: main
+      EnableAutoBuild: true
+
   RagApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name: !Sub rag-api
+      Name: ragdemon-api
       StageName: !Ref Environment
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"

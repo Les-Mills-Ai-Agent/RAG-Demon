@@ -1,7 +1,7 @@
 from pathlib import Path
 from subprocess import run
 
-output_path = Path(__file__).parent.parent / "src" / "bedrock_impl" / "requirements.txt"
+output_path = Path(__file__).parent.parent / "src" / "requirements.txt"
 
 def main():
     print(f"Exporting requirements to {output_path}...")
