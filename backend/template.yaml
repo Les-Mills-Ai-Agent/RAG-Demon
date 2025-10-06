@@ -151,12 +151,12 @@ Resources:
             get:
               summary: Fetch all conversations that belong to a given user
               parameters:
-              - in: path
-                name: user_id
-                required: true
-                schema:
-                  type: string
-                description: The id of the user
+                - in: path
+                  name: user_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the user
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
@@ -171,9 +171,9 @@ Resources:
                   content:
                     application/json:
                       schema:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/Conversation"
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Conversation"
                 "400":
                   description: Bad request
                   content:
@@ -203,12 +203,12 @@ Resources:
             get:
               summary: Fetch all messages within a conversation/session
               parameters:
-              - in: path
-                name: session_id
-                required: true
-                schema:
-                  type: string
-                description: The id of the conversation/session
+                - in: path
+                  name: session_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the conversation/session
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
@@ -223,9 +223,9 @@ Resources:
                   content:
                     application/json:
                       schema:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/RAGResponse"
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RAGResponse"
                 "400":
                   description: Bad request
                   content:
@@ -243,37 +243,26 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"             
+                        $ref: "#/components/schemas/ErrorResponse"
 
         components:
           schemas:
-            ErrorResponse:
+            Conversation:
               type: object
-              required: [code, message]
               properties:
-                code:
+                session_id:
                   type: string
-                  description: Stable, machine-readable error code
-                  example: InvalidPayload
-                message:
+                user_id:
                   type: string
-                  description: Human-readable error summary
-                  example: "pk is required"
-                requestId:
+                created_at:
                   type: string
-                  description: API Gateway request id (for support correlation)
-                  example: "c9d2e8b1-1b0a-4b4a-9ad3-6c5b2c4a7e6a"
-                details:
-                  description: Optional structured fields for validation errors or context
-                  oneOf:
-                    - type: object
-                      additionalProperties: true
-                    - type: array
-                      items:
-                        type: object
-                        properties:
-                          field:  { type: string, example: "pk" }
-                          reason: { type: string, example: "missing" }
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+                last_updated:
+                  type: string
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+              required: [session_id, user_id, created_at, last_updated]
 
             RAGRequest:
               type: object
@@ -313,8 +302,35 @@ Resources:
                   type: string
                   format: date-time
                   example: "2024-08-23T13:28:00Z"
-              required:
-                [message_id, content, response_parts, session_id, created_at]
+              required: [message_id, content, response_parts, session_id, created_at]
+
+            ErrorResponse:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  description: Stable, machine-readable error code
+                  example: InvalidPayload
+                message:
+                  type: string
+                  description: Human-readable error summary
+                  example: "pk is required"
+                requestId:
+                  type: string
+                  description: API Gateway request id (for support correlation)
+                  example: "c9d2e8b1-1b0a-4b4a-9ad3-6c5b2c4a7e6a"
+                details:
+                  description: Optional structured fields for validation errors or context
+                  oneOf:
+                    - type: object
+                      additionalProperties: true
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          field:  { type: string, example: "pk" }
+                          reason: { type: string, example: "missing" }
 
             ResponsePart:
               type: object
@@ -380,19 +396,19 @@ Resources:
               Resource: !GetAtt FeedbackTable.Arn
               
   ConversationHandlingFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-        CodeUri: bedrock_impl/src
-        Handler: bedrock_impl.handler.conversation_handler
-        Policies:
-          - AWSLambdaBasicExecutionRole
-          - DynamoDBReadPolicy:
-              TableName: !Ref BedrockSessionsTable
-          - Statement:
-              - Effect: Allow
-                Action:
-                  - bedrock:*
-                Resource: "*"
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bedrock_impl/src
+      Handler: bedrock_impl.handler.conversation_handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref BedrockSessionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: "*"
 
   # Ensures BedrockRagFunction can only be called by RagApi
   BedrockRagFunctionInvokePermission:
@@ -416,13 +432,6 @@ Resources:
     Type: AWS::Cognito::UserPool
     Properties:
       UserPoolName: RagUserPool
-      # Policies:
-      #   PasswordPolicy:
-      #     MinimumLength: 8
-      #     RequireLowercase: true
-      #     RequireNumbers: true
-      #     RequireSymbols: true
-      #     RequireUppercase: true
       UsernameAttributes:
         - email
       AdminCreateUserConfig:
@@ -442,22 +451,22 @@ Resources:
       PreventUserExistenceErrors: ENABLED
 
   FeedbackTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: FeedbackTable
-        AttributeDefinitions:
-          - AttributeName: pk
-            AttributeType: S
-          - AttributeName: sk
-            AttributeType: S
-        KeySchema:
-          - AttributeName: pk
-            KeyType: HASH
-          - AttributeName: sk
-            KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-        SSESpecification:
-          SSEEnabled: true
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: FeedbackTable
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
 
   BedrockSessionsTable:
     Type: AWS::DynamoDB::Table
