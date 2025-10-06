@@ -17,7 +17,7 @@ export default function App() {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
-  const [engine, setEngine] = useState<"openai" | "bedrock">("openai");
+  const [engine, setEngine] = useState<"openai" | "bedrock">("bedrock"); // set default to "bedrock"
 
 
   // ---------- AUTH ----------
