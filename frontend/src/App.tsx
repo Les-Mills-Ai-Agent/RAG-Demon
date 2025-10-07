@@ -9,9 +9,17 @@ import { useAuth } from "react-oidc-context";
 import LoginCelebration from "./components/LoginCelebration";
 import ConfirmSignOut from "./components/ConfirmSignOut";
 import EngineSwitcher from "./components/EngineSwitcher";
+import SlidingPanel from "./components/SlidingPanel";
+import { getConversations, getMessages, Conversation, Message } from "./utils/api";
 
 export default function App() {
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(false);
+
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [activeSession, setActiveSession] = useState<string | null>(null);
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
@@ -69,6 +77,32 @@ export default function App() {
     }
   }, [auth.isAuthenticated]);
 
+  useEffect(() => {
+    const loadConversations = async () => {
+      if (auth.isAuthenticated && auth.user?.profile?.sub) {
+        try {
+          const convos = await getConversations(auth.user.profile.sub);
+          setConversations(convos);
+        } catch (err) {
+          console.error("Failed to load conversations", err);
+        }
+      }
+    };
+    loadConversations();
+  }, [auth.isAuthenticated, auth.user]);
+
+  // 🔸 Handle selecting a conversation
+  const handleSelectConversation = async (sessionId: string) => {
+    setActiveSession(sessionId);
+    setIsPanelOpen(false);
+    try {
+      const msgs = await getMessages(sessionId);
+      setMessages(msgs);
+    } catch (err) {
+      console.error("Failed to load messages", err);
+    }
+  };
+
   // Early returns AFTER all hooks are declared
   if (auth.isLoading || auth.activeNavigator)
     return <div className="p-4">Loading…</div>;
@@ -83,7 +117,7 @@ export default function App() {
     }
     return null;
   }
-
+  
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
       <LoginCelebration
@@ -96,11 +130,39 @@ export default function App() {
         onCancel={() => setShowSignoutConfirm(false)}
         onConfirm={onSignoutConfirm}
       />
+      {/*Side Panel*/}
+      <SlidingPanel
+        isOpen={isPanelOpen}
+        onClose={() => setIsPanelOpen(false)}
+        title="Conversations"
+      >
+        <ul>
+          {conversations.length === 0 && (
+            <li className="p-3 text-gray-500">No conversations yet</li>
+          )}
+          {conversations.map((c) => (
+            <li
+              key={c.session_id}
+              className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => handleSelectConversation(c.session_id)}
+            >
+              {new Date(c.last_updated).toLocaleString()}
+            </li>
+          ))}
+        </ul>
+      </SlidingPanel>
 
       <header className="bg-white dark:bg-gray-800 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
+        <div className="flex items-center gap-4">
+
+          <button
+            onClick={() => setIsPanelOpen(true)}
+            className="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          >=</button>
         <h1 className="text-xl font-bold text-gray-800 dark:text-white">
           Les Mills AI Assistant
         </h1>
+        </div>
 
         <div className="flex items-center gap-4">
 
