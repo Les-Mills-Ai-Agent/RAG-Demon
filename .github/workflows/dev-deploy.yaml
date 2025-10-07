@@ -1,8 +1,8 @@
-name: RAGDemon prod deployment workflow
+name: RAGDemon staging deployment workflow
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["staging"]
 
 permissions:
   contents: read
@@ -19,12 +19,12 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: arn:aws:iam::527748639759:role/GithubActionsRole
-          role-session-name: prod-deployment
+          role-session-name: dev-deployment
           aws-region: us-east-1
 
       - name: Deploy to AWS CloudFormation
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
-          name: ragdemon-prod
+          name: ragdemon-test
           template: template.yaml
-          parameter-overrides: "Environment=prod"
+          parameter-overrides: "Environment=test"

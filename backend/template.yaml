@@ -35,7 +35,7 @@ Resources:
     Type: AWS::Amplify::App
     Properties:
       Name: ragdemon-frontend
-      Repository: https://github.com/Harsh-Maharaj/RAG-Demon
+      Repository: https://github.com/Les-Mills-Ai-Agent/RAG-Demon
       AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
       EnvironmentVariables:
         - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
@@ -347,7 +347,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub BedrockRagFunction-${Environment}
-      CodeUri: bedrock_impl/src
+      CodeUri: backend/bedrock_impl/src
       Handler: bedrock_impl.handler.bedrock_handler
       Environment:
         Variables:
