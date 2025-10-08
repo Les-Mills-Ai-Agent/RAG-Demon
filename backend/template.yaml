@@ -12,9 +12,9 @@ Parameters:
   Environment:
     Type: String
     Default: test
-    AllowedValues:
-      - prod
-      - test
+    # AllowedValues:
+    #   - prod
+    #   - test
     Description: Deployment environment (prod or test)
   OssCollectionArn:
     Type: String
@@ -27,43 +27,43 @@ Parameters:
     Default: arn:aws:iam::527748639759:role/BedrockKnowledgeBaseRole
 
 Conditions:
-  IsProd: !Equals [!Ref Environment, prod]
-  IsTest: !Equals [!Ref Environment, test]
+  IsProd: !Equals [!Ref Environment, "prod"]
+  IsTest: !Not [Condition: IsProd]
 
 Resources:
-  RagFrontend:
-    Type: AWS::Amplify::App
-    Properties:
-      Name: ragdemon-frontend
-      Repository: https://github.com/Les-Mills-Ai-Agent/RAG-Demon
-      AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
-      EnvironmentVariables:
-        - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
-          Name: VITE_COGNITO_AUTHORITY
-        - Value: !GetAtt RagCognitoUserPoolClient.ClientId
-          Name: VITE_COGNITO_CLIENT_ID
-        - Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
-          Name: BEDROCK_API_URL
-      Platform: WEB
-      EnableBranchAutoDeletion: true
+  # RagFrontend:
+  #   Type: AWS::Amplify::App
+  #   Properties:
+  #     Name: ragdemon-frontend
+  #     Repository: https://github.com/Les-Mills-Ai-Agent/RAG-Demon
+  #     AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
+  #     EnvironmentVariables:
+  #       - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
+  #         Name: VITE_COGNITO_AUTHORITY
+  #       - Value: !GetAtt RagCognitoUserPoolClient.ClientId
+  #         Name: VITE_COGNITO_CLIENT_ID
+  #       - Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+  #         Name: BEDROCK_API_URL
+  #     Platform: WEB
+  #     EnableBranchAutoDeletion: true
 
-  RagFrontendDevBranch:
-    Type: AWS::Amplify::Branch
-    Condition: IsTest
-    Properties:
-      AppId: !GetAtt RagFrontend.AppId
-      Stage: DEVELOPMENT
-      BranchName: dev
-      EnableAutoBuild: true
+  # RagFrontendDevBranch:
+  #   Type: AWS::Amplify::Branch
+  #   Condition: IsTest
+  #   Properties:
+  #     AppId: !GetAtt RagFrontend.AppId
+  #     Stage: DEVELOPMENT
+  #     BranchName: dev
+  #     EnableAutoBuild: true
 
-  RagFrontendMainBranch:
-    Type: AWS::Amplify::Branch
-    Condition: IsProd
-    Properties:
-      AppId: !GetAtt RagFrontend.AppId
-      Stage: PRODUCTION
-      BranchName: main
-      EnableAutoBuild: true
+  # RagFrontendMainBranch:
+  #   Type: AWS::Amplify::Branch
+  #   Condition: IsProd
+  #   Properties:
+  #     AppId: !GetAtt RagFrontend.AppId
+  #     Stage: PRODUCTION
+  #     BranchName: main
+  #     EnableAutoBuild: true
 
   RagApi:
     Type: AWS::Serverless::Api
@@ -141,12 +141,12 @@ Resources:
             get:
               summary: Fetch all conversations that belong to a given user
               parameters:
-              - in: path
-                name: user_id
-                required: true
-                schema:
-                  type: string
-                description: The id of the user
+                - in: path
+                  name: user_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the user
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
@@ -161,9 +161,9 @@ Resources:
                   content:
                     application/json:
                       schema:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/Conversation"
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Conversation"
                 "400":
                   description: Bad request
                   content:
@@ -193,12 +193,12 @@ Resources:
             get:
               summary: Fetch all messages within a conversation/session
               parameters:
-              - in: path
-                name: session_id
-                required: true
-                schema:
-                  type: string
-                description: The id of the conversation/session
+                - in: path
+                  name: session_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the conversation/session
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
@@ -213,9 +213,9 @@ Resources:
                   content:
                     application/json:
                       schema:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/RAGResponse"
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RAGResponse"
                 "400":
                   description: Bad request
                   content:
@@ -233,7 +233,7 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"             
+                        $ref: "#/components/schemas/ErrorResponse"
 
         components:
           schemas:
@@ -347,7 +347,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub BedrockRagFunction-${Environment}
-      CodeUri: backend/bedrock_impl/src
+      CodeUri: bedrock_impl/src
       Handler: bedrock_impl.handler.bedrock_handler
       Environment:
         Variables:
@@ -363,19 +363,19 @@ Resources:
               Resource: "*"
 
   ConversationHandlingFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-        CodeUri: bedrock_impl/src
-        Handler: bedrock_impl.handler.conversation_handler
-        Policies:
-          - AWSLambdaBasicExecutionRole
-          - DynamoDBReadPolicy:
-              TableName: !Ref BedrockSessionsTable
-          - Statement:
-              - Effect: Allow
-                Action:
-                  - bedrock:*
-                Resource: "*"
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bedrock_impl/src
+      Handler: bedrock_impl.handler.conversation_handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref BedrockSessionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: "*"
 
   # Ensures BedrockRagFunction can only be called by RagApi
   BedrockRagFunctionInvokePermission:
@@ -415,6 +415,13 @@ Resources:
         - ALLOW_USER_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
 
+  RagCognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub ragdemon-${Environment}
+      UserPoolId: !GetAtt RagCognitoUserPool.UserPoolId
+      ManagedLoginVersion: 2
+
   BedrockSessionsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -437,7 +444,7 @@ Resources:
     Type: AWS::Bedrock::KnowledgeBase
     Properties:
       Name: !Sub LmiKnowledgeBase-${Environment}
-      RoleArn: !GetAtt LmiKnowledgeBaseRole.Arn
+      RoleArn: !Ref KnowledgeBaseRoleArn
       KnowledgeBaseConfiguration:
         Type: VECTOR
         VectorKnowledgeBaseConfiguration:
@@ -451,39 +458,6 @@ Resources:
             VectorField: embedding
             TextField: text
             MetadataField: metadata
-
-  LmiKnowledgeBaseRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub BedrockKnowledgeBaseRole-${Environment}
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: bedrock.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: BedrockKnowledgeBaseAccess
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              # Allow Bedrock to manage KBs
-              - Effect: Allow
-                Action:
-                  - bedrock:CreateKnowledgeBase
-                  - bedrock:AssociateKnowledgeBase
-                  - bedrock:GetKnowledgeBase
-                  - bedrock:ListKnowledgeBases
-                Resource: "*"
-
-              # Allow KB to access your collection + indices
-              - Effect: Allow
-                Action:
-                  - aoss:*
-                Resource:
-                  - !Sub ${OssCollectionArn}
-                  - !Sub ${OssCollectionArn}/index/*
 
   LmiOnDemandDataSource:
     Type: AWS::Bedrock::DataSource
@@ -558,21 +532,10 @@ Outputs:
     Description: API Gateway endpoint URL for prod / test stage of RAG function
     Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
 
-  BedrockRagFunctionArn:
-    Description: Bedrock RAG Lambda ARN
-    Value:
-      Fn::GetAtt:
-        - BedrockRagFunction
-        - Arn
-
-  RagCognitoUserPool:
-    Description: Pool of internal LMI users authorised to access the RAG-Demon application
-    Value:
-      Fn::GetAtt:
-        - RagCognitoUserPool
-        - Arn
-    # !GetAtt RagCognitoUserPool.Arn
-
-  RagCognitoUserPoolClientId:
-    Description: Client to access and modify the RAG-Demon UserPool
+  CognitoClientId:
+    Description: Cognito user pool client ID
     Value: !GetAtt RagCognitoUserPoolClient.ClientId
+
+  CognitoAuthority:
+    Description: Cognito user pool domain URL
+    Value: !Sub https://${RagCognitoUserPoolDomain}.${AWS::Region}.amazoncognito.com
