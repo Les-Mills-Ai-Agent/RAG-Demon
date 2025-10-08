@@ -1,0 +1,43 @@
+name: RAGDemon PR deployment workflow
+
+on:
+  pull_request:
+    branches: ["workflow-test"]
+
+env:
+  ENVIRONMENT: "pr-${{ github.event.pull_request.number }}"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::527748639759:role/GithubActionsRole
+          role-session-name: ${{ env.ENVIRONMENT }}-deploy
+          aws-region: us-east-1
+
+      - name: Deploy to AWS CloudFormation
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: ragdemon-${{ env.ENVIRONMENT }}
+          template: template.yaml
+          parameter-overrides: "Environment=${{ env.ENVIRONMENT }}"
+
+      - name: Get Cloudformation stack outputs
+        run: |
+          outputs=$(aws cloudformation describe-stacks --stack-name ragdemon-${{ env.ENVIRONMENT }} --query "Stacks[0].Outputs" --output json)
+          echo "API_URL=$(echo $outputs | jq -r '.[] | select(.OutputKey=="ApiUrl") | .OutputValue')" >> $GITHUB_ENV
+          echo "COGNITO_CLIENT_ID=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoClientId") | .OutputValue')" >> $GITHUB_ENV
+          echo "COGNITO_AUTHORITY=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoAuthority") | .OutputValue')" >> $GITHUB_ENV
+
+      - name: Create .env for frontend
+        run: |
+          echo "API_URL=\"${{ env.API_URL }}\"" > .env
+          echo "VITE_COGNITO_CLIENT_ID=\"${{ env.COGNITO_CLIENT_ID }}\"" >> .env
+          echo "VITE_COGNITO_AUTHORITY=\"${{ env.COGNITO_AUTHORITY }}\"" >> .env
