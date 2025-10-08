@@ -21,6 +21,9 @@ jobs:
           role-to-assume: arn:aws:iam::527748639759:role/GithubActionsRole
           role-session-name: ${{ env.ENVIRONMENT }}-deploy
           aws-region: us-east-1
+      - name: Debug OIDC
+        run: |
+          echo "OIDC token: $ACTIONS_ID_TOKEN_REQUEST_TOKEN"
 
       - name: Deploy to AWS CloudFormation
         uses: aws-actions/aws-cloudformation-github-deploy@v1
