@@ -8,11 +8,65 @@ Globals:
     Timeout: 30
     Runtime: python3.13
 
+Parameters:
+  Environment:
+    Type: String
+    Default: test
+    Description: Deployment environment (prod or test)
+  OssCollectionArn:
+    Type: String
+    Default: arn:aws:aoss:us-east-1:527748639759:collection/299gexfprk8589m5waqb
+  OssCollectionName:
+    Type: String
+    Default: lmi-knowledge-base-collection
+  KnowledgeBaseRoleArn:
+    Type: String
+    Default: arn:aws:iam::527748639759:role/BedrockKnowledgeBaseRole
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, "prod"]
+  IsTest: !Not [Condition: IsProd]
+
 Resources:
+  # RagFrontend:
+  #   Type: AWS::Amplify::App
+  #   Properties:
+  #     Name: ragdemon-frontend
+  #     Repository: https://github.com/Les-Mills-Ai-Agent/RAG-Demon
+  #     AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
+  #     EnvironmentVariables:
+  #       - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
+  #         Name: VITE_COGNITO_AUTHORITY
+  #       - Value: !GetAtt RagCognitoUserPoolClient.ClientId
+  #         Name: VITE_COGNITO_CLIENT_ID
+  #       - Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+  #         Name: BEDROCK_API_URL
+  #     Platform: WEB
+  #     EnableBranchAutoDeletion: true
+
+  # RagFrontendDevBranch:
+  #   Type: AWS::Amplify::Branch
+  #   Condition: IsTest
+  #   Properties:
+  #     AppId: !GetAtt RagFrontend.AppId
+  #     Stage: DEVELOPMENT
+  #     BranchName: dev
+  #     EnableAutoBuild: true
+
+  # RagFrontendMainBranch:
+  #   Type: AWS::Amplify::Branch
+  #   Condition: IsProd
+  #   Properties:
+  #     AppId: !GetAtt RagFrontend.AppId
+  #     Stage: PRODUCTION
+  #     BranchName: main
+  #     EnableAutoBuild: true
+
   RagApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: Prod
+      Name: ragdemon-api
+      StageName: !Ref Environment
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
@@ -84,12 +138,12 @@ Resources:
             get:
               summary: Fetch all conversations that belong to a given user
               parameters:
-              - in: path
-                name: user_id
-                required: true
-                schema:
-                  type: string
-                description: The id of the user
+                - in: path
+                  name: user_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the user
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
@@ -104,9 +158,9 @@ Resources:
                   content:
                     application/json:
                       schema:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/Conversation"
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Conversation"
                 "400":
                   description: Bad request
                   content:
@@ -136,12 +190,12 @@ Resources:
             get:
               summary: Fetch all messages within a conversation/session
               parameters:
-              - in: path
-                name: session_id
-                required: true
-                schema:
-                  type: string
-                description: The id of the conversation/session
+                - in: path
+                  name: session_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the conversation/session
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
@@ -156,9 +210,9 @@ Resources:
                   content:
                     application/json:
                       schema:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/RAGResponse"
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RAGResponse"
                 "400":
                   description: Bad request
                   content:
@@ -176,7 +230,7 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"             
+                        $ref: "#/components/schemas/ErrorResponse"
 
         components:
           schemas:
@@ -289,8 +343,12 @@ Resources:
   BedrockRagFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub BedrockRagFunction-${Environment}
       CodeUri: bedrock_impl/src
       Handler: bedrock_impl.handler.bedrock_handler
+      Environment:
+        Variables:
+          KnowledgeBaseId: !Ref LmiKnowledgeBase
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
@@ -302,19 +360,19 @@ Resources:
               Resource: "*"
 
   ConversationHandlingFunction:
-      Type: AWS::Serverless::Function
-      Properties:
-        CodeUri: bedrock_impl/src
-        Handler: bedrock_impl.handler.conversation_handler
-        Policies:
-          - AWSLambdaBasicExecutionRole
-          - DynamoDBReadPolicy:
-              TableName: !Ref BedrockSessionsTable
-          - Statement:
-              - Effect: Allow
-                Action:
-                  - bedrock:*
-                Resource: "*"
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: bedrock_impl/src
+      Handler: bedrock_impl.handler.conversation_handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref BedrockSessionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: "*"
 
   # Ensures BedrockRagFunction can only be called by RagApi
   BedrockRagFunctionInvokePermission:
@@ -323,12 +381,12 @@ Resources:
       FunctionName: !GetAtt BedrockRagFunction.Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/${Environment}/*/*
 
   RagCognitoUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: RagUserPool
+      UserPoolName: !Sub RagUserPool-${Environment}
       # Policies:
       #   PasswordPolicy:
       #     MinimumLength: 8
@@ -345,7 +403,7 @@ Resources:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       UserPoolId: !Ref RagCognitoUserPool
-      ClientName: RagUserPoolClient
+      ClientName: !Sub RagUserPoolClient-${Environment}
       GenerateSecret: false
       ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
@@ -354,10 +412,17 @@ Resources:
         - ALLOW_USER_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
 
+  RagCognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub ragdemon-${Environment}
+      UserPoolId: !GetAtt RagCognitoUserPool.UserPoolId
+      ManagedLoginVersion: 2
+
   BedrockSessionsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: BedrockSessions
+      TableName: !Sub BedrockSessions-${Environment}
       AttributeDefinitions:
         - AttributeName: session_id
           AttributeType: S
@@ -372,55 +437,102 @@ Resources:
       SSESpecification:
         SSEEnabled: true
 
-  LangchainCheckpointsTable:
-    Type: AWS::DynamoDB::Table
+  LmiKnowledgeBase:
+    Type: AWS::Bedrock::KnowledgeBase
     Properties:
-      TableName: LangchainCheckpoints
-      AttributeDefinitions:
-        - AttributeName: thread_id
-          AttributeType: S
-        - AttributeName: checkpoint_id
-          AttributeType: S
-      KeySchema:
-        - AttributeName: thread_id
-          KeyType: HASH
-        - AttributeName: checkpoint_id
-          KeyType: RANGE
-      BillingMode: PAY_PER_REQUEST
-      SSESpecification:
-        SSEEnabled: true
+      Name: !Sub LmiKnowledgeBase-${Environment}
+      RoleArn: !Ref KnowledgeBaseRoleArn
+      KnowledgeBaseConfiguration:
+        Type: VECTOR
+        VectorKnowledgeBaseConfiguration:
+          EmbeddingModelArn: arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0
+      StorageConfiguration:
+        Type: OPENSEARCH_SERVERLESS
+        OpensearchServerlessConfiguration:
+          CollectionArn: !Ref OssCollectionArn
+          VectorIndexName: lmi-vector-index
+          FieldMapping:
+            VectorField: embedding
+            TextField: text
+            MetadataField: metadata
 
-  LangchainWritesTable:
-    Type: AWS::DynamoDB::Table
+  LmiOnDemandDataSource:
+    Type: AWS::Bedrock::DataSource
+    Condition: IsProd
     Properties:
-      TableName: LangchainWrites
-      AttributeDefinitions:
-        - AttributeName: thread_id_checkpoint_id_checkpoint_ns
-          AttributeType: S
-        - AttributeName: task_id_idx
-          AttributeType: S
-      KeySchema:
-        - AttributeName: thread_id_checkpoint_id_checkpoint_ns
-          KeyType: HASH
-        - AttributeName: task_id_idx
-          KeyType: RANGE
-      BillingMode: PAY_PER_REQUEST
-      SSESpecification:
-        SSEEnabled: true
+      DataSourceConfiguration:
+        Type: WEB
+        WebConfiguration:
+          SourceConfiguration:
+            UrlConfiguration:
+              SeedUrls:
+                - Url: "https://support.lesmillsondemand.com/support/solutions"
+          CrawlerConfiguration:
+            Scope: SUBDOMAINS
+      KnowledgeBaseId: !Ref LmiKnowledgeBase
+      Name: LmiOnDemandDataSource
+      VectorIngestionConfiguration:
+        ChunkingConfiguration:
+          ChunkingStrategy: SEMANTIC
+          SemanticChunkingConfiguration:
+            BreakpointPercentileThreshold: 95
+            BufferSize: 0
+            MaxTokens: 150
+
+  LmiApiDocsDataSource:
+    Type: AWS::Bedrock::DataSource
+    Properties:
+      DataSourceConfiguration:
+        Type: WEB
+        WebConfiguration:
+          SourceConfiguration:
+            UrlConfiguration:
+              SeedUrls:
+                - Url: "https://api.content.lesmills.com/docs/v1/content-portal-api.yaml"
+          CrawlerConfiguration:
+            Scope: SUBDOMAINS
+      KnowledgeBaseId: !Ref LmiKnowledgeBase
+      Name: LmiApiDocsDataSource
+      VectorIngestionConfiguration:
+        ChunkingConfiguration:
+          ChunkingStrategy: SEMANTIC
+          SemanticChunkingConfiguration:
+            BreakpointPercentileThreshold: 95
+            BufferSize: 0
+            MaxTokens: 150
+
+  LmiFreshdeskDataSource:
+    Type: AWS::Bedrock::DataSource
+    Condition: IsProd
+    Properties:
+      DataSourceConfiguration:
+        Type: WEB
+        WebConfiguration:
+          SourceConfiguration:
+            UrlConfiguration:
+              SeedUrls:
+                - Url: "https://lesmillsvirtualapp.freshdesk.com/en/support/solutions"
+          CrawlerConfiguration:
+            Scope: SUBDOMAINS
+      KnowledgeBaseId: !Ref LmiKnowledgeBase
+      Name: LmiFreshdeskDataSource
+      VectorIngestionConfiguration:
+        ChunkingConfiguration:
+          ChunkingStrategy: SEMANTIC
+          SemanticChunkingConfiguration:
+            BreakpointPercentileThreshold: 95
+            BufferSize: 0
+            MaxTokens: 150
 
 Outputs:
   ApiUrl:
-    Description: API Gateway endpoint URL for Prod stage for RAG function
-    Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+    Description: API Gateway endpoint URL for prod / test stage of RAG function
+    Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
 
-  BedrockRagFunction:
-    Description: Bedrock RAG Lambda ARN
-    Value: !GetAtt BedrockRagFunction.Arn
-
-  RagCognitoUserPool:
-    Description: Pool of internal LMI users authorised to access the RAG-Demon application
-    Value: !GetAtt RagCognitoUserPool.Arn
-
-  RagCognitoUserPoolClientId:
-    Description: Client to access and modify the RAG-Demon UserPool
+  CognitoClientId:
+    Description: Cognito user pool client ID
     Value: !GetAtt RagCognitoUserPoolClient.ClientId
+
+  CognitoAuthority:
+    Description: Cognito user pool domain URL
+    Value: !Sub https://${RagCognitoUserPoolDomain}.${AWS::Region}.amazoncognito.com
