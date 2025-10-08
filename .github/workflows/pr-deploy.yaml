@@ -28,6 +28,7 @@ jobs:
           name: ragdemon-${{ env.ENVIRONMENT }}
           template: template.yaml
           parameter-overrides: "Environment=${{ env.ENVIRONMENT }}"
+          capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
 
       - name: Get Cloudformation stack outputs
         run: |
