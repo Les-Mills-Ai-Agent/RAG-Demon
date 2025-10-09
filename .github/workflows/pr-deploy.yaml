@@ -42,22 +42,27 @@ jobs:
           role-session-name: ${{ env.ENVIRONMENT }}-deploy
           aws-region: us-east-1
 
-      - name: Deploy to AWS CloudFormation
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        with:
-          name: ragdemon-${{ env.ENVIRONMENT }}
-          template: backend/template.yaml
-          parameter-overrides: "Environment=${{ env.ENVIRONMENT }}"
-
+      - name: Deploy with SAM
+        run: |
+          cd backend
+          sam build
+          sam deploy \
+            --stack-name ragdemon-${{ env.ENVIRONMENT }} \
+            --template-file template.yaml \
+            --parameter-overrides Environment=${{ env.ENVIRONMENT }} \
+            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
+            --region us-east-1 \
+            --no-fail-on-empty-changeset \
+            --no-confirm-changeset
+          cd ..
       - name: Get Cloudformation stack outputs
         run: |
           outputs=$(aws cloudformation describe-stacks --stack-name ragdemon-${{ env.ENVIRONMENT }} --query "Stacks[0].Outputs" --output json)
           echo "API_URL=$(echo $outputs | jq -r '.[] | select(.OutputKey=="ApiUrl") | .OutputValue')" >> $GITHUB_ENV
           echo "COGNITO_CLIENT_ID=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoClientId") | .OutputValue')" >> $GITHUB_ENV
           echo "COGNITO_AUTHORITY=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoAuthority") | .OutputValue')" >> $GITHUB_ENV
-
       - name: Create .env for frontend
         run: |
-          echo "API_URL=\"${{ env.API_URL }}\"" > .env
-          echo "VITE_COGNITO_CLIENT_ID=\"${{ env.COGNITO_CLIENT_ID }}\"" >> .env
-          echo "VITE_COGNITO_AUTHORITY=\"${{ env.COGNITO_AUTHORITY }}\"" >> .env
+          echo "API_URL=\"${{ env.API_URL }}\"" > frontend/.env
+          echo "VITE_COGNITO_CLIENT_ID=\"${{ env.COGNITO_CLIENT_ID }}\"" >> frontend/.env
+          echo "VITE_COGNITO_AUTHORITY=\"${{ env.COGNITO_AUTHORITY }}\"" >> frontend/.env
