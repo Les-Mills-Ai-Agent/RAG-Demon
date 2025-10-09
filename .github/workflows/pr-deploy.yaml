@@ -24,6 +24,7 @@ jobs:
 
       - name: Deploy with SAM
         run: |
+          cd backend
           sam build
           sam deploy \
             --stack-name ragdemon-${{ env.ENVIRONMENT }} \
@@ -32,6 +33,7 @@ jobs:
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
             --region us-east-1
             --no-fail-on-empty-changeset
+          cd ..
 
       - name: Get Cloudformation stack outputs
         run: |
@@ -42,6 +44,6 @@ jobs:
 
       - name: Create .env for frontend
         run: |
-          echo "API_URL=\"${{ env.API_URL }}\"" > .env
-          echo "VITE_COGNITO_CLIENT_ID=\"${{ env.COGNITO_CLIENT_ID }}\"" >> .env
-          echo "VITE_COGNITO_AUTHORITY=\"${{ env.COGNITO_AUTHORITY }}\"" >> .env
+          echo "API_URL=\"${{ env.API_URL }}\"" > frontend/.env
+          echo "VITE_COGNITO_CLIENT_ID=\"${{ env.COGNITO_CLIENT_ID }}\"" >> frontend/.env
+          echo "VITE_COGNITO_AUTHORITY=\"${{ env.COGNITO_AUTHORITY }}\"" >> frontend/.env
