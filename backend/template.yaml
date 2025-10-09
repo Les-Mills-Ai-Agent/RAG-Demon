@@ -419,6 +419,14 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
 
+  ConversationHandlingFunctionInvokePermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt ConversationHandlingFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: apigateway.amazonaws.com
+        SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
+
   # allow API Gateway to call FeedbackFunction
   FeedbackFunctionInvokePermission:
     Type: AWS::Lambda::Permission

@@ -45,25 +45,20 @@ const buildFeedbackItem = (
 ) => {
   const submittedAt = new Date().toISOString();
 
-  // Use user id or email as PK, fallback to anonymous if not logged in
-  const userId =
-    authUser?.profile?.sub ||
-    authUser?.profile?.email ||
-    "anonymous";
-
   return {
-    pk: `USER#${userId}`, // changed from "APP#lesmills"
-    sk: `FEEDBACK#${submittedAt}#${uuidv4()}`, // unique SK per submission
     sessionId,
     issueType: payload.issueType,
     severity: payload.severity,
     notes: payload.notes || "",
-    // REQUIRED CHANGE: always include context (no opt-out)
-    includeContext: true,
+    includeContext: true, // always include context
     question: lastExchange?.question ?? null,
-    answer:   lastExchange?.answer   ?? null,
+    answer: lastExchange?.answer ?? null,
     submittedAt,
-    metadata: { userAgent: navigator.userAgent, language: navigator.language, tzOffsetMin: new Date().getTimezoneOffset() },
+    metadata: { 
+      userAgent: navigator.userAgent, 
+      language: navigator.language, 
+      tzOffsetMin: new Date().getTimezoneOffset() 
+    },
   };
 };
 
@@ -87,33 +82,33 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
 
-// Submit feedback to backend (includes auth token; required)
-const submit = useCallback(async (payload: FeedbackPayload) => {
-  setSubmitting(true);
-  setError(null);
-  setOk(false);
+  // Submit feedback to backend (includes auth token; required)
+  const submit = useCallback(async (payload: FeedbackPayload) => {
+    setSubmitting(true);
+    setError(null);
+    setOk(false);
 
-  const item = buildFeedbackItem(payload, lastExchange, getSessionId());
+    const item = buildFeedbackItem(payload, lastExchange, getSessionId());
 
-  // Guard: id_token must exist
-  const token = auth.user?.id_token;
-  if (!token) {
-    setSubmitting(false);
-    setError("Missing auth token. Please sign in again.");
-    return;
-  }
+    // Guard: id_token must exist
+    const token = auth.user?.id_token;
+    if (!token) {
+      setSubmitting(false);
+      setError("Missing auth token. Please sign in again.");
+      return;
+    }
 
-  try {
-    await sendFeedback(item, token); // token is guaranteed string here
-    setOk(true);
-    setIsOpen(false);
-  } catch (e: unknown) {
-    setError(e instanceof Error ? e.message : "Failed to submit feedback");
-  } finally {
-    setSubmitting(false);
-  }
-}, [lastExchange, auth.user]);
-
+    try {
+      // Add Bearer prefix so Cognito authoriser recognises token
+      await sendFeedback(item, `Bearer ${token}`);
+      setOk(true);
+      setIsOpen(false);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to submit feedback");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [lastExchange, auth.user]);
 
   // Stable value for consumers
   const value = useMemo(() => ({
@@ -215,7 +210,6 @@ function FeedbackModal() {
             </div>
           </form>
         </div>
-        {/* end body */}
       </div>
     </div>
   );

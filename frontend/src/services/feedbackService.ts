@@ -2,7 +2,8 @@ import api from "../utils/api";
 
 /**
  * Sends a DynamoDB-ready feedback JSON document to your backend.
- * Requires a valid Cognito id_token for Authorization header.
+ * Expects the caller to pass the full Authorization header value
+ * (e.g., "Bearer <id_token>").
  */
 export async function sendFeedback(item: any, token: string) {
   if (!token) throw new Error("Missing authorization token for feedback submission.");
@@ -11,7 +12,7 @@ export async function sendFeedback(item: any, token: string) {
     const res = await api.post("/feedback", item, {
       headers: {
         "Content-Type": "application/json",
-        Authorization: token, // always required
+        Authorization: token, // already prefixed in FeedbackProvider
       },
     });
     return res.data;
