@@ -81,17 +81,18 @@ export default function App() {
     const loadConversations = async () => {
       if (auth.isAuthenticated && auth.user?.profile?.sub) {
         try {
-          const convos = await getConversations(auth.user.profile.sub);
+          const convos = await getConversations(auth.user.profile.sub, auth.user.id_token!);
           setConversations(convos);
         } catch (err) {
           console.error("Failed to load conversations", err);
+          console.log(auth.user?.profile?.sub)
+          console.log(auth.user?.id_token)
         }
       }
     };
     loadConversations();
   }, [auth.isAuthenticated, auth.user]);
 
-  // 🔸 Handle selecting a conversation
   const handleSelectConversation = async (sessionId: string) => {
     setActiveSession(sessionId);
     setIsPanelOpen(false);
@@ -103,7 +104,6 @@ export default function App() {
     }
   };
 
-  // Early returns AFTER all hooks are declared
   if (auth.isLoading || auth.activeNavigator)
     return <div className="p-4">Loading…</div>;
   if (auth.error) return <div className="p-4">Error: {auth.error.message}</div>;

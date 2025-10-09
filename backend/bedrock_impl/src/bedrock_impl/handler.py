@@ -144,7 +144,7 @@ def conversation_handler(event: APIGatewayProxyEvent, context: LambdaContext) ->
                 "body": json.dumps([message.model_dump() for message in messages]),
             }
         
-        elif "/conversations/" in path:
+        elif "/conversation/" in path:
             user_id = path_params.get("user_id")
             if not user_id:
                 return {

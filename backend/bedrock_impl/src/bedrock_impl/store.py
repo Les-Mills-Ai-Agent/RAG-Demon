@@ -100,12 +100,21 @@ class ChatStore:
         return [Message.from_dynamodb(message) for message in messages]
     
     def get_conversations(self, user_id: str) -> list[Session]:
+        print("Fetching conversations for user_id:", user_id)
         response = self.table.scan(
             FilterExpression=Key("user_id").eq(user_id) & Key("created_at_message_id").eq("METADATA")
         )
-
+        print("Scan response:", response)
+        
         items = response.get("Items", [])
-        conversations = [Session.model_validate(item) for item in items]
+        print("Items found:", items)
+
+        conversations = []
+        for item in items:
+            try:
+                conversations.append(Session.model_validate(item))
+            except Exception as e:
+                print("Session validation failed for item:", item, e)
 
         return conversations
 

@@ -40,9 +40,30 @@ api.interceptors.response.use(
   }
 );
 
-export async function getConversations(userId: string): Promise<Conversation[]> {
-  const res = await api.get<Conversation[]>(`/rag/bedrock/conversation/${userId}`);
-  return res.data;
+api.interceptors.request.use(
+  (config) => {
+    console.log('Making API Request:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers
+    });
+    return config;
+  },
+  (error) => {
+    console.error('Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+export async function getConversations(userId: string, token: string): Promise<Conversation[]> {
+    const res = await api.get<Conversation[]>(`/rag/bedrock/conversation/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 30000
+    });
+
+    return res.data;
 }
 
 export async function getMessages(sessionId: string): Promise<Message[]> {
