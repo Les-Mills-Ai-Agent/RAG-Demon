@@ -42,6 +42,13 @@ jobs:
           role-session-name: ${{ env.ENVIRONMENT }}-deploy
           aws-region: us-east-1
 
+      - name: Clean up previous failed stack
+        run: |
+          aws cloudformation describe-stacks --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
+            && aws cloudformation delete-stack --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
+            && aws cloudformation wait stack-delete-complete --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
+            || echo "No existing stack to delete"
+
       - name: Deploy with SAM
         run: |
           cd backend
