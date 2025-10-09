@@ -361,7 +361,7 @@ Resources:
   BedrockRagFunctionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ConversationHandlingFunctionRole-${Environment}
+      RoleName: !Sub BedrockRagFunctionRole-${Environment}
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
