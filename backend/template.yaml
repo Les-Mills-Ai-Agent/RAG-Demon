@@ -349,30 +349,75 @@ Resources:
       Environment:
         Variables:
           KnowledgeBaseId: !Ref LmiKnowledgeBase
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - DynamoDBCrudPolicy:
-            TableName: !Ref BedrockSessionsTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - bedrock:*
-              Resource: "*"
+      Role: !GetAtt BedrockRagFunctionRole.Arn
 
   ConversationHandlingFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: bedrock_impl/src
       Handler: bedrock_impl.handler.conversation_handler
+      Role: !GetAtt BedrockRagFunctionRole.Arn
+
+  BedrockRagFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ConversationHandlingFunctionRole-${Environment}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - AWSLambdaBasicExecutionRole
-        - DynamoDBReadPolicy:
-            TableName: !Ref BedrockSessionsTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - bedrock:*
-              Resource: "*"
+        - PolicyName: BedrockRagFunctionInlinePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource: !GetAtt BedrockSessionsTable.Arn
+              - Effect: Allow
+                Action:
+                  - bedrock:*
+                Resource: "*"
+
+  ConversationHandlingFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ConversationHandlingFunctionRole-${Environment}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ConversationHandlingFunctionInlinePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource: !GetAtt BedrockSessionsTable.Arn
+              - Effect: Allow
+                Action:
+                  - bedrock:*
+                Resource: "*"
 
   # Ensures BedrockRagFunction can only be called by RagApi
   BedrockRagFunctionInvokePermission:
