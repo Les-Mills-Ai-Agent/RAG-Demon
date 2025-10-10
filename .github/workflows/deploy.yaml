@@ -139,6 +139,26 @@ jobs:
           echo "COGNITO_CLIENT_ID=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoClientId") | .OutputValue')" >> $GITHUB_ENV
           echo "COGNITO_AUTHORITY=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoAuthority") | .OutputValue')" >> $GITHUB_ENV
 
+      - name: Ensure Amplify branch exists
+        run: |
+          echo "Checking if Amplify branch '${{ env.ENVIRONMENT }}' exists..."
+          set -e
+          branch_exists=$(aws amplify list-branches --app-id ${{ env.AMPLIFY_APP_ID }} --query "branches[?branchName=='${{ env.ENVIRONMENT }}'] | length(@)" --output text)
+          if [ "$branch_exists" -eq 0 ]; then
+            echo "Branch does not exist. Creating branch ${{ env.ENVIRONMENT }}..."
+            aws amplify create-branch \
+              --app-id ${{ env.AMPLIFY_APP_ID }} \
+              --branch-name ${{ env.ENVIRONMENT }} \
+              --environment-variables API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
+          else
+            echo "Branch already exists. Updating branch ${{ env.ENVIRONMENT }}..."
+            echo "Updating branch ${{ env.ENVIRONMENT }}"
+            aws amplify update-branch \
+              --app-id ${{ env.AMPLIFY_APP_ID }} \
+              --branch-name ${{ env.ENVIRONMENT }} \
+              --environment-variables 'API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
+          fi
+
       - name: Deploy Amplify branch
         run: |
           echo "Updating branch ${{ env.ENVIRONMENT }}"
