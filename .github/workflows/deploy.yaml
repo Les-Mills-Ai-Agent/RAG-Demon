@@ -142,7 +142,7 @@ jobs:
           else
             echo "Creating ephemeral branch ${{ env.ENVIRONMENT }}"
             aws amplify create-branch \
-              --app-id $APP_ID \
+              --app-id ${{ env.AMPLIFY_APP_ID }} \
               --branch-name ${{ env.ENVIRONMENT }} \
               --stage BETA \
               --enable-auto-build \
