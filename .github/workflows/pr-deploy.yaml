@@ -1,11 +1,20 @@
-name: RAGDemon PR deployment workflow
+name: RAGDemon deployment workflow
 
 on:
+  # Run for PRs targeting dev (for ephemeral preview envs)
   pull_request:
-    branches: ["dev"]
+    branches: [dev]
+
+  # Run when code is merged (push) into dev or main
+  push:
+    branches: [dev, main]
 
 env:
-  ENVIRONMENT: "pr-${{ github.event.pull_request.number }}"
+  ENVIRONMENT: ${{ github.base_ref == 'main' && 'prod' || format('pr-{0}', github.event.pull_request.number) }}
+
+permissions:
+  id-token: write
+  contents: write
 
 jobs:
   deploy:
@@ -15,20 +24,66 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
 
+      - name: Determine environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR to dev -> ephemeral QA stack
+            echo "ENVIRONMENT=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+          elif [ "${{ github.ref_name }}" = "dev" ]; then
+            # Merged into dev
+            echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          elif [ "${{ github.ref_name }}" = "main" ]; then
+            # Merged into main
+            echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+          else
+            # Unknown env
+            echo "Unknown branch or event: ${{ github.ref_name }} (${{ github.event_name }})"
+            exit 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v6.0.0
+        with:
+          python-version: 3.13
+
+      - name: Setup Poetry
+        uses: Gr1N/setup-poetry@v9
+
+      - name: Install dependencies
+        run: |
+          cd backend/bedrock_impl
+          poetry install
+          poetry self add poetry-plugin-export
+          poetry run export-requirements
+          cd ../..
+
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::527748639759:role/GithubActionsRole
           role-session-name: ${{ env.ENVIRONMENT }}-deploy
           aws-region: us-east-1
 
-      - name: Deploy to AWS CloudFormation
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        with:
-          name: ragdemon-${{ env.ENVIRONMENT }}
-          template: template.yaml
-          parameter-overrides: "Environment=${{ env.ENVIRONMENT }}"
+      # - name: Clean up previous failed stack
+      #   run: |
+      #     aws cloudformation describe-stacks --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
+      #       && aws cloudformation delete-stack --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
+      #       && aws cloudformation wait stack-delete-complete --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
+      #       || echo "No existing stack to delete"
 
+      - name: Deploy with SAM
+        run: |
+          cd backend
+          sam build
+          sam deploy \
+            --stack-name ragdemon-${{ env.ENVIRONMENT }} \
+            --template-file template.yaml \
+            --parameter-overrides Environment=${{ env.ENVIRONMENT }} \
+            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM \
+            --region us-east-1 \
+            --no-fail-on-empty-changeset \
+            --no-confirm-changeset
+          cd ..
       - name: Get Cloudformation stack outputs
         run: |
           outputs=$(aws cloudformation describe-stacks --stack-name ragdemon-${{ env.ENVIRONMENT }} --query "Stacks[0].Outputs" --output json)
@@ -36,8 +91,32 @@ jobs:
           echo "COGNITO_CLIENT_ID=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoClientId") | .OutputValue')" >> $GITHUB_ENV
           echo "COGNITO_AUTHORITY=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoAuthority") | .OutputValue')" >> $GITHUB_ENV
 
-      - name: Create .env for frontend
+      - name: Deploy Amplify branch
         run: |
-          echo "API_URL=\"${{ env.API_URL }}\"" > .env
-          echo "VITE_COGNITO_CLIENT_ID=\"${{ env.COGNITO_CLIENT_ID }}\"" >> .env
-          echo "VITE_COGNITO_AUTHORITY=\"${{ env.COGNITO_AUTHORITY }}\"" >> .env
+          if [[ "${{ env.ENVIRONMENT }}" == "dev" || "${{ env.ENVIRONMENT }}" == "prod" ]]; then
+            echo "Updating existing branch ${{ env.ENVIRONMENT }}"
+            aws amplify update-branch \
+              --app-id $APP_ID \
+              --branch-name ${{ env.ENVIRONMENT }} \
+              --environment-variables \
+                 API_URL=${{ env.API_URL }},\
+                 COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},\
+                 COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
+          else
+            echo "Creating ephemeral branch ${{ env.ENVIRONMENT }}"
+            aws amplify create-branch \
+              --app-id $APP_ID \
+              --branch-name ${{ env.ENVIRONMENT }} \
+              --stage BETA \
+              --enable-auto-build \
+              --environment-variables \
+                 API_URL=${{ env.API_URL }},\
+                 COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},\
+                 COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
+
+      - name: Trigger Amplify build
+        run: |
+          aws amplify start-job \
+            --app-id $APP_ID \
+            --branch-name ${{ env.ENVIRONMENT }} \
+            --job-type RELEASE

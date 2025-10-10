@@ -12,10 +12,7 @@ Parameters:
   Environment:
     Type: String
     Default: test
-    # AllowedValues:
-    #   - prod
-    #   - test
-    Description: Deployment environment (prod or test)
+    Description: Deployment environment
   OssCollectionArn:
     Type: String
     Default: arn:aws:aoss:us-east-1:527748639759:collection/299gexfprk8589m5waqb
@@ -28,42 +25,32 @@ Parameters:
 
 Conditions:
   IsProd: !Equals [!Ref Environment, "prod"]
-  IsTest: !Not [Condition: IsProd]
+  # IsTest: !Not [Condition: IsProd]
 
 Resources:
-  # RagFrontend:
-  #   Type: AWS::Amplify::App
-  #   Properties:
-  #     Name: ragdemon-frontend
-  #     Repository: https://github.com/Les-Mills-Ai-Agent/RAG-Demon
-  #     AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
-  #     EnvironmentVariables:
-  #       - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
-  #         Name: VITE_COGNITO_AUTHORITY
-  #       - Value: !GetAtt RagCognitoUserPoolClient.ClientId
-  #         Name: VITE_COGNITO_CLIENT_ID
-  #       - Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
-  #         Name: BEDROCK_API_URL
-  #     Platform: WEB
-  #     EnableBranchAutoDeletion: true
+  RagFrontend:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: ragdemon-frontend
+      Repository: https://github.com/Les-Mills-Ai-Agent/RAG-Demon
+      AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
+      Platform: WEB
+      EnableBranchAutoDeletion: true
 
-  # RagFrontendDevBranch:
-  #   Type: AWS::Amplify::Branch
-  #   Condition: IsTest
-  #   Properties:
-  #     AppId: !GetAtt RagFrontend.AppId
-  #     Stage: DEVELOPMENT
-  #     BranchName: dev
-  #     EnableAutoBuild: true
-
-  # RagFrontendMainBranch:
-  #   Type: AWS::Amplify::Branch
-  #   Condition: IsProd
-  #   Properties:
-  #     AppId: !GetAtt RagFrontend.AppId
-  #     Stage: PRODUCTION
-  #     BranchName: main
-  #     EnableAutoBuild: true
+  RagFrontendBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      AppId: !GetAtt RagFrontend.AppId
+      Stage: !If [IsProd, PRODUCTION, DEVELOPMENT]
+      BranchName: !Ref Environment
+      EnableAutoBuild: true
+      EnvironmentVariables:
+        - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
+          Name: VITE_COGNITO_AUTHORITY
+        - Value: !GetAtt RagCognitoUserPoolClient.ClientId
+          Name: VITE_COGNITO_CLIENT_ID
+        - Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+          Name: BEDROCK_API_URL
 
   RagApi:
     Type: AWS::Serverless::Api
@@ -365,6 +352,7 @@ Resources:
   ConversationHandlingFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub ConversationHandlingFunction-${Environment}
       CodeUri: bedrock_impl/src
       Handler: bedrock_impl.handler.conversation_handler
       Policies:
@@ -461,8 +449,8 @@ Resources:
 
   LmiOnDemandDataSource:
     Type: AWS::Bedrock::DataSource
-    Condition: IsProd
     Properties:
+      Name: !Sub LmiOnDemandDataSource-${Environment}
       DataSourceConfiguration:
         Type: WEB
         WebConfiguration:
@@ -473,7 +461,6 @@ Resources:
           CrawlerConfiguration:
             Scope: SUBDOMAINS
       KnowledgeBaseId: !Ref LmiKnowledgeBase
-      Name: LmiOnDemandDataSource
       VectorIngestionConfiguration:
         ChunkingConfiguration:
           ChunkingStrategy: SEMANTIC
@@ -485,6 +472,7 @@ Resources:
   LmiApiDocsDataSource:
     Type: AWS::Bedrock::DataSource
     Properties:
+      Name: !Sub LmiApiDocsDataSource-${Environment}
       DataSourceConfiguration:
         Type: WEB
         WebConfiguration:
@@ -495,7 +483,6 @@ Resources:
           CrawlerConfiguration:
             Scope: SUBDOMAINS
       KnowledgeBaseId: !Ref LmiKnowledgeBase
-      Name: LmiApiDocsDataSource
       VectorIngestionConfiguration:
         ChunkingConfiguration:
           ChunkingStrategy: SEMANTIC
@@ -506,8 +493,8 @@ Resources:
 
   LmiFreshdeskDataSource:
     Type: AWS::Bedrock::DataSource
-    Condition: IsProd
     Properties:
+      Name: !Sub LmiFreshdeskDataSource-${Environment}
       DataSourceConfiguration:
         Type: WEB
         WebConfiguration:
@@ -518,7 +505,6 @@ Resources:
           CrawlerConfiguration:
             Scope: SUBDOMAINS
       KnowledgeBaseId: !Ref LmiKnowledgeBase
-      Name: LmiFreshdeskDataSource
       VectorIngestionConfiguration:
         ChunkingConfiguration:
           ChunkingStrategy: SEMANTIC
