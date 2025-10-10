@@ -11,6 +11,7 @@ on:
 
 env:
   ENVIRONMENT: ${{ github.base_ref == 'main' && 'prod' || format('pr-{0}', github.event.pull_request.number) }}
+  AMPLIFY_APP_ID: d1twhb1vkyz0pw
 
 permissions:
   id-token: write
@@ -40,6 +41,7 @@ jobs:
             # Unknown env
             echo "Unknown branch or event: ${{ github.ref_name }} (${{ github.event_name }})"
             exit 1
+          fi
 
       - name: Setup Python
         uses: actions/setup-python@v6.0.0
