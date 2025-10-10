@@ -146,7 +146,7 @@ jobs:
               --branch-name ${{ env.ENVIRONMENT }} \
               --stage BETA \
               --enable-auto-build \
-              --environment-variables 'API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
+              --environment-variables 'API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
           fi
 
       - name: Trigger Amplify build
