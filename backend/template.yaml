@@ -28,29 +28,29 @@ Conditions:
   # IsTest: !Not [Condition: IsProd]
 
 Resources:
-  RagFrontend:
-    Type: AWS::Amplify::App
-    Properties:
-      Name: ragdemon-frontend
-      Repository: https://github.com/Les-Mills-Ai-Agent/RAG-Demon
-      AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
-      Platform: WEB
-      EnableBranchAutoDeletion: true
+  # RagFrontend:
+  #   Type: AWS::Amplify::App
+  #   Properties:
+  #     Name: ragdemon-frontend
+  #     Repository: https://github.com/Les-Mills-Ai-Agent/RAG-Demon
+  #     AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
+  #     Platform: WEB
+  #     EnableBranchAutoDeletion: true
 
-  RagFrontendBranch:
-    Type: AWS::Amplify::Branch
-    Properties:
-      AppId: !GetAtt RagFrontend.AppId
-      Stage: !If [IsProd, PRODUCTION, DEVELOPMENT]
-      BranchName: !Ref Environment
-      EnableAutoBuild: true
-      EnvironmentVariables:
-        - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
-          Name: VITE_COGNITO_AUTHORITY
-        - Value: !GetAtt RagCognitoUserPoolClient.ClientId
-          Name: VITE_COGNITO_CLIENT_ID
-        - Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
-          Name: BEDROCK_API_URL
+  # RagFrontendBranch:
+  #   Type: AWS::Amplify::Branch
+  #   Properties:
+  #     AppId: !GetAtt RagFrontend.AppId
+  #     Stage: !If [IsProd, PRODUCTION, DEVELOPMENT]
+  #     BranchName: !Ref Environment
+  #     EnableAutoBuild: true
+  #     EnvironmentVariables:
+  #       - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
+  #         Name: VITE_COGNITO_AUTHORITY
+  #       - Value: !GetAtt RagCognitoUserPoolClient.ClientId
+  #         Name: VITE_COGNITO_CLIENT_ID
+  #       - Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+  #         Name: BEDROCK_API_URL
 
   RagApi:
     Type: AWS::Serverless::Api
