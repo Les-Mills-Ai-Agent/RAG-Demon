@@ -66,8 +66,13 @@ export async function getConversations(userId: string, token: string): Promise<C
     return res.data;
 }
 
-export async function getMessages(sessionId: string): Promise<Message[]> {
-  const res = await api.get<Message[]>(`/rag/bedrock/messages/${sessionId}`);
+export async function getMessages(sessionId: string, token: string): Promise<Message[]> {
+  const res = await api.get<Message[]>(`/rag/bedrock/messages/${sessionId}`, {
+    headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 30000
+  });
   return res.data;
 }
 

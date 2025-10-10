@@ -96,11 +96,17 @@ export default function App() {
   const handleSelectConversation = async (sessionId: string) => {
     setActiveSession(sessionId);
     setIsPanelOpen(false);
-    try {
-      const msgs = await getMessages(sessionId);
+    console.log(sessionId);
+    const cleanSessionId = sessionId.replace(/^SESSION#SESSION#/, "SESSION#");
+    const encodeSessionID = encodeURIComponent(cleanSessionId)
+    if (auth.isAuthenticated && auth.user?.profile.sub) {
+      try {
+      const msgs = await getMessages(encodeSessionID, auth.user.id_token!);
       setMessages(msgs);
+      console.log(msgs);
     } catch (err) {
       console.error("Failed to load messages", err);
+    }
     }
   };
 

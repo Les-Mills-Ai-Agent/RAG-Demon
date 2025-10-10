@@ -14,6 +14,8 @@ from boto3.dynamodb.conditions import Key
 
 from bedrock_impl.models import ResponsePart
 
+import urllib.parse
+
 class ChatStore:
 
     def __init__(
@@ -92,8 +94,9 @@ class ChatStore:
         return Session.model_validate(session_item)
     
     def get_messages(self, session_id: str) -> list[AiMessage | UserMessage]:
+        decoded_session_id = urllib.parse.unquote(session_id)
         response = self.table.query(
-            KeyConditionExpression = Key("session_id").eq(f"{session_id}") & Key("created_at_message_id").begins_with("MESSAGE#"),
+            KeyConditionExpression = Key("session_id").eq(f"{decoded_session_id}") & Key("created_at_message_id").begins_with("MESSAGE#"),
             ScanIndexForward = True, 
         )
         messages = response.get("Items", [])
