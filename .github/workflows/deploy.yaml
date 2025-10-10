@@ -130,28 +130,15 @@ jobs:
 
       - name: Deploy Amplify branch
         run: |
-          if [[ "${{ env.ENVIRONMENT }}" == "dev" || "${{ env.ENVIRONMENT }}" == "prod" ]]; then
-            echo "Updating existing branch ${{ env.ENVIRONMENT }}"
-            aws amplify update-branch \
-              --app-id ${{ env.AMPLIFY_APP_ID }} \
-              --branch-name ${{ env.ENVIRONMENT }} \
-              --environment-variables \
-                 API_URL=${{ env.API_URL }},\
-                 COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},\
-                 COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
-          else
-            echo "Creating ephemeral branch ${{ env.ENVIRONMENT }}"
-            aws amplify create-branch \
-              --app-id ${{ env.AMPLIFY_APP_ID }} \
-              --branch-name ${{ env.ENVIRONMENT }} \
-              --stage BETA \
-              --enable-auto-build \
-              --environment-variables 'API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
-          fi
+          echo "Updating branch ${{ env.ENVIRONMENT }}"
+          aws amplify update-branch \
+            --app-id ${{ env.AMPLIFY_APP_ID }} \
+            --branch-name ${{ env.ENVIRONMENT }} \
+            --environment-variables 'API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
 
       - name: Trigger Amplify build
         run: |
           aws amplify start-job \
-            --app-id $APP_ID \
+            --app-id ${{ env.AMPLIFY_APP_ID }} \
             --branch-name ${{ env.ENVIRONMENT }} \
             --job-type RELEASE
