@@ -86,7 +86,7 @@ jobs:
           if [ "$STACK_STATUS" = "STACK_DOES_NOT_EXIST" ]; then
             echo "Stack does not exist yet. Safe to deploy."
             exit 0
-          elif [ "$STACK_STATUS" = "ROLLBACK_COMPLETE"]; then
+          elif [ "$STACK_STATUS" = "ROLLBACK_COMPLETE" ]; then
             echo "Deleting stale stack"
             aws cloudformation delete-stack --stack-name $STACK_NAME \
               && aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
