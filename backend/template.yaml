@@ -524,4 +524,4 @@ Outputs:
 
   CognitoAuthority:
     Description: Cognito user pool domain URL
-    Value: !Sub https://${RagCognitoUserPoolDomain}.${AWS::Region}.amazoncognito.com
+    Value: !Sub https://${RagCognitoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com
