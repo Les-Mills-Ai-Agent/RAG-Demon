@@ -29,7 +29,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # PR to dev -> ephemeral QA stack
-            echo "ENVIRONMENT=pr-${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
+            echo "ENVIRONMENT=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
           elif [ "${{ github.ref_name }}" = "dev" ]; then
             # Merged into dev
             echo "ENVIRONMENT=dev" >> $GITHUB_ENV
@@ -158,14 +158,6 @@ jobs:
               --branch-name ${{ env.ENVIRONMENT }} \
               --environment-variables 'API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
           fi
-
-      - name: Deploy Amplify branch
-        run: |
-          echo "Updating branch ${{ env.ENVIRONMENT }}"
-          aws amplify update-branch \
-            --app-id ${{ env.AMPLIFY_APP_ID }} \
-            --branch-name ${{ env.ENVIRONMENT }} \
-            --environment-variables 'API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
 
       - name: Trigger Amplify build
         run: |
