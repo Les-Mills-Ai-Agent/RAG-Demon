@@ -149,14 +149,14 @@ jobs:
             aws amplify create-branch \
               --app-id ${{ env.AMPLIFY_APP_ID }} \
               --branch-name ${{ env.ENVIRONMENT }} \
-              --environment-variables API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
+              --environment-variables API_URL=${{ env.API_URL }},VITE_COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},VITE_COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
           else
             echo "Branch already exists. Updating branch ${{ env.ENVIRONMENT }}..."
             echo "Updating branch ${{ env.ENVIRONMENT }}"
             aws amplify update-branch \
               --app-id ${{ env.AMPLIFY_APP_ID }} \
               --branch-name ${{ env.ENVIRONMENT }} \
-              --environment-variables 'API_URL=${{ env.API_URL }},COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
+              --environment-variables 'API_URL=${{ env.API_URL }},VITE_COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},VITE_COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
           fi
 
       - name: Trigger Amplify build
