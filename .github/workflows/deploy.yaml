@@ -73,6 +73,41 @@ jobs:
       #       && aws cloudformation wait stack-delete-complete --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
       #       || echo "No existing stack to delete"
 
+      - name: Check stack status
+        run: |
+          STACK_NAME="ragdemon-${{ env.ENVIRONMENT }}"
+
+          # Check if stack exists
+          STACK_STATUS=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query "Stacks[0].StackStatus" \
+            --output text 2>/dev/null || echo "STACK_DOES_NOT_EXIST")
+
+          if [ "$STACK_STATUS" = "STACK_DOES_NOT_EXIST" ]; then
+            echo "Stack does not exist yet. Safe to deploy."
+            exit 0
+          elif [ "$STACK_STATUS" = "ROLLBACK_COMPLETE"]; then
+            echo "Deleting stale stack"
+            aws cloudformation delete-stack --stack-name $STACK_NAME \
+              && aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+          fi
+
+          # List of states that are not ready for deployment
+          BLOCKED_STATES=("CREATE_IN_PROGRESS" "UPDATE_IN_PROGRESS" "ROLLBACK_IN_PROGRESS" "UPDATE_ROLLBACK_IN_PROGRESS" "DELETE_IN_PROGRESS")
+
+          # Wait until the stack is in a stable state
+          echo "Current stack status: $STACK_STATUS"
+          while [[ " ${BLOCKED_STATES[@]} " =~ " $STACK_STATUS " ]]; do
+            echo "Stack $STACK_NAME is in $STACK_STATUS, waiting 15s..."
+            sleep 15
+            STACK_STATUS=$(aws cloudformation describe-stacks \
+              --stack-name $STACK_NAME \
+              --query "Stacks[0].StackStatus" \
+              --output text)
+          done
+
+          echo "Stack $STACK_NAME is ready: $STACK_STATUS"
+
       - name: Deploy with SAM
         run: |
           cd backend
