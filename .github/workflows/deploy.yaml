@@ -107,6 +107,18 @@ jobs:
 
           echo "Stack $STACK_NAME is ready: $STACK_STATUS"
 
+      - name: Generate short environment name
+        id: short-env
+        run: |
+          if [[ "${{ env.ENVIRONMENT }}" == "dev" ]]; then
+            echo "ShortEnv=dev" >> $GITHUB_ENV
+          elif [[ "${{ env.ENVIRONMENT }}" == "main" ]]; then
+            echo "ShortEnv=main" >> $GITHUB_ENV
+          else
+            # Ephemeral PR
+            echo "ShortEnv=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+          fi
+
       - name: Deploy with SAM
         run: |
           cd backend
@@ -114,7 +126,7 @@ jobs:
           sam deploy \
             --stack-name ragdemon-${{ env.ENVIRONMENT }} \
             --template-file template.yaml \
-            --parameter-overrides Environment=${{ env.ENVIRONMENT }} \
+            --parameter-overrides Environment=${{ env.ShortEnv }} \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM \
             --region us-east-1 \
             --no-fail-on-empty-changeset \
