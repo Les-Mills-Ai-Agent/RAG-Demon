@@ -133,7 +133,7 @@ jobs:
           if [[ "${{ env.ENVIRONMENT }}" == "dev" || "${{ env.ENVIRONMENT }}" == "prod" ]]; then
             echo "Updating existing branch ${{ env.ENVIRONMENT }}"
             aws amplify update-branch \
-              --app-id $APP_ID \
+              --app-id ${{ env.AMPLIFY_APP_ID }} \
               --branch-name ${{ env.ENVIRONMENT }} \
               --environment-variables \
                  API_URL=${{ env.API_URL }},\
