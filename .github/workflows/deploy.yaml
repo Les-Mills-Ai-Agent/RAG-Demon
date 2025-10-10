@@ -10,7 +10,6 @@ on:
     branches: [dev, main]
 
 env:
-  ENVIRONMENT: ${{ github.base_ref == 'main' && 'prod' || format('pr-{0}', github.event.pull_request.number) }}
   AMPLIFY_APP_ID: d1twhb1vkyz0pw
 
 permissions:
@@ -30,13 +29,13 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # PR to dev -> ephemeral QA stack
-            echo "ENVIRONMENT=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+            echo "ENVIRONMENT=pr-${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
           elif [ "${{ github.ref_name }}" = "dev" ]; then
             # Merged into dev
             echo "ENVIRONMENT=dev" >> $GITHUB_ENV
           elif [ "${{ github.ref_name }}" = "main" ]; then
             # Merged into main
-            echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+            echo "ENVIRONMENT=main" >> $GITHUB_ENV
           else
             # Unknown env
             echo "Unknown branch or event: ${{ github.ref_name }} (${{ github.event_name }})"
