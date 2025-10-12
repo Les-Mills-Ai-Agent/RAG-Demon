@@ -402,6 +402,15 @@ Resources:
       UserPoolId: !Ref RagCognitoUserPool
       ClientName: !Sub RagUserPoolClient-${Environment}
       GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+        - phone
+        - aws.cognito.signin.user.admin
       ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
