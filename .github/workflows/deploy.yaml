@@ -174,5 +174,4 @@ jobs:
           aws cognito-idp admin-create-user \
             --user-pool-id ${{ env.COGNITO_POOL_ID }} \
             --username test@example.com \
-            --user-attributes Name=email,Value=text@example.com
             --temporary-password Password123!
