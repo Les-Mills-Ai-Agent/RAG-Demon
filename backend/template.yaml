@@ -402,6 +402,8 @@ Resources:
       UserPoolId: !Ref RagCognitoUserPool
       ClientName: !Sub RagUserPoolClient-${Environment}
       GenerateSecret: false
+      SupportedIdentityProviders:
+        - COGNITO
       AllowedOAuthFlowsUserPoolClient: true
       AllowedOAuthFlows:
         - code
