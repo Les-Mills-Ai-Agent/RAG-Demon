@@ -394,7 +394,7 @@ Resources:
       UsernameAttributes:
         - email
       AdminCreateUserConfig:
-        AllowAdminCreateUserOnly: !If [IsProd, true, false]
+        AllowAdminCreateUserOnly: true
 
   RagCognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
@@ -539,6 +539,10 @@ Outputs:
   ApiUrl:
     Description: API Gateway endpoint URL for prod / test stage of RAG function
     Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+
+  CognitoPoolId:
+    Description: Cognito user pool ID
+    Value: !GetAtt RagCognitoUserPool.UserPoolId
 
   CognitoClientId:
     Description: Cognito user pool client ID

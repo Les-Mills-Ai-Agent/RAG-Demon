@@ -139,6 +139,7 @@ jobs:
           echo "API_URL=$(echo $outputs | jq -r '.[] | select(.OutputKey=="ApiUrl") | .OutputValue')" >> $GITHUB_ENV
           echo "COGNITO_CLIENT_ID=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoClientId") | .OutputValue')" >> $GITHUB_ENV
           echo "COGNITO_AUTHORITY=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoAuthority") | .OutputValue')" >> $GITHUB_ENV
+          echo "COGNITO_POOL_ID=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoPoolId") | .OutputValue')" >> $GITHUB_ENV
 
       - name: Ensure Amplify branch exists
         run: |
@@ -167,3 +168,11 @@ jobs:
             --app-id ${{ env.AMPLIFY_APP_ID }} \
             --branch-name ${{ env.ENVIRONMENT }} \
             --job-type RELEASE
+
+      - name: Create test cognito user
+        run: |
+          aws cognito-idp admin-create-user \
+            --user-pool-id ${{ env.COGNITO_POOL_ID }} \
+            --username test@example.com \
+            --user-attributes Name=email,Value=text@example.com
+            --temporary-password Password123!
