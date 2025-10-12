@@ -394,7 +394,7 @@ Resources:
       UsernameAttributes:
         - email
       AdminCreateUserConfig:
-        AllowAdminCreateUserOnly: true
+        AllowAdminCreateUserOnly: !If [IsProd, true, false]
 
   RagCognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
