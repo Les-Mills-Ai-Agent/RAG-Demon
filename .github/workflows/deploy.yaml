@@ -126,7 +126,7 @@ jobs:
           sam deploy \
             --stack-name ragdemon-${{ env.ENVIRONMENT }} \
             --template-file template.yaml \
-            --parameter-overrides Environment=${{ env.ShortEnv }},BranchName=${{ env.ENVIRONMENT }},AmplifyAppId=${{ env.AMPLIFY_APP_ID }} \
+            --parameter-overrides Environment=${{ env.ShortEnv }} BranchName=${{ env.ENVIRONMENT }} AmplifyAppId=${{ env.AMPLIFY_APP_ID }} \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM \
             --region us-east-1 \
             --no-fail-on-empty-changeset \
