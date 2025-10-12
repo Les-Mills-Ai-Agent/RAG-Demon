@@ -430,7 +430,7 @@ Resources:
     Properties:
       Domain: !Sub ragdemon-${Environment}
       UserPoolId: !GetAtt RagCognitoUserPool.UserPoolId
-      ManagedLoginVersion: 2
+      ManagedLoginVersion: 1
 
   BedrockSessionsTable:
     Type: AWS::DynamoDB::Table
