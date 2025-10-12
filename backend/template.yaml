@@ -418,6 +418,7 @@ Resources:
         - ALLOW_REFRESH_TOKEN_AUTH
         - ALLOW_CUSTOM_AUTH
         - ALLOW_USER_SRP_AUTH
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
       PreventUserExistenceErrors: ENABLED
       CallbackURLs:
         - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/callback
