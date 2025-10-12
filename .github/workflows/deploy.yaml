@@ -126,7 +126,7 @@ jobs:
           sam deploy \
             --stack-name ragdemon-${{ env.ENVIRONMENT }} \
             --template-file template.yaml \
-            --parameter-overrides Environment=${{ env.ShortEnv }} \
+            --parameter-overrides Environment=${{ env.ShortEnv }},BranchName=${{ env.ENVIRONMENT }},AmplifyAppId=${{ env.AMPLIFY_APP_ID }} \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM \
             --region us-east-1 \
             --no-fail-on-empty-changeset \
@@ -149,6 +149,7 @@ jobs:
             aws amplify create-branch \
               --app-id ${{ env.AMPLIFY_APP_ID }} \
               --branch-name ${{ env.ENVIRONMENT }} \
+              --enable-auto-build false
               --environment-variables API_URL=${{ env.API_URL }},VITE_COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},VITE_COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
           else
             echo "Branch already exists. Updating branch ${{ env.ENVIRONMENT }}..."

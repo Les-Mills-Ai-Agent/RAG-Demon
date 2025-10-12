@@ -13,6 +13,12 @@ Parameters:
     Type: String
     Default: test
     Description: Deployment environment
+  BranchName:
+    Type: String
+    Description: Name of the GitHub branch of this deployment
+  AmplifyAppId:
+    Type: String
+    Description: ID of the Amplify App
   OssCollectionArn:
     Type: String
     Default: arn:aws:aoss:us-east-1:527748639759:collection/299gexfprk8589m5waqb
@@ -402,6 +408,10 @@ Resources:
         - ALLOW_CUSTOM_AUTH
         - ALLOW_USER_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
+      CallbackURLs:
+        - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/callback
+      LogoutURLs:
+        - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/signed-out
 
   RagCognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
