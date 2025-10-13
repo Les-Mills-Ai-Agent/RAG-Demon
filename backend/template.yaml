@@ -160,7 +160,7 @@ Resources:
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
-                httpMethod: GET
+                httpMethod: POST
                 type: aws_proxy
 
               x-amazon-apigateway-request-validator: validate-params-only
@@ -212,7 +212,7 @@ Resources:
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
-                httpMethod: GET
+                httpMethod: POST
                 type: aws_proxy
 
               x-amazon-apigateway-request-validator: validate-params-only
