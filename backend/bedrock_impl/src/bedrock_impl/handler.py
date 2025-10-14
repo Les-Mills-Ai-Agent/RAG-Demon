@@ -141,7 +141,7 @@ def conversation_handler(event: APIGatewayProxyEvent, context: LambdaContext) ->
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
                 },
-                "body": json.dumps([message.model_dump() for message in messages]),
+                "body": json.dumps([message.model_dump(mode='json') for message in messages]),
             }
         
         elif "/conversation/" in path:
