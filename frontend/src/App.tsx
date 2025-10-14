@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "react-oidc-context";
 import LoginCelebration from "./components/LoginCelebration";
 import ConfirmSignOut from "./components/ConfirmSignOut";
-import EngineSwitcher from "./components/EngineSwitcher";
 import { FeedbackProvider } from "./components/FeedbackProvider";
 
 export default function App() {
@@ -16,9 +15,6 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
-
-  const [engine, setEngine] = useState<"openai" | "bedrock">("bedrock"); // set default to "bedrock"
-
 
   // ---------- AUTH ----------
   const auth = useAuth();
@@ -104,8 +100,6 @@ export default function App() {
         </h1>
 
         <div className="flex items-center gap-4">
-
-          <EngineSwitcher value={engine} onChange={setEngine} /> {/* NEW */}
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="text-sm px-3 py-1 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:shadow transition"
@@ -128,13 +122,10 @@ export default function App() {
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
         <QueryClientProvider client={queryClient}>
           <FeedbackProvider>
-            <ChatWindow
-              backendImpl={engine === "bedrock" ? "bedrock" : "langchain"}
-            />
+            <ChatWindow />
           </FeedbackProvider>
         </QueryClientProvider>
       </main>
-
     </div>
   );
 }
