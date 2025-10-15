@@ -118,7 +118,7 @@ jobs:
           sam deploy \
             --stack-name ragdemon-${{ env.ENVIRONMENT }} \
             --template-file .aws-sam/build/template.yaml \
-            --parameter-overrides Environment=${{ env.ShortEnv }} BranchName=$LOWER_BRANCH_NAME AmplifyAppId=${{ env.AMPLIFY_APP_ID }} \
+            --parameter-overrides Environment=${{ env.ShortEnv }} BranchName=$LOWER_BRANCH_NAME AmplifyAppId=${{ vars.AMPLIFY_APP_ID }} \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM \
             --region us-east-1 \
             --no-fail-on-empty-changeset \
@@ -150,11 +150,11 @@ jobs:
         run: |
           echo "Checking if Amplify branch '${{ env.ENVIRONMENT }}' exists..."
           set -e
-          branch_exists=$(aws amplify list-branches --app-id ${{ env.AMPLIFY_APP_ID }} --query "branches[?branchName=='${{ env.ENVIRONMENT }}'] | length(@)" --output text)
+          branch_exists=$(aws amplify list-branches --app-id ${{ vars.AMPLIFY_APP_ID }} --query "branches[?branchName=='${{ env.ENVIRONMENT }}'] | length(@)" --output text)
           if [ "$branch_exists" -eq 0 ]; then
             echo "Branch does not exist. Creating branch ${{ env.ENVIRONMENT }}..."
             aws amplify create-branch \
-              --app-id ${{ env.AMPLIFY_APP_ID }} \
+              --app-id ${{ vars.AMPLIFY_APP_ID }} \
               --branch-name ${{ env.ENVIRONMENT }} \
               --enable-auto-build false \
               --environment-variables VITE_API_URL=${{ env.API_URL }},VITE_COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},VITE_COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
@@ -162,7 +162,7 @@ jobs:
             echo "Branch already exists. Updating branch ${{ env.ENVIRONMENT }}..."
             echo "Updating branch ${{ env.ENVIRONMENT }}"
             aws amplify update-branch \
-              --app-id ${{ env.AMPLIFY_APP_ID }} \
+              --app-id ${{ vars.AMPLIFY_APP_ID }} \
               --branch-name ${{ env.ENVIRONMENT }} \
               --environment-variables 'VITE_API_URL=${{ env.API_URL }},VITE_COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},VITE_COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
           fi
@@ -170,6 +170,6 @@ jobs:
       - name: Trigger Amplify build
         run: |
           aws amplify start-job \
-            --app-id ${{ env.AMPLIFY_APP_ID }} \
+            --app-id ${{ vars.AMPLIFY_APP_ID }} \
             --branch-name ${{ env.ENVIRONMENT }} \
             --job-type RELEASE
