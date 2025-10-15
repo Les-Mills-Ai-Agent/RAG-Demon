@@ -27,6 +27,7 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
     AWS Lambda handler for Bedrock RAG queries.
     """
     try:
+        logger.debug("Bedrock Handler started...")
         if not event.body:
             return Response(status_code=400, body="Missing request body").model_dump()
         
@@ -39,6 +40,7 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
         chat_store = ChatStore()
 
         request = bedrock.parse_request(event.body)
+        logger.debug("Parsed request: ", request)
 
         session_id = request.session_id if request.session_id else chat_store.create_session(user_id = user_id)
 
