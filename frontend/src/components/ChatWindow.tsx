@@ -128,22 +128,22 @@ const ChatWindow = ({
 
           {/* Sticky input with disclaimer below */}
           <div className="sticky bottom-0 left-0 right-0 z-20 bg-transparent backdrop-blur-none border-t border-gray-200/50 dark:border-gray-800/50">
-            <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 pt-3 pb-2">
+            <div className="mx-auto w-full max-w-5xl px-4 sm:px-10 pt-0 pb-0">
               <div className="bg-transparent">
+                <br />
                 <ChatInput
                   onSubmit={addMessage}
                   disabled={query.isLoading}
                   session_id={sessionId}
                 />
               </div>
-              <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 mt-2 mb-1">
+              <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 mt-0.5 mb-0">
                 This AI Assistant may make mistakes.{" "}
-                <span className="underline cursor-pointer">
-                  Check Important Info
-                </span>
+                <span className="underline cursor-pointer">Check Important Info</span>
               </p>
             </div>
           </div>
+
         </>
       )}
     </div>
