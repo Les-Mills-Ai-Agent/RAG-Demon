@@ -65,13 +65,6 @@ jobs:
           role-session-name: ${{ env.ENVIRONMENT }}-deploy
           aws-region: us-east-1
 
-      # - name: Clean up previous failed stack
-      #   run: |
-      #     aws cloudformation describe-stacks --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
-      #       && aws cloudformation delete-stack --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
-      #       && aws cloudformation wait stack-delete-complete --stack-name ragdemon-${{ env.ENVIRONMENT }} --region us-east-1 \
-      #       || echo "No existing stack to delete"
-
       - name: Check stack status
         run: |
           STACK_NAME="ragdemon-${{ env.ENVIRONMENT }}"
@@ -124,7 +117,7 @@ jobs:
           LOWER_BRANCH_NAME=$(echo "${{ env.ENVIRONMENT }}" | tr '[:upper:]' '[:lower:]')
           cd backend
           cat bedrock_impl/src/requirements.txt
-          sam build --use-container
+          sam build --use-container --no-cache
           sam deploy \
             --stack-name ragdemon-${{ env.ENVIRONMENT }} \
             --template-file template.yaml \
