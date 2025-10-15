@@ -41,12 +41,12 @@ class Bedrock:
                     knowledgeBaseConfiguration={
                         "knowledgeBaseId": require_env("KNOWLEDGE_BASE_ID"),
                         "modelArn": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-                        "generationConfiguration": {
-                            "guardrailConfiguration": {
-                                "guardrailId": "3x3fwig8roag",
-                                "guardrailVersion": "3",
-                            }
-                        }
+                        # "generationConfiguration": {
+                        #     "guardrailConfiguration": {
+                        #         "guardrailId": "3x3fwig8roag",
+                        #         "guardrailVersion": "3",
+                        #     }
+                        # }
                     }
                 )
             )
