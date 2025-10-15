@@ -29,9 +29,9 @@ Parameters:
     Type: String
     Default: arn:aws:iam::527748639759:role/BedrockKnowledgeBaseRole
 
-Conditions:
-  IsProd: !Equals [!Ref Environment, "prod"]
-  # IsTest: !Not [Condition: IsProd]
+# Conditions:
+#   IsProd: !Equals [!Ref Environment, "prod"]
+# IsTest: !Not [Condition: IsProd]
 
 Resources:
   # RagFrontend:
