@@ -20,6 +20,9 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeSession, setActiveSession] = useState<string | null>(null);
 
+  const [viewingConversation, setViewingConversation] = useState<Message[] | null>(null);
+  const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
@@ -96,17 +99,32 @@ export default function App() {
   const handleSelectConversation = async (sessionId: string) => {
     setActiveSession(sessionId);
     setIsPanelOpen(false);
-    console.log(sessionId);
+
     const cleanSessionId = sessionId.replace(/^SESSION#SESSION#/, "SESSION#");
-    const encodeSessionID = encodeURIComponent(cleanSessionId)
+    const encodeSessionID = encodeURIComponent(cleanSessionId);
+
     if (auth.isAuthenticated && auth.user?.profile.sub) {
       try {
-      const msgs = await getMessages(encodeSessionID, auth.user.id_token!);
-      setMessages(msgs);
-      console.log(msgs);
-    } catch (err) {
-      console.error("Failed to load messages", err);
-    }
+        const msgs = await getMessages(encodeSessionID, auth.user.id_token!);
+
+        const formattedMessages: Message[] = msgs.map((m: any) => {
+          const match = m.created_at_message_id.match(/^MESSAGE#([^#]+)#/);
+          const timestamp = match ? match[1] : new Date().toISOString(); 
+
+          return {
+            message_id: m.created_at_message_id,
+            content: m.body,
+            response_parts: m.response_parts ?? [],
+            session_id: m.session_id,
+            created_at: timestamp, 
+            role: m.role,
+          };
+        });
+        setViewingConversation(formattedMessages);
+
+      } catch (err) {
+        console.error("Failed to load messages", err);
+      }
     }
   };
 
@@ -124,6 +142,36 @@ export default function App() {
     return null;
   }
   
+  if (viewingConversation) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+        <header className="bg-white dark:bg-gray-800 px-6 py-4 shadow-md flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setViewingConversation(null)} // 👈 Back to main chat
+              className="text-sm px-3 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              ← Back
+            </button>
+            <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+              Viewing Conversation
+            </h1>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+          <QueryClientProvider client={queryClient}>
+            <ChatWindow
+              backendImpl={engine === "bedrock" ? "bedrock" : "langchain"}
+              messages={viewingConversation} 
+              readOnly={true} 
+            />
+          </QueryClientProvider>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
       <LoginCelebration

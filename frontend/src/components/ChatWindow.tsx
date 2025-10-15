@@ -11,22 +11,33 @@ type BackendImpl = "bedrock" | "langchain";
 // accept a prop from App to pick the backend
 type ChatWindowProps = {
   backendImpl?: BackendImpl; // optional; defaults to "bedrock"
+  messages?: any[];
+  readOnly?: boolean;
 };
 
 const ChatWindow = ({
   backendImpl: backendProp = "bedrock",
+  messages: externalMessages,
+  readOnly = false,
 }: ChatWindowProps) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [sessionId, setSessionId] = useState<string>();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(externalMessages || []);
 
   // Removed local mirrored state; just read the prop
   const backendImpl = backendProp;
+
+  useEffect(() => {
+    if (externalMessages) {
+      setMessages(externalMessages);
+    }
+  }, [externalMessages]);
 
   const lastUserMessage = messages
     .slice()
     .reverse()
     .find((m) => m.role === "user");
+
 
   const placeholderMessage: AiMessage = {
     message_id: "",
@@ -38,6 +49,8 @@ const ChatWindow = ({
   };
 
   const addMessage = (message: Message) => {
+    if (readOnly) return;
+
     setMessages((messages) => {
       // prevent duplicates
       if (messages.some((m) => m.message_id === message.message_id))
@@ -46,14 +59,13 @@ const ChatWindow = ({
     });
   };
 
-  // call hooks with a single argument each (no options object)
-  const langchainQuery = useLangchain(lastUserMessage);
-  const bedrockQuery = useBedrock(lastUserMessage);
-  // pick the active one
+  const langchainQuery = useLangchain(readOnly ? undefined : lastUserMessage);
+  const bedrockQuery = useBedrock(readOnly ? undefined : lastUserMessage);
+
   const query = backendImpl === "bedrock" ? bedrockQuery : langchainQuery;
 
   useEffect(() => {
-    if (query.isSuccess && query.data) {
+    if (query.isSuccess && query.data && (!readOnly)) {
       const aiMessage: AiMessage = {
         message_id: query.data.message_id,
         content: query.data.content,
@@ -65,7 +77,7 @@ const ChatWindow = ({
       setSessionId(query.data.session_id);
       addMessage(aiMessage);
     }
-  }, [query.data, query.isSuccess]);
+  }, [query.data, query.isSuccess, readOnly]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
