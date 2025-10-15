@@ -97,7 +97,7 @@ export default function App() {
         onConfirm={onSignoutConfirm}
       />
 
-      <header className="bg-white dark:bg-gray-800 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-gray-800/85 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
         <h1 className="text-xl font-bold text-gray-800 dark:text-white">
           Les Mills AI Assistant
         </h1>
