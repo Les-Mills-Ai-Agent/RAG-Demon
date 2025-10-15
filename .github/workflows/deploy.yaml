@@ -145,7 +145,7 @@ jobs:
         run: |
           aws cognito-idp create-managed-login-branding \
             --client-id ${{ env.COGNITO_CLIENT_ID }} \
-            --user-pool-id ${{ env.COGNITO_POOL_ID }} \ 
+            --user-pool-id ${{ env.COGNITO_POOL_ID }} \
             --use-cognito-provided-values
 
       - name: Ensure Amplify branch exists
