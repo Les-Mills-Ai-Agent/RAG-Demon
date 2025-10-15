@@ -9,9 +9,6 @@ on:
   push:
     branches: [dev, main]
 
-env:
-  AMPLIFY_APP_ID: d1twhb1vkyz0pw
-
 permissions:
   id-token: write
   contents: write
