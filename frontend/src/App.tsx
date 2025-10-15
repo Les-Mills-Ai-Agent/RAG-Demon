@@ -22,7 +22,6 @@ export default function App() {
   const [activeSession, setActiveSession] = useState<string | null>(null);
 
   const [viewingConversation, setViewingConversation] = useState<Message[] | null>(null);
-  const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -198,7 +197,7 @@ export default function App() {
           {conversations.map((c) => (
             <li
               key={c.session_id}
-              className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              className={`p-3 cursor-pointer ${c.session_id === activeSession ? 'bg-gray-200' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
               onClick={() => handleSelectConversation(c.session_id)}
             >
               {new Date(c.last_updated).toLocaleString()}
