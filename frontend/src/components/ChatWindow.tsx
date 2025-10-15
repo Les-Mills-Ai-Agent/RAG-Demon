@@ -19,6 +19,7 @@ const ChatWindow = ({
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [sessionId, setSessionId] = useState<string>();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [showScrollButton, setShowScrollButton] = useState(false); // 👈 NEW
 
   // Removed local mirrored state; just read the prop
   const backendImpl = backendProp;
@@ -72,6 +73,25 @@ const ChatWindow = ({
   }, [messages]);
 
   // Helper: find the nearest previous user message text before index `idx`
+  //  Track scroll to toggle button visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      const distanceFromBottom =
+        document.documentElement.scrollHeight -
+        (window.scrollY + window.innerHeight);
+      setShowScrollButton(distanceFromBottom > 250);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  //  Scroll smoothly to bottom
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Helper
   const lastUserBefore = (idx: number): string => {
     for (let i = idx - 1; i >= 0; i--) {
       const m = messages[i];
@@ -144,6 +164,25 @@ const ChatWindow = ({
             </div>
           </div>
 
+          {/* Back-to-bottom button */}
+          {showScrollButton && (
+            <button
+              onClick={scrollToBottom}
+              aria-label="Scroll to bottom"
+              className="fixed bottom-24 right-6 z-30 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-200"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          )}
         </>
       )}
     </div>
