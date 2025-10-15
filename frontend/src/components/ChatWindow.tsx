@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"; 
+import React, { useEffect, useRef, useState } from "react";
 import ChatBubble from "./ChatBubble";
 import { AiMessage, Message } from "../models/models";
 import { useBedrock } from "../hooks/useBedrock";
@@ -108,7 +108,7 @@ const ChatWindow = ({
       {!hasMessages ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-8 py-16">
           <h2 className="text-2xl sm:text-3xl font-semibold text-gray-700 dark:text-gray-200">
-            Where should we begin?
+            Ask about the Les Mills content platform...
           </h2>
 
           {/* Input box - transparent background */}
@@ -132,7 +132,9 @@ const ChatWindow = ({
                 msg={message}
                 isLoading={false}
                 error={null}
-                lastUserText={message.role === "ai" ? lastUserBefore(idx) : undefined}
+                lastUserText={
+                  message.role === "ai" ? lastUserBefore(idx) : undefined
+                }
               />
             ))}
             {(query.isLoading || query.error) && (
@@ -159,7 +161,9 @@ const ChatWindow = ({
               </div>
               <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 mt-0.5 mb-0">
                 This AI Assistant may make mistakes.{" "}
-                <span className="underline cursor-pointer">Check Important Info</span>
+                <span className="underline cursor-pointer">
+                  Check Important Info
+                </span>
               </p>
             </div>
           </div>
@@ -179,7 +183,11 @@ const ChatWindow = ({
                 stroke="currentColor"
                 className="w-5 h-5"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
           )}

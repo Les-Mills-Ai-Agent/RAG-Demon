@@ -46,6 +46,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       >
         <input
           type="text"
+          maxLength={500}
           className="flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none"
           placeholder="Ask anything..."
           value={input}
