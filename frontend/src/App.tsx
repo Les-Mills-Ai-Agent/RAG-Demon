@@ -82,7 +82,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
       <LoginCelebration
         visible={showCelebrate}
         userEmail={auth.user?.profile?.email || "User"}
@@ -94,7 +94,7 @@ export default function App() {
         onConfirm={onSignoutConfirm}
       />
 
-      <header className="bg-white dark:bg-gray-800 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-gray-800/85 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
         <h1 className="text-xl font-bold text-gray-800 dark:text-white">
           Les Mills AI Assistant
         </h1>
@@ -119,12 +119,15 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-        <QueryClientProvider client={queryClient}>
-          <FeedbackProvider>
-            <ChatWindow />
-          </FeedbackProvider>
-        </QueryClientProvider>
+      {/* Wider centred chat container */}
+      <main className="flex-1">
+        <div className="mx-auto w-full max-w-5xl px-6 py-6 flex flex-col">
+          <QueryClientProvider client={queryClient}>
+            <FeedbackProvider>
+              <ChatWindow/>
+            </FeedbackProvider>
+          </QueryClientProvider>
+        </div>
       </main>
     </div>
   );
