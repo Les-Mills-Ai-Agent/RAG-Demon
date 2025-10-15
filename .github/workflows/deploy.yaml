@@ -117,7 +117,7 @@ jobs:
           LOWER_BRANCH_NAME=$(echo "${{ env.ENVIRONMENT }}" | tr '[:upper:]' '[:lower:]')
           cd backend
           cat bedrock_impl/src/requirements.txt
-          sam build --use-container --no-cache
+          sam build --use-container --no-cached
           sam deploy \
             --stack-name ragdemon-${{ env.ENVIRONMENT }} \
             --template-file template.yaml \
