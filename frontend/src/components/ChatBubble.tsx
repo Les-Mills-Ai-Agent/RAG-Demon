@@ -20,7 +20,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   lastUserText,
 }) => {
   const base =
-    "relative max-w-[70%] px-4 py-3 rounded-2xl whitespace-pre-wrap text-sm shadow-sm animate-fadeIn";
+  "relative max-w-[80%] md:max-w-[70%] lg:max-w-[60%] px-4 py-3 rounded-2xl whitespace-pre-wrap overflow-wrap-break-word text-[13px] leading-relaxed text-left shadow-sm animate-fadeIn";
+
 
   const classes =
     msg.role === "user"

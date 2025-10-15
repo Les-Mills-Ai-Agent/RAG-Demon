@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react"; 
 import ChatBubble from "./ChatBubble";
 import { AiMessage, Message } from "../models/models";
 import { useBedrock } from "../hooks/useBedrock";
@@ -80,34 +80,72 @@ const ChatWindow = ({
     return "";
   };
 
+  const hasMessages = messages.length > 0;
+
   return (
-    <div className="flex flex-col gap-4 w-full h-full">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-4">
-        {messages.map((message, idx) => (
-          <ChatBubble
-            key={message.message_id}
-            msg={message}
-            isLoading={false}
-            error={null}
-            // ➕ pass lastUserText only for AI bubbles (for the feedback modal)
-            lastUserText={message.role === "ai" ? lastUserBefore(idx) : undefined}
-          />
-        ))}
-        {(query.isLoading || query.error) && (
-          <ChatBubble
-            msg={placeholderMessage}
-            isLoading={query.isLoading}
-            error={query.error}
-            onRetry={query.refetch}
-          />
-        )}
-        <div ref={bottomRef} />
-      </div>
-      <ChatInput
-        onSubmit={addMessage}
-        disabled={query.isLoading}
-        session_id={sessionId}
-      />
+    <div className="flex flex-col w-full min-h-[80vh]">
+      {/* Landing (no messages yet) */}
+      {!hasMessages ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-8 py-16">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-gray-700 dark:text-gray-200">
+            Where should we begin?
+          </h2>
+
+          {/* Input box - transparent background */}
+          <div className="w-full max-w-2xl">
+            <div className="bg-transparent">
+              <ChatInput
+                onSubmit={addMessage}
+                disabled={query.isLoading}
+                session_id={sessionId}
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Normal chat view */}
+          <div className="flex-1 flex flex-col gap-4 pb-36">
+            {messages.map((message, idx) => (
+              <ChatBubble
+                key={message.message_id}
+                msg={message}
+                isLoading={false}
+                error={null}
+                lastUserText={message.role === "ai" ? lastUserBefore(idx) : undefined}
+              />
+            ))}
+            {(query.isLoading || query.error) && (
+              <ChatBubble
+                msg={placeholderMessage}
+                isLoading={query.isLoading}
+                error={query.error}
+                onRetry={query.refetch}
+              />
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Sticky input with disclaimer below */}
+          <div className="sticky bottom-0 left-0 right-0 z-20 bg-transparent backdrop-blur-none border-t border-gray-200/50 dark:border-gray-800/50">
+            <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 pt-3 pb-2">
+              <div className="bg-transparent">
+                <ChatInput
+                  onSubmit={addMessage}
+                  disabled={query.isLoading}
+                  session_id={sessionId}
+                />
+              </div>
+              <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 mt-2 mb-1">
+                This AI Assistant may make mistakes.{" "}
+                <span className="underline cursor-pointer">
+                  Check Important Info
+                </span>
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

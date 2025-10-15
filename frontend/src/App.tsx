@@ -19,7 +19,6 @@ export default function App() {
 
   const [engine, setEngine] = useState<"openai" | "bedrock">("bedrock"); // set default to "bedrock"
 
-
   // ---------- AUTH ----------
   const auth = useAuth();
 
@@ -86,7 +85,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
       <LoginCelebration
         visible={showCelebrate}
         userEmail={auth.user?.profile?.email || "User"}
@@ -105,7 +104,7 @@ export default function App() {
 
         <div className="flex items-center gap-4">
 
-          <EngineSwitcher value={engine} onChange={setEngine} /> {/* NEW */}
+          <EngineSwitcher value={engine} onChange={setEngine} />
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="text-sm px-3 py-1 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:shadow transition"
@@ -125,14 +124,17 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-        <QueryClientProvider client={queryClient}>
-          <FeedbackProvider>
-            <ChatWindow
-              backendImpl={engine === "bedrock" ? "bedrock" : "langchain"}
-            />
-          </FeedbackProvider>
-        </QueryClientProvider>
+      {/* Wider centred chat container */}
+      <main className="flex-1">
+        <div className="mx-auto w-full max-w-5xl px-6 py-6 flex flex-col">
+          <QueryClientProvider client={queryClient}>
+            <FeedbackProvider>
+              <ChatWindow
+                backendImpl={engine === "bedrock" ? "bedrock" : "langchain"}
+              />
+            </FeedbackProvider>
+          </QueryClientProvider>
+        </div>
       </main>
 
     </div>
