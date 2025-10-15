@@ -13,7 +13,7 @@ import json
 logger = Logger('lambda-rag')
 
 class Response(BaseModel):
-    status_code: int
+    statusCode: int
     body: str
     headers: dict[str, Any] = {
                             'Access-Control-Allow-Headers': 'Content-Type',
@@ -29,12 +29,12 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
     try:
         logger.debug("Bedrock Handler started...")
         if not event.body:
-            return Response(status_code=400, body="Missing request body").model_dump()
+            return Response(statusCode=400, body="Missing request body").model_dump()
         
         user_id = event.request_context.authorizer.claims.get("sub")
         
         if not user_id:
-            return Response(status_code=400, body="Missing cognito user ID").model_dump()
+            return Response(statusCode=400, body="Missing cognito user ID").model_dump()
         
         bedrock = Bedrock()
         chat_store = ChatStore()
@@ -70,11 +70,11 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
 
         response.session_id = session_id
 
-        return Response(status_code=200, body=response.model_dump_json()).model_dump()
+        return Response(statusCode=200, body=response.model_dump_json()).model_dump()
 
     except ValidationError as ve:
         logger.exception("Validation error")
-        return Response(status_code=400, body=f"Validation error: {ve.errors()}").model_dump()
+        return Response(statusCode=400, body=f"Validation error: {ve.errors()}").model_dump()
 
     except Exception as e:
         logger.error("Internal error:", e)
