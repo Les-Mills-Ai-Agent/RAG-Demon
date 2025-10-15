@@ -426,7 +426,7 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
-            TableName: !GetAtt BedrockSessionsTable.TableName
+            TableName: !Ref BedrockSessionsTable
         - Statement:
             - Effect: Allow
               Action:
