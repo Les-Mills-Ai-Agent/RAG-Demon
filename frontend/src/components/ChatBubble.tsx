@@ -20,9 +20,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   lastUserText,
 }) => {
   const base =
-  "relative max-w-[80%] md:max-w-[70%] lg:max-w-[60%] px-4 py-3 rounded-2xl whitespace-pre-wrap overflow-wrap-break-word text-[13px] leading-relaxed text-left shadow-sm animate-fadeIn";
-
-
+    "relative inline-block max-w-[40rem] px-4 py-3 rounded-2xl text-[13px] leading-relaxed text-left shadow-sm animate-fadeIn";
   const classes =
     msg.role === "user"
       ? `${base} bg-blue-100 text-gray-800 self-end dark:bg-blue-300 dark:text-black`
@@ -58,7 +56,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   // close on ESC & lock scroll
   useEffect(() => {
     if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    const onKey = (e: KeyboardEvent) =>
+      e.key === "Escape" && setMenuOpen(false);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
@@ -91,7 +90,11 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
         msg.role === "user" ? "justify-end" : "justify-start"
       }`}
     >
-      <div className="flex items-end gap-2">
+      <div
+        className={`flex items-end gap-2 ${
+          msg.role === "user" ? "flex-row-reverse" : ""
+        }`}
+      >
         {msg.role === "ai" && (
           <div className="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shrink-0">
             LMI
@@ -188,7 +191,10 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
             {menuOpen && (
               <div className="fixed inset-0 z-50">
                 {/* Backdrop with blur */}
-                <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" aria-hidden="true" />
+                <div
+                  className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+                  aria-hidden="true"
+                />
                 <div className="absolute inset-0 flex items-end sm:items-center justify-center p-4">
                   <div
                     ref={menuRef}
@@ -225,8 +231,12 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
                       >
                         {/* chat-bubble-heart icon */}
                         <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
-                          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-                            <path d="M12 21s-6.716-3.873-9.193-7.35C1.083 11.426 2.2 8 5.5 8c1.9 0 2.887 1.087 3.5 2 .613-.913 1.6-2 3.5-2 3.3 0 4.417 3.426 2.693 5.65C18.716 17.127 12 21 12 21z"/>
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="w-4 h-4"
+                            fill="currentColor"
+                          >
+                            <path d="M12 21s-6.716-3.873-9.193-7.35C1.083 11.426 2.2 8 5.5 8c1.9 0 2.887 1.087 3.5 2 .613-.913 1.6-2 3.5-2 3.3 0 4.417 3.426 2.693 5.65C18.716 17.127 12 21 12 21z" />
                           </svg>
                         </span>
                         <div className="flex-1 text-left">
@@ -246,8 +256,12 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
                       >
                         {/* copy icon */}
                         <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 text-gray-700 dark:bg-gray-700/60 dark:text-gray-200">
-                          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-                            <path d="M8 7a2 2 0 012-2h7a2 2 0 012 2v9a2 2 0 01-2 2h-7a2 2 0 01-2-2V7zm-3 3a2 2 0 012-2v9a4 4 0 004 4h7a2 2 0 002-2h-9a4 4 0 01-4-4V10z"/>
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="w-4 h-4"
+                            fill="currentColor"
+                          >
+                            <path d="M8 7a2 2 0 012-2h7a2 2 0 012 2v9a2 2 0 01-2 2h-7a2 2 0 01-2-2V7zm-3 3a2 2 0 012-2v9a4 4 0 004 4h7a2 2 0 002-2h-9a4 4 0 01-4-4V10z" />
                           </svg>
                         </span>
                         <div className="flex-1 text-left">
