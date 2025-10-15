@@ -117,10 +117,10 @@ jobs:
           LOWER_BRANCH_NAME=$(echo "${{ env.ENVIRONMENT }}" | tr '[:upper:]' '[:lower:]')
           cd backend
           cat bedrock_impl/src/requirements.txt
-          sam build --use-container --no-cached
+          sam build
           sam deploy \
             --stack-name ragdemon-${{ env.ENVIRONMENT }} \
-            --template-file template.yaml \
+            --template-file .aws-sam/build/template.yaml \
             --parameter-overrides Environment=${{ env.ShortEnv }} BranchName=$LOWER_BRANCH_NAME AmplifyAppId=${{ env.AMPLIFY_APP_ID }} \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM \
             --region us-east-1 \
