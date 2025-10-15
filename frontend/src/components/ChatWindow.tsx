@@ -149,7 +149,7 @@ const ChatWindow = ({
           </div>
 
           {/* Sticky input with disclaimer below */}
-          <div className="sticky bottom-0 left-0 right-0 z-20 bg-transparent backdrop-blur-none border-t border-gray-200/50 dark:border-gray-800/50">
+          <div className="sticky bottom-0 left-0 right-0 z-20 bg-transparent backdrop-blur border-t border-gray-200/50 dark:border-gray-800/50">
             <div className="mx-auto w-full max-w-5xl px-4 sm:px-10 pt-0 pb-0">
               <div className="bg-transparent">
                 <br />
