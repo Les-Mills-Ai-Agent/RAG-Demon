@@ -61,7 +61,7 @@ Resources:
   RagApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name: ragdemon-api
+      Name: !Sub rag-api-${Environment}
       StageName: !Ref Environment
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
@@ -141,23 +141,23 @@ Resources:
                     schema:
                       type: object
                       properties:
-                        pk:         { type: string }
-                        sk:         { type: string }
-                        sessionId:  { type: string, nullable: true }
-                        issueType:  { type: string }
-                        severity:   { type: string, enum: [Low, Medium, High] }
-                        notes:      { type: string }
+                        pk: { type: string }
+                        sk: { type: string }
+                        sessionId: { type: string, nullable: true }
+                        issueType: { type: string }
+                        severity: { type: string, enum: [Low, Medium, High] }
+                        notes: { type: string }
                         includeContext: { type: boolean }
-                        question:   { type: string, nullable: true }
-                        answer:     { type: string, nullable: true }
+                        question: { type: string, nullable: true }
+                        answer: { type: string, nullable: true }
                         submittedAt:
                           type: string
                           format: date-time
                         metadata:
                           type: object
                           properties:
-                            userAgent:   { type: string }
-                            language:    { type: string }
+                            userAgent: { type: string }
+                            language: { type: string }
                             tzOffsetMin: { type: number }
                       required: [pk, sk, issueType, severity, submittedAt]
               x-amazon-apigateway-integration:
@@ -173,7 +173,7 @@ Resources:
                         type: object
                         properties:
                           status: { type: string, example: "ok" }
-                          id:     { type: string, example: "FEEDBACK#123456" }
+                          id: { type: string, example: "FEEDBACK#123456" }
                         required: [status, id]
 
                 "400":
@@ -196,7 +196,7 @@ Resources:
                     application/json:
                       schema:
                         $ref: "#/components/schemas/ErrorResponse"
-                
+
           /rag/bedrock/conversation/{user_id}:
             get:
               summary: Fetch all conversations that belong to a given user
@@ -352,7 +352,8 @@ Resources:
                   type: string
                   format: date-time
                   example: "2024-08-23T13:28:00Z"
-              required: [message_id, content, response_parts, session_id, created_at]
+              required:
+                [message_id, content, response_parts, session_id, created_at]
 
             ErrorResponse:
               type: object
@@ -379,7 +380,7 @@ Resources:
                       items:
                         type: object
                         properties:
-                          field:  { type: string, example: "pk" }
+                          field: { type: string, example: "pk" }
                           reason: { type: string, example: "missing" }
 
             ResponsePart:
@@ -432,29 +433,31 @@ Resources:
                 - bedrock:*
               Resource: "*"
 
-  # feedback feature
   FeedbackFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: !Sub FeedbackFunction-${Environment}
       CodeUri: bedrock_impl/src
       Handler: bedrock_impl.feedback_handler.handler
-      # Runtime inherits from Globals (python3.13)
       Environment:
         Variables:
-          TABLE_NAME: FeedbackTable
+          TABLE_NAME: !Ref FeedbackTable
       Policies:
         - AWSLambdaBasicExecutionRole
         - Statement:
             - Effect: Allow
               Action: ["dynamodb:PutItem"]
               Resource: !GetAtt FeedbackTable.Arn
-              
+
   ConversationHandlingFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ConversationHandlingFunction-${Environment}
       CodeUri: bedrock_impl/src
       Handler: bedrock_impl.handler.conversation_handler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref BedrockSessionsTable
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBReadPolicy:
@@ -475,12 +478,12 @@ Resources:
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/${Environment}/*/*
 
   ConversationHandlingFunctionInvokePermission:
-      Type: AWS::Lambda::Permission
-      Properties:
-        FunctionName: !GetAtt ConversationHandlingFunction.Arn
-        Action: lambda:InvokeFunction
-        Principal: apigateway.amazonaws.com
-        SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ConversationHandlingFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
 
   # allow API Gateway to call FeedbackFunction
   FeedbackFunctionInvokePermission:
@@ -546,7 +549,7 @@ Resources:
   FeedbackTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: FeedbackTable
+      TableName: !Sub FeedbackTable-${Environment}
       AttributeDefinitions:
         - AttributeName: pk
           AttributeType: S
