@@ -422,7 +422,7 @@ Resources:
       Handler: bedrock_impl.handler.bedrock_handler
       Environment:
         Variables:
-          KnowledgeBaseId: !Ref LmiKnowledgeBase
+          KNOWLEDGE_BASE_ID: !GetAtt LmiKnowledgeBase.KnowledgeBaseId
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
