@@ -145,7 +145,7 @@ jobs:
         run: |
           if aws cognito-idp describe-managed-login-branding-by-client \
             --client-id ${{ env.COGNITO_CLIENT_ID }} \
-            --user-pool-id ${{ env.COGNITO_POOL_ID }} \; then
+            --user-pool-id ${{ env.COGNITO_POOL_ID }}; then
             echo "Style already exists, skipping creation"
           else
             aws cognito-idp create-managed-login-branding \
