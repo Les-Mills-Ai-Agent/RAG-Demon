@@ -57,7 +57,7 @@ def test_generate_response_calls_bedrock_with_correct_params():
         retrieveAndGenerateConfiguration = {
             'type': 'KNOWLEDGE_BASE',
             'knowledgeBaseConfiguration': {
-                'knowledgeBaseId': 'XBOBJWN1MQ',
+                'knowledgeBaseId': 'KB1234567890',
                 'modelArn': 'anthropic.claude-3-5-sonnet-20240620-v1:0',
                 'generationConfiguration': {
                     'guardrailConfiguration': {
