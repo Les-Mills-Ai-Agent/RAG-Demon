@@ -9,6 +9,7 @@ import { useAuth } from "react-oidc-context";
 import LoginCelebration from "./components/LoginCelebration";
 import ConfirmSignOut from "./components/ConfirmSignOut";
 import EngineSwitcher from "./components/EngineSwitcher";
+import { FeedbackProvider } from "./components/FeedbackProvider";
 import SlidingPanel from "./components/SlidingPanel";
 import { getConversations, getMessages, Conversation, Message } from "./utils/api";
 
@@ -27,7 +28,7 @@ export default function App() {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
-  const [engine, setEngine] = useState<"openai" | "bedrock">("openai");
+  const [engine, setEngine] = useState<"openai" | "bedrock">("bedrock"); // set default to "bedrock"
 
 
   // ---------- AUTH ----------
@@ -220,7 +221,7 @@ export default function App() {
 
         <div className="flex items-center gap-4">
 
-           <EngineSwitcher value={engine} onChange={setEngine} /> {/* NEW */}
+          <EngineSwitcher value={engine} onChange={setEngine} /> {/* NEW */}
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="text-sm px-3 py-1 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:shadow transition"
@@ -242,9 +243,11 @@ export default function App() {
 
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
         <QueryClientProvider client={queryClient}>
-          <ChatWindow
-            backendImpl={engine === "bedrock" ? "bedrock" : "langchain"}
-          />
+          <FeedbackProvider>
+            <ChatWindow
+              backendImpl={engine === "bedrock" ? "bedrock" : "langchain"}
+            />
+          </FeedbackProvider>
         </QueryClientProvider>
       </main>
 
