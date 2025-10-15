@@ -1,28 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChatBubble from "./ChatBubble";
 import { AiMessage, Message } from "../models/models";
 import { useBedrock } from "../hooks/useBedrock";
-import { useLangchain } from "../hooks/useLangchain";
 import ChatInput from "./ChatInput";
-import { UserMessage } from "../models/models";
 
-type BackendImpl = "bedrock" | "langchain";
-
-// accept a prop from App to pick the backend
-type ChatWindowProps = {
-  backendImpl?: BackendImpl; // optional; defaults to "bedrock"
-};
-
-const ChatWindow = ({
-  backendImpl: backendProp = "bedrock",
-}: ChatWindowProps) => {
+const ChatWindow = () => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [sessionId, setSessionId] = useState<string>();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [showScrollButton, setShowScrollButton] = useState(false); // 👈 NEW
-
-  // Removed local mirrored state; just read the prop
-  const backendImpl = backendProp;
+  const [showScrollButton, setShowScrollButton] = useState(false); 
 
   const lastUserMessage = messages
     .slice()
@@ -47,11 +33,7 @@ const ChatWindow = ({
     });
   };
 
-  // call hooks with a single argument each (no options object)
-  const langchainQuery = useLangchain(lastUserMessage);
-  const bedrockQuery = useBedrock(lastUserMessage);
-  // pick the active one
-  const query = backendImpl === "bedrock" ? bedrockQuery : langchainQuery;
+  const query = useBedrock(lastUserMessage);
 
   useEffect(() => {
     if (query.isSuccess && query.data) {
