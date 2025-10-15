@@ -468,7 +468,6 @@ Resources:
                 - bedrock:*
               Resource: "*"
 
-  # Ensures BedrockRagFunction can only be called by RagApi
   BedrockRagFunctionInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -483,16 +482,15 @@ Resources:
       FunctionName: !GetAtt ConversationHandlingFunction.Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/${Environment}/*/*
 
-  # allow API Gateway to call FeedbackFunction
   FeedbackFunctionInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !GetAtt FeedbackFunction.Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/Prod/*/*
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/${Environment}/*/*
 
   RagCognitoUserPool:
     Type: AWS::Cognito::UserPool
