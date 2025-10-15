@@ -423,10 +423,11 @@ Resources:
       Environment:
         Variables:
           KNOWLEDGE_BASE_ID: !GetAtt LmiKnowledgeBase.KnowledgeBaseId
+          CONVERSATIONS_TABLE_NAME: !Ref ConversationsTable
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
-            TableName: !Ref BedrockSessionsTable
+            TableName: !Ref ConversationsTable
         - Statement:
             - Effect: Allow
               Action:
@@ -457,11 +458,11 @@ Resources:
       Handler: bedrock_impl.handler.conversation_handler
       Environment:
         Variables:
-          TABLE_NAME: !Ref BedrockSessionsTable
+          TABLE_NAME: !Ref ConversationsTable
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBReadPolicy:
-            TableName: !Ref BedrockSessionsTable
+            TableName: !Ref ConversationsTable
         - Statement:
             - Effect: Allow
               Action:
@@ -562,10 +563,10 @@ Resources:
       SSESpecification:
         SSEEnabled: true
 
-  BedrockSessionsTable:
+  ConversationsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub BedrockSessions-${Environment}
+      TableName: !Sub ConversationsTable-${Environment}
       AttributeDefinitions:
         - AttributeName: session_id
           AttributeType: S
