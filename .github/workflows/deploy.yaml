@@ -1,0 +1,175 @@
+name: RAGDemon deployment workflow
+
+on:
+  # Run for PRs targeting dev (for ephemeral preview envs)
+  pull_request:
+    branches: [dev]
+
+  # Run when code is merged (push) into dev or main
+  push:
+    branches: [dev, main]
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Determine environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR to dev -> ephemeral QA stack
+            echo "ENVIRONMENT=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
+          elif [ "${{ github.ref_name }}" = "dev" ]; then
+            # Merged into dev
+            echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          elif [ "${{ github.ref_name }}" = "main" ]; then
+            # Merged into main
+            echo "ENVIRONMENT=main" >> $GITHUB_ENV
+          else
+            # Unknown env
+            echo "Unknown branch or event: ${{ github.ref_name }} (${{ github.event_name }})"
+            exit 1
+          fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v6.0.0
+        with:
+          python-version: 3.13
+
+      - name: Setup Poetry
+        uses: Gr1N/setup-poetry@v9
+
+      - name: Install dependencies
+        run: |
+          cd backend/bedrock_impl
+          poetry install
+          poetry self add poetry-plugin-export
+          poetry run export-requirements
+          cd ../..
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::527748639759:role/GithubActionsRole
+          role-session-name: ${{ env.ENVIRONMENT }}-deploy
+          aws-region: us-east-1
+
+      - name: Check stack status
+        run: |
+          STACK_NAME="ragdemon-${{ env.ENVIRONMENT }}"
+
+          # Check if stack exists
+          STACK_STATUS=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --query "Stacks[0].StackStatus" \
+            --output text 2>/dev/null || echo "STACK_DOES_NOT_EXIST")
+
+          if [ "$STACK_STATUS" = "STACK_DOES_NOT_EXIST" ]; then
+            echo "Stack does not exist yet. Safe to deploy."
+            exit 0
+          elif [ "$STACK_STATUS" = "ROLLBACK_COMPLETE" ]; then
+            echo "Deleting stale stack"
+            aws cloudformation delete-stack --stack-name $STACK_NAME \
+              && aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+          fi
+
+          # List of states that are not ready for deployment
+          BLOCKED_STATES=("CREATE_IN_PROGRESS" "UPDATE_IN_PROGRESS" "ROLLBACK_IN_PROGRESS" "UPDATE_ROLLBACK_IN_PROGRESS" "DELETE_IN_PROGRESS")
+
+          # Wait until the stack is in a stable state
+          echo "Current stack status: $STACK_STATUS"
+          while [[ " ${BLOCKED_STATES[@]} " =~ " $STACK_STATUS " ]]; do
+            echo "Stack $STACK_NAME is in $STACK_STATUS, waiting 15s..."
+            sleep 15
+            STACK_STATUS=$(aws cloudformation describe-stacks \
+              --stack-name $STACK_NAME \
+              --query "Stacks[0].StackStatus" \
+              --output text)
+          done
+
+          echo "Stack $STACK_NAME is ready: $STACK_STATUS"
+
+      - name: Generate short environment name
+        id: short-env
+        run: |
+          if [[ "${{ env.ENVIRONMENT }}" == "dev" ]]; then
+            echo "ShortEnv=dev" >> $GITHUB_ENV
+          elif [[ "${{ env.ENVIRONMENT }}" == "main" ]]; then
+            echo "ShortEnv=main" >> $GITHUB_ENV
+          else
+            # Ephemeral PR
+            echo "ShortEnv=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy with SAM
+        run: |
+          LOWER_BRANCH_NAME=$(echo "${{ env.ENVIRONMENT }}" | tr '[:upper:]' '[:lower:]')
+          cd backend
+          cat bedrock_impl/src/requirements.txt
+          sam build
+          sam deploy \
+            --stack-name ragdemon-${{ env.ENVIRONMENT }} \
+            --template-file .aws-sam/build/template.yaml \
+            --parameter-overrides Environment=${{ env.ShortEnv }} BranchName=$LOWER_BRANCH_NAME AmplifyAppId=${{ vars.AMPLIFY_APP_ID }} \
+            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM \
+            --region us-east-1 \
+            --no-fail-on-empty-changeset \
+            --no-confirm-changeset \
+            --resolve-s3
+          cd ..
+      - name: Get Cloudformation stack outputs
+        run: |
+          outputs=$(aws cloudformation describe-stacks --stack-name ragdemon-${{ env.ENVIRONMENT }} --query "Stacks[0].Outputs" --output json)
+          echo "API_URL=$(echo $outputs | jq -r '.[] | select(.OutputKey=="ApiUrl") | .OutputValue')" >> $GITHUB_ENV
+          echo "COGNITO_CLIENT_ID=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoClientId") | .OutputValue')" >> $GITHUB_ENV
+          echo "COGNITO_AUTHORITY=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoAuthority") | .OutputValue')" >> $GITHUB_ENV
+          echo "COGNITO_POOL_ID=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoPoolId") | .OutputValue')" >> $GITHUB_ENV
+
+      - name: Create managed login style
+        run: |
+          if aws cognito-idp describe-managed-login-branding-by-client \
+            --client-id ${{ env.COGNITO_CLIENT_ID }} \
+            --user-pool-id ${{ env.COGNITO_POOL_ID }}; then
+            echo "Style already exists, skipping creation"
+          else
+            aws cognito-idp create-managed-login-branding \
+              --client-id "${{ env.COGNITO_CLIENT_ID }}" \
+              --user-pool-id "${{ env.COGNITO_POOL_ID }}" \
+              --use-cognito-provided-values \
+          fi
+
+      - name: Ensure Amplify branch exists
+        run: |
+          echo "Checking if Amplify branch '${{ env.ENVIRONMENT }}' exists..."
+          set -e
+          branch_exists=$(aws amplify list-branches --app-id ${{ vars.AMPLIFY_APP_ID }} --query "branches[?branchName=='${{ env.ENVIRONMENT }}'] | length(@)" --output text)
+          if [ "$branch_exists" -eq 0 ]; then
+            echo "Branch does not exist. Creating branch ${{ env.ENVIRONMENT }}..."
+            aws amplify create-branch \
+              --app-id ${{ vars.AMPLIFY_APP_ID }} \
+              --branch-name ${{ env.ENVIRONMENT }} \
+              --enable-auto-build false \
+              --environment-variables VITE_API_URL=${{ env.API_URL }},VITE_COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},VITE_COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
+          else
+            echo "Branch already exists. Updating branch ${{ env.ENVIRONMENT }}..."
+            echo "Updating branch ${{ env.ENVIRONMENT }}"
+            aws amplify update-branch \
+              --app-id ${{ vars.AMPLIFY_APP_ID }} \
+              --branch-name ${{ env.ENVIRONMENT }} \
+              --environment-variables 'VITE_API_URL=${{ env.API_URL }},VITE_COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},VITE_COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
+          fi
+
+      - name: Trigger Amplify build
+        run: |
+          aws amplify start-job \
+            --app-id ${{ vars.AMPLIFY_APP_ID }} \
+            --branch-name ${{ env.ENVIRONMENT }} \
+            --job-type RELEASE

@@ -10,6 +10,13 @@ from aws_lambda_powertools import Logger
 
 from uuid import uuid4
 from datetime import datetime, timezone
+import os
+
+def require_env(name: str) -> str:
+    try:
+        return os.environ[name]
+    except KeyError:
+        raise RuntimeError(f"Missing required environment variable: {name}")
 
 logger = Logger(service="rag-bedrock-lambda")
 
@@ -20,6 +27,7 @@ class Bedrock:
         client: AgentsforBedrockRuntimeClient | None = None,
         rag_config: RetrieveAndGenerateConfigurationTypeDef | None = None
         ) -> None:
+            
             self.client = (
                 client
                 if client is not None
@@ -31,7 +39,7 @@ class Bedrock:
                 else RetrieveAndGenerateConfigurationTypeDef(
                     type = "KNOWLEDGE_BASE",
                     knowledgeBaseConfiguration={
-                        "knowledgeBaseId": "XBOBJWN1MQ",
+                        "knowledgeBaseId": require_env("KNOWLEDGE_BASE_ID"),
                         "modelArn": "anthropic.claude-3-5-sonnet-20240620-v1:0",
                         "generationConfiguration": {
                             "guardrailConfiguration": {

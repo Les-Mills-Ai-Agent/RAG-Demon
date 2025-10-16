@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Literal, Union
 from pydantic import AnyUrl, BaseModel, Field, model_serializer
 
 from uuid import uuid4
+import os
 
 from mypy_boto3_dynamodb.service_resource import Table
 from datetime import datetime, timezone
@@ -13,6 +14,12 @@ import boto3
 from boto3.dynamodb.conditions import Key
 
 from bedrock_impl.models import ResponsePart
+
+def require_env(name: str) -> str:
+    try:
+        return os.environ[name]
+    except KeyError:
+        raise RuntimeError(f"Missing required environment variable: {name}")
 
 class ChatStore:
 
@@ -23,7 +30,7 @@ class ChatStore:
             self.table = (
                 table
                 if table is not None
-                else boto3.resource("dynamodb").Table("BedrockSessions")
+                else boto3.resource("dynamodb").Table(require_env("CONVERSATIONS_TABLE_NAME"))
             )
 
     def save_message(
