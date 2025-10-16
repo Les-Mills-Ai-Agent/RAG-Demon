@@ -144,7 +144,7 @@ jobs:
             aws cognito-idp create-managed-login-branding \
               --client-id ${{ env.COGNITO_CLIENT_ID }} \
               --user-pool-id ${{ env.COGNITO_POOL_ID }} \
-              --use-cognito-provided-values
+              --use-cognito-provided-values \
               --assets Category=FORM_LOGO,ColorMode=DYNAMIC,Extension=JPEG,Bytes=$BYTES,ResourceId=lmi-logo
           fi
 
