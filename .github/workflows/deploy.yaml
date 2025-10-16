@@ -140,12 +140,10 @@ jobs:
             --user-pool-id ${{ env.COGNITO_POOL_ID }}; then
             echo "Style already exists, skipping creation"
           else
-            BYTES=$(base64 -w 0 lmi-logo.jpeg)
             aws cognito-idp create-managed-login-branding \
               --client-id "${{ env.COGNITO_CLIENT_ID }}" \
               --user-pool-id "${{ env.COGNITO_POOL_ID }}" \
               --use-cognito-provided-values \
-              --assets "Category=FORM_LOGO,ColorMode=DYNAMIC,Extension=JPEG,Bytes=$BYTES"
           fi
 
       - name: Ensure Amplify branch exists

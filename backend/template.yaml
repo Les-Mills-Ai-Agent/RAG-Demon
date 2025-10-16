@@ -535,6 +535,7 @@ Resources:
       PreventUserExistenceErrors: ENABLED
       CallbackURLs:
         - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/callback
+        - http://localhost:5713/callback
       LogoutURLs:
         - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/signed-out
 
