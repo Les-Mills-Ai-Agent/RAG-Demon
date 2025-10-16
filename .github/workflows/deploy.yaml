@@ -145,7 +145,7 @@ jobs:
               --client-id "${{ env.COGNITO_CLIENT_ID }}" \
               --user-pool-id "${{ env.COGNITO_POOL_ID }}" \
               --use-cognito-provided-values \
-              --assets "Category=FORM_LOGO,ColorMode=DYNAMIC,Extension=JPEG,Bytes=$BYTES,ResourceId=lmi-logo"
+              --assets "Category=FORM_LOGO,ColorMode=DYNAMIC,Extension=JPEG,Bytes=$BYTES"
           fi
 
       - name: Ensure Amplify branch exists
