@@ -127,32 +127,43 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
             </>
           )}
 
-          {/* Success (markdown response) */}
+          {/* Success */}
           {!error && !isLoading && (
             <div>
               {msg.role === "user" && msg.content}
 
-              {msg.role === "ai" &&
-                msg.response_parts.map((part, i) => (
-                  <div key={i}>
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      {part.text}
-                    </div>
+              {msg.role === "ai" && (
+                <>
+                  {/* If there are response_parts, render them */}
+                  {msg.response_parts.length > 0 ? (
+                    msg.response_parts.map((part, i) => (
+                      <div key={i}>
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          {part.text}
+                        </div>
 
-                    {part.references.length > 0 &&
-                      part.references.map((reference, j) => (
-                        <a
-                          key={j}
-                          href={reference.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 no-underline ml-0.5"
-                        >
-                          [{j + 1}]
-                        </a>
-                      ))}
-                  </div>
-                ))}
+                        {part.references.length > 0 &&
+                          part.references.map((reference, j) => (
+                            <a
+                              key={j}
+                              href={reference.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 no-underline ml-0.5"
+                            >
+                              [{j + 1}]
+                            </a>
+                          ))}
+                      </div>
+                    ))
+                  ) : (
+                    // fallback if no response_parts
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      {msg.content}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
