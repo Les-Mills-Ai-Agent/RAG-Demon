@@ -50,13 +50,13 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
             session_id = session_id,
         )
 
-        query_context = chat_store.get_latest_messages(
+        conversation = chat_store.get_latest_messages(
             user_id = user_id,
             session_id = session_id,
             n = 5
         )
         
-        response = bedrock.generate_response(request.content, query_context)
+        response = bedrock.generate_response(conversation)
         response = bedrock.parse_response(response)
 
         logger.debug(f"Parsed response: {response}")
