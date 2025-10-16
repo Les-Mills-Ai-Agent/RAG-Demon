@@ -45,6 +45,9 @@ class Bedrock:
                             "guardrailConfiguration": {
                                 "guardrailId": "3x3fwig8roag",
                                 "guardrailVersion": "3",
+                            },
+                            "promptTemplate": {
+                                "textPromptTemplate": """<task>You are a specialized customer support assistant for Les Mills B2B customers. Your task is to continue the conversation with the customer, answering their questions accurately using only the information provided in the retrieved context.</task> <instructions> - Read the customer's question, retrieved context, and chat history carefully - Base your answer EXCLUSIVELY on the information in the retrieved context - If the retrieved context does not contain the answer to the question, respond with "I don't have enough information to answer this question based on the available context." - Maintain a professional, helpful tone appropriate for B2B customer support - Provide concise, accurate answers without adding information beyond what\'s in the context - Reference specific parts of the context to support your answer when applicable </instructions> <customer_question> $query$ </customer_question> <retrieved_context> $search_results$ </retrieved_context> Please formulate your response based solely on the above information. Begin your answer directly addressing the customer\'s question without repeating or summarizing the question itself."""
                             }
                         }
                     }
@@ -57,16 +60,11 @@ class Bedrock:
         """
         return RAGRequest.model_validate_json(body)
 
-    def generate_response(self, query: str, context: Optional[list[AiMessage | UserMessage]] = None) -> RetrieveAndGenerateResponseTypeDef:
+    def generate_response(self, conversation: list[AiMessage | UserMessage]) -> RetrieveAndGenerateResponseTypeDef:
         try:
-            if context:
-                prompt = f"Query: {query} | Context: {[str(message) + "\n" for message in context]}"
-            else:
-                prompt = query
-
             return self.client.retrieve_and_generate(
                 input = {
-                    "text": prompt
+                    "text": f"{[str(message) for message in conversation]}"
                 },
                 retrieveAndGenerateConfiguration = self.rag_config,
             )
