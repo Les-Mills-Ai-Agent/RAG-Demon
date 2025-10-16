@@ -156,7 +156,7 @@ jobs:
             aws amplify create-branch \
               --app-id ${{ vars.AMPLIFY_APP_ID }} \
               --branch-name ${{ env.ENVIRONMENT }} \
-              --enable-auto-build=false \
+              --no-enable-auto-build \
               --environment-variables VITE_API_URL=${{ env.API_URL }},VITE_COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},VITE_COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}
           else
             echo "Branch already exists. Updating branch ${{ env.ENVIRONMENT }}..."
@@ -164,6 +164,7 @@ jobs:
             aws amplify update-branch \
               --app-id ${{ vars.AMPLIFY_APP_ID }} \
               --branch-name ${{ env.ENVIRONMENT }} \
+              --no-enable-auto-build \
               --environment-variables 'VITE_API_URL=${{ env.API_URL }},VITE_COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }},VITE_COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }}'
           fi
 
