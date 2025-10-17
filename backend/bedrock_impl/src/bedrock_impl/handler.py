@@ -10,7 +10,7 @@ from bedrock_impl.store import ChatStore
 
 import json
 
-logger = Logger('lambda-rag')
+logger = Logger('lambda-rag', level="DEBUG")
 
 class Response(BaseModel):
     statusCode: int
@@ -57,8 +57,8 @@ def bedrock_handler(event: APIGatewayProxyEvent, context: LambdaContext) -> dict
         )
         
         response = bedrock.generate_response(conversation)
+        logger.debug(f"Raw response: {response}")
         response = bedrock.parse_response(response)
-
         logger.debug(f"Parsed response: {response}")
 
         chat_store.save_message(

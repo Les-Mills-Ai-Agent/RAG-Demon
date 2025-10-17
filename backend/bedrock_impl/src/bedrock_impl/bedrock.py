@@ -18,8 +18,6 @@ def require_env(name: str) -> str:
     except KeyError:
         raise RuntimeError(f"Missing required environment variable: {name}")
 
-logger = Logger(service="rag-bedrock-lambda")
-
 class Bedrock:
 
     def __init__(
@@ -72,7 +70,6 @@ class Bedrock:
              raise RuntimeError(f"Bedrock API call failed: {e}") from e
 
     def parse_response(self, response: RetrieveAndGenerateResponseTypeDef) -> RAGResponse:
-        logger.debug(response)
         message_id = str(uuid4())
         output = response.get("output").get("text")
         session_id = response.get("sessionId")
