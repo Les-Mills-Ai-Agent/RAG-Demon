@@ -22,7 +22,7 @@ const oidcConfig = {
 
   // Persist session across refreshes (sessionStorage) and renew tokens
   automaticSilentRenew: true,
-  userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+  userStore: new WebStorageStateStore({ store: window.localStorage }),
   // If you prefer persistence across full browser restarts, use localStorage instead:
   // userStore: new WebStorageStateStore({ store: window.localStorage }),
 
