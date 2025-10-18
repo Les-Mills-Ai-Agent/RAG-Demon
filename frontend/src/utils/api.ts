@@ -18,7 +18,7 @@ export interface Message {
 }
 
 const api = axios.create({
-  baseURL: "https://gc6p3xa5c7.execute-api.us-east-1.amazonaws.com/Prod",
+  baseURL: import.meta.env.VITE_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
