@@ -7,29 +7,35 @@ import { UserMessage } from "../models/models";
 
 type ChatWindowProps = {
   messages?: any[];
-  readOnly?: boolean;
 };
 
 const ChatWindow = ({
   messages: externalMessages,
-  readOnly = false,
 }: ChatWindowProps) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [sessionId, setSessionId] = useState<string>();
   const [messages, setMessages] = useState<Message[]>(externalMessages || []);
   const [showScrollButton, setShowScrollButton] = useState(false); 
+  const [readOnly, setReadOnly] = useState(false); // Flag to disable 
 
   useEffect(() => {
     if (externalMessages) {
       setMessages(externalMessages);
+      setSessionId(externalMessages[0].session_id.replace("SESSION#", ""));
+      setReadOnly(true); // If external message provided (viewing previous convo), intially set read
     }
   }, [externalMessages]);
 
-  const lastUserMessage = messages
-    .slice()
-    .reverse()
-    .find((m) => m.role === "user");
-
+  const lastUserMessage = {
+    session_id: sessionId,
+    ...(
+      messages
+        .slice()
+        .reverse()
+        .find((m) => m.role === "user")
+    )
+  } as UserMessage
+console.log(lastUserMessage)
 
   const placeholderMessage: AiMessage = {
     message_id: "",
@@ -41,7 +47,10 @@ const ChatWindow = ({
   };
 
   const addMessage = (message: Message) => {
-    if (readOnly) return;
+    if (readOnly) {
+      setReadOnly(false);
+    }
+    console.log(message)
 
     setMessages((messages) => {
       // prevent duplicates
@@ -51,10 +60,10 @@ const ChatWindow = ({
     });
   };
 
-  const query = useBedrock(readOnly ? undefined : lastUserMessage);
+  const query = useBedrock(!readOnly ? lastUserMessage : undefined);
 
   useEffect(() => {
-    if (query.isSuccess && query.data && (!readOnly)) {
+    if (query && query.isSuccess && query.data && !readOnly) {
       const aiMessage: AiMessage = {
         message_id: query.data.message_id,
         content: query.data.content,
@@ -66,7 +75,7 @@ const ChatWindow = ({
       setSessionId(query.data.session_id);
       addMessage(aiMessage);
     }
-  }, [query.data, query.isSuccess, readOnly]);
+  }, [query?.data, query?.isSuccess, readOnly]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -116,7 +125,7 @@ const ChatWindow = ({
             <div className="bg-transparent">
               <ChatInput
                 onSubmit={addMessage}
-                disabled={query.isLoading}
+                disabled={query ? query.isLoading : false}
                 session_id={sessionId}
               />
             </div>
@@ -137,7 +146,7 @@ const ChatWindow = ({
                 }
               />
             ))}
-            {(query.isLoading || query.error) && (
+            {(!readOnly && query && (query.isLoading || query.error)) && (
               <ChatBubble
                 msg={placeholderMessage}
                 isLoading={query.isLoading}
@@ -155,7 +164,7 @@ const ChatWindow = ({
                 <br />
                 <ChatInput
                   onSubmit={addMessage}
-                  disabled={query.isLoading}
+                  disabled={query ? query.isLoading : false}
                   session_id={sessionId}
                 />
               </div>

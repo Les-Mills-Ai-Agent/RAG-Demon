@@ -211,7 +211,6 @@ export default function App() {
             <FeedbackProvider>
               <ChatWindow
                 messages={viewingConversation ? viewingConversation : undefined} 
-                readOnly={viewingConversation ? true : false} 
               />
             </FeedbackProvider>
           </QueryClientProvider>
