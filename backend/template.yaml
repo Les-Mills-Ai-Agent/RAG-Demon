@@ -737,12 +737,16 @@ Resources:
         PiiEntitiesConfig:
           - Type: EMAIL
             Action: ANONYMIZE
+            OutputEnabled: false
           - Type: ADDRESS
             Action: ANONYMIZE
+            OutputEnabled: false
           - Type: PHONE
             Action: ANONYMIZE
+            OutputEnabled: false
           - Type: PASSWORD
             Action: BLOCK
+            OutputEnabled: false
       ContentPolicyConfig:
         FiltersConfig:
           - Type: VIOLENCE

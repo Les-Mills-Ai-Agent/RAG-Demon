@@ -132,34 +132,34 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
             <div>
               <div className="prose prose-sm dark:prose-invert max-w-none leading-snug">
                 <ReactMarkdown>{msg.content}</ReactMarkdown>
-              </div>
 
-              {msg.role === "ai" &&
-                (() => {
-                  // Gather all references in a flat array
-                  const allReferences = msg.response_parts.flatMap(
-                    (part) => part.references
-                  );
-                  if (allReferences.length === 0) return null;
-                  return (
-                    <div className="flex gap-1 flex-wrap mt-4">
-                      <div className="font-bold mb-1">Sources:</div>
-                      <div>
-                        {allReferences.map((reference, i) => (
-                          <a
-                            key={i}
-                            href={reference.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 no-underline ml-0.5"
-                          >
-                            [{i + 1}]
-                          </a>
-                        ))}
+                {msg.role === "ai" &&
+                  (() => {
+                    // Gather all references in a flat array
+                    const allReferences = msg.response_parts.flatMap(
+                      (part) => part.references
+                    );
+                    if (allReferences.length === 0) return null;
+                    return (
+                      <div className="flex gap-1 flex-wrap mt-4">
+                        <div className="font-bold mb-1">Sources:</div>
+                        <div>
+                          {allReferences.map((reference, i) => (
+                            <a
+                              key={i}
+                              href={reference.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 no-underline ml-0.5"
+                            >
+                              [{i + 1}]
+                            </a>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
+              </div>
             </div>
           )}
 
