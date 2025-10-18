@@ -16,13 +16,13 @@ const ChatWindow = ({
   const [sessionId, setSessionId] = useState<string>();
   const [messages, setMessages] = useState<Message[]>(externalMessages || []);
   const [showScrollButton, setShowScrollButton] = useState(false); 
-  const [readOnly, setReadOnly] = useState(false); // Flag to disable 
+  const [readOnly, setReadOnly] = useState(false); // Flag to disable generating a response
 
   useEffect(() => {
     if (externalMessages) {
       setMessages(externalMessages);
       setSessionId(externalMessages[0].session_id.replace("SESSION#", ""));
-      setReadOnly(true); // If external message provided (viewing previous convo), intially set read
+      setReadOnly(true); // Stop app from trying to generate a response when viewing previous conversations
     }
   }, [externalMessages]);
 
