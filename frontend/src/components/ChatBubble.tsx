@@ -130,7 +130,10 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
           {/* Success */}
           {!error && !isLoading && (
             <div>
-              {msg.content}
+              <div className="prose prose-sm dark:prose-invert max-w-none leading-snug">
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              </div>
+
               {msg.role === "ai" &&
                 (() => {
                   // Gather all references in a flat array
@@ -139,7 +142,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
                   );
                   if (allReferences.length === 0) return null;
                   return (
-                    <div className="mt-2 flex gap-1 flex-wrap">
+                    <div className="flex gap-1 flex-wrap mt-4">
                       <div className="font-bold mb-1">Sources:</div>
                       <div>
                         {allReferences.map((reference, i) => (
@@ -161,11 +164,11 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
           )}
 
           {/* Timestamp */}
-          {formattedTime && (
+          {/* {formattedTime && (
             <div className="text-right text-xs text-gray-400 dark:text-gray-500 mt-1">
               {formattedTime}
             </div>
-          )}
+          )} */}
         </div>
 
         {/* 3-dots trigger */}
