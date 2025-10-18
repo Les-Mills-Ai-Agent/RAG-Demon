@@ -35,7 +35,6 @@ const ChatWindow = ({
         .find((m) => m.role === "user")
     )
   } as UserMessage
-console.log(lastUserMessage)
 
   const placeholderMessage: AiMessage = {
     message_id: "",
@@ -50,7 +49,6 @@ console.log(lastUserMessage)
     if (readOnly) {
       setReadOnly(false);
     }
-    console.log(message)
 
     setMessages((messages) => {
       // prevent duplicates
