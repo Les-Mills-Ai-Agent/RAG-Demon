@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "react-oidc-context";
 import LoginCelebration from "./components/LoginCelebration";
 import ConfirmSignOut from "./components/ConfirmSignOut";
-import EngineSwitcher from "./components/EngineSwitcher";
 import { FeedbackProvider } from "./components/FeedbackProvider";
 import SlidingPanel from "./components/SlidingPanel";
 import { getConversations, getMessages, Conversation, Message } from "./utils/api";
@@ -26,9 +25,6 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
-
-  const [engine, setEngine] = useState<"openai" | "bedrock">("bedrock"); // set default to "bedrock"
-
 
   // ---------- AUTH ----------
   const auth = useAuth();
@@ -141,39 +137,9 @@ export default function App() {
     }
     return null;
   }
-  
-  if (viewingConversation) {
-    return (
-      <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
-        <header className="bg-white dark:bg-gray-800 px-6 py-4 shadow-md flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setViewingConversation(null)} // 👈 Back to main chat
-              className="text-sm px-3 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              ← Back
-            </button>
-            <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-              Viewing Conversation
-            </h1>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-          <QueryClientProvider client={queryClient}>
-            <ChatWindow
-              backendImpl={engine === "bedrock" ? "bedrock" : "langchain"}
-              messages={viewingConversation} 
-              readOnly={true} 
-            />
-          </QueryClientProvider>
-        </main>
-      </div>
-    );
-  }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
       <LoginCelebration
         visible={showCelebrate}
         userEmail={auth.user?.profile?.email || "User"}
@@ -206,7 +172,7 @@ export default function App() {
         </ul>
       </SlidingPanel>
 
-      <header className="bg-white dark:bg-gray-800 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-gray-800/85 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
         <div className="flex items-center gap-4">
 
           <button
@@ -219,8 +185,6 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-4">
-
-          <EngineSwitcher value={engine} onChange={setEngine} /> {/* NEW */}
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="text-sm px-3 py-1 rounded-full border dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:shadow transition"
@@ -240,16 +204,19 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-        <QueryClientProvider client={queryClient}>
-          <FeedbackProvider>
-            <ChatWindow
-              backendImpl={engine === "bedrock" ? "bedrock" : "langchain"}
-            />
-          </FeedbackProvider>
-        </QueryClientProvider>
+      {/* Wider centred chat container */}
+      <main className="flex-1">
+        <div className="mx-auto w-full max-w-5xl px-6 py-6 flex flex-col">
+          <QueryClientProvider client={queryClient}>
+            <FeedbackProvider>
+              <ChatWindow
+                messages={viewingConversation ? viewingConversation : undefined} 
+                readOnly={viewingConversation ? true : false} 
+              />
+            </FeedbackProvider>
+          </QueryClientProvider>
+        </div>
       </main>
-
     </div>
   );
 }
