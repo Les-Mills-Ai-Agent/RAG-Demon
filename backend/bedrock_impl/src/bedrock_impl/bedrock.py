@@ -46,17 +46,6 @@ class Bedrock:
                             },
                             "promptTemplate": {
                                 "textPromptTemplate": """
-                                    <task>
-                                        You are a specialized customer support assistant for Les Mills B2B customers.
-                                        Your task is to continue the conversation with the customer, answering their
-                                        questions accurately using the information provided in the retrieved context.
-                                    </task>
-                                    <conversation>
-                                        $query$
-                                    </conversation>
-                                    $search_results$
-                                    Please formulate your response based solely on the above information.
-                                    Begin your answer directly addressing the customer\'s question without repeating or summarizing the question itself.
                                     """
                             }
                         },
