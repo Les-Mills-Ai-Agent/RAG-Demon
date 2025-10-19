@@ -81,7 +81,10 @@ export default function App() {
       if (auth.isAuthenticated && auth.user?.profile?.sub) {
         try {
           const convos = await getConversations(auth.user.profile.sub, auth.user.id_token!);
-          setConversations(convos);
+          const sortedConvos = convos.sort((a, b) => {
+            return new Date(b.last_updated).valueOf() - new Date (a.last_updated).valueOf()
+          })
+          setConversations(sortedConvos);
         } catch (err) {
           console.error("Failed to load conversations", err);
           console.log(auth.user?.profile?.sub)

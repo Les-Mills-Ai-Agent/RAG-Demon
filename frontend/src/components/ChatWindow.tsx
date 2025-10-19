@@ -49,7 +49,6 @@ const ChatWindow = ({
     if (readOnly) {
       setReadOnly(false);
     }
-
     setMessages((messages) => {
       // prevent duplicates
       if (messages.some((m) => m.message_id === message.message_id))
