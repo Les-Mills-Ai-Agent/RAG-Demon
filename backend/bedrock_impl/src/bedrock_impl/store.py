@@ -101,7 +101,12 @@ class ChatStore:
         return Session.model_validate(session_item)
     
     def get_messages(self, session_id: str) -> list[AiMessage | UserMessage]:
-        decoded_session_id = urllib.parse.unquote(session_id)
+        # if url encoded id is passed through, decode it
+        if session_id.startswith("SESSION%23"):
+            decoded_session_id = urllib.parse.unquote(session_id)
+        # if url stripped id if passed in (just a uuid without prefix) if passed, append it
+        else:
+            decoded_session_id = f"SESSION#{session_id}"
         response = self.table.query(
             KeyConditionExpression = Key("session_id").eq(f"{decoded_session_id}") & Key("created_at_message_id").begins_with("MESSAGE#"),
             ScanIndexForward = True, 
