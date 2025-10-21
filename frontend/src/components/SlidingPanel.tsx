@@ -17,7 +17,7 @@ const SlidingPanel: React.FC<SlidingPanelProps> = ({ isOpen, onClose, title = "P
           animate={{ x: 0 }}
           exit={{ x: "-100%" }}
           transition={{ type: "tween", duration: 0.3 }}
-          className="fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 z-40 flex flex-col"
+          className="fixed top-0 left-0 h-full w-64 p-1 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 z-40 flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">

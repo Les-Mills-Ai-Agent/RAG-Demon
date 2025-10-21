@@ -97,7 +97,6 @@ export default function App() {
 
   const handleSelectConversation = async (sessionId: string) => {
     setActiveSession(sessionId);
-    setIsPanelOpen(false);
 
     const cleanSessionId = sessionId.replace(/^SESSION#SESSION#/, "SESSION#");
     const encodeSessionID = encodeURIComponent(cleanSessionId);
@@ -166,7 +165,7 @@ export default function App() {
           {conversations.map((c) => (
             <li
               key={c.session_id}
-              className={`p-3 cursor-pointer ${c.session_id === activeSession ? 'bg-gray-200' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              className={`p-3 cursor-pointer ${c.session_id === activeSession ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-600'} rounded-2xl`}
               onClick={() => handleSelectConversation(c.session_id)}
             >
               {new Date(c.last_updated).toLocaleString()}
@@ -175,11 +174,11 @@ export default function App() {
         </ul>
       </SlidingPanel>
 
-      <header className="sticky top-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-gray-800/85 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
+      <header className="sticky top-0 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-gray-800/85 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
         <div className="flex items-center gap-4">
 
           <button
-            onClick={() => setIsPanelOpen(true)}
+            onClick={() => setIsPanelOpen(prev => !prev)}
             className="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
           >=</button>
         <h1 className="text-xl font-bold text-gray-800 dark:text-white">
