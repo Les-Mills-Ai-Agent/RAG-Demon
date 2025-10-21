@@ -26,7 +26,7 @@ const ChatWindow = ({
     }
   }, [externalMessages]);
 
-  const lastUserMessage = {
+  const lastUserMessage = messages.length > 0 ? {
     session_id: sessionId,
     ...(
       messages
@@ -34,7 +34,7 @@ const ChatWindow = ({
         .reverse()
         .find((m) => m.role === "user")
     )
-  } as UserMessage
+  } as UserMessage : undefined;
 
   const placeholderMessage: AiMessage = {
     message_id: "",
