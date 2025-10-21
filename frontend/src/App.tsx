@@ -139,9 +139,19 @@ export default function App() {
         
       } catch (error) {
         console.error("Failed to delete conversation", error);
+        return;
       }
     }
 
+    setConversations(conversations.filter(convo => {
+      return convo.session_id !== sessionId
+    }));
+    
+    if (activeSession === sessionId) {
+      setActiveSession(null);
+    }
+
+    setPopupOpen(false);
   }
 
   if (auth.isLoading || auth.activeNavigator)
