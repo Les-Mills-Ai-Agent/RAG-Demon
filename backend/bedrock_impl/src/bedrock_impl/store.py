@@ -127,6 +127,33 @@ class ChatStore:
                 print("Session validation failed for item:", item, e)
 
         return conversations
+    
+    def delete_conversation(self, sessionId: str) -> None:
+        if sessionId.startswith("SESSION#"):
+            session_id = sessionId
+        else:
+            session_id = f"SESSION#{sessionId}" # append session id prefix if it doesn't have it
+            
+        print("Fetching all items with session_id:", session_id)
+        scan_response = self.table.query(
+            KeyConditionExpression = Key("session_id").eq(session_id)
+        )
+
+        items = scan_response.get("Items", [])
+        if not items:
+            raise ValueError(f"Session {session_id} not found")
+        
+        print("Items found:", items)
+        
+        print("Deleting all items in conversation:", session_id)
+        with self.table.batch_writer() as batch:
+            for item in items:
+                batch.delete_item(
+                    Key = {
+                        "session_id": item["session_id"],
+                        "created_at_message_id": item["created_at_message_id"]
+                    },
+                )
 
 
 class Message(BaseModel):

@@ -98,6 +98,7 @@ def conversation_handler(event: APIGatewayProxyEvent, context: LambdaContext) ->
         path = event.path
         path_params = event.path_parameters or {}
         chat_store = ChatStore()
+        http_method = event.http_method
 
         if "/messages/" in path:
             session_id = path_params.get("session_id")
@@ -123,6 +124,30 @@ def conversation_handler(event: APIGatewayProxyEvent, context: LambdaContext) ->
                 "body": json.dumps([message.model_dump(mode='json') for message in messages]),
             }
         
+        elif "/conversation/" in path and http_method == "DELETE":
+            session_id = path_params.get("session_id")
+            if not session_id:
+                return {
+                    "statusCode": 400,
+                    'headers': {
+                        'Access-Control-Allow-Headers': 'Content-Type',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                    },
+                    "body": "Missing session ID"
+                }
+
+            messages = chat_store.delete_conversation(session_id)
+            return {
+                "statusCode": 200,
+                'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                },
+                "body": f"Successfully deleted conversation: {session_id}",
+            }
+        
         elif "/conversation/" in path:
             user_id = path_params.get("user_id")
             if not user_id:
@@ -146,6 +171,7 @@ def conversation_handler(event: APIGatewayProxyEvent, context: LambdaContext) ->
                 },
                 "body": json.dumps([conversation.model_dump() for conversation in conversations]),
             }
+
         else:
             return {
                     "statusCode": 404,
