@@ -10,7 +10,8 @@ import LoginCelebration from "./components/LoginCelebration";
 import ConfirmSignOut from "./components/ConfirmSignOut";
 import { FeedbackProvider } from "./components/FeedbackProvider";
 import SlidingPanel from "./components/SlidingPanel";
-import { getConversations, getMessages, Conversation, Message } from "./utils/api";
+import { getConversations, getMessages, Conversation, Message, deleteConversation } from "./utils/api";
+import Popup from "./components/Popup";
 
 export default function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -19,6 +20,8 @@ export default function App() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeSession, setActiveSession] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [deletePopup, setDeletePopup] = useState<boolean>(false);
 
   const [viewingConversation, setViewingConversation] = useState<Message[] | null>(null);
 
@@ -126,6 +129,21 @@ export default function App() {
     }
   };
 
+  const handleDeleteConversation = async (sessionId: string) => {
+    const cleanSessionId = sessionId.replace(/^SESSION#SESSION#/, "SESSION#");
+    const encodeSessionID = encodeURIComponent(cleanSessionId);
+
+    if (auth.isAuthenticated && auth.user?.profile.sub) {
+      try {
+        const response = await deleteConversation(encodeSessionID, auth.user.id_token!)
+        
+      } catch (error) {
+        console.error("Failed to delete conversation", error);
+      }
+    }
+
+  }
+
   if (auth.isLoading || auth.activeNavigator)
     return <div className="p-4">Loading…</div>;
   if (auth.error) return <div className="p-4">Error: {auth.error.message}</div>;
@@ -165,10 +183,36 @@ export default function App() {
           {conversations.map((c) => (
             <li
               key={c.session_id}
-              className={`p-3 cursor-pointer ${c.session_id === activeSession ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-600'} rounded-2xl`}
+              className={`flex items-center justify-between p-3 cursor-pointer ${c.session_id === activeSession ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-600'} rounded-2xl`}
               onClick={() => handleSelectConversation(c.session_id)}
+              onMouseEnter={() => setHoveredId(c.session_id)}
+              onMouseLeave={() => setHoveredId(null)}
             >
-              {new Date(c.last_updated).toLocaleString()}
+              <span>{new Date(c.last_updated).toLocaleString()}</span>
+              {(hoveredId === c.session_id || activeSession === c.session_id) && 
+                <>
+                  <span onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletePopup(true)
+                    }}
+                  >
+                    <svg 
+                      className="w-4 h-4 text-gray-500 dark:text-gray-300 hover:text-red-500 hover:dark:text-red-500" 
+                      aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
+                    </svg>
+                  </span>
+                  {deletePopup &&
+                    <Popup 
+                      title="Delete conversation"
+                      description="Are you sure you want to delete this conversation?"
+                      action="Delete"
+                      onSuccess={() => handleDeleteConversation(c.session_id)}
+                      onClose={() => setDeletePopup(false)}
+                    />
+                  }
+                </>
+              }
             </li>
           ))}
         </ul>
