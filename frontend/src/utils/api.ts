@@ -76,4 +76,14 @@ export async function getMessages(sessionId: string, token: string): Promise<Mes
   return res.data;
 }
 
+export async function deleteConversation(sessionId: string, token: string): Promise<string> {
+  const res = await api.delete<string>(`/rag/bedrock/conversation/delete/${sessionId}`, {
+    headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 30000
+  });
+  return res.data;
+}
+
 export default api;
