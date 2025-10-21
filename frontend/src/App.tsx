@@ -144,6 +144,12 @@ export default function App() {
         return convo.session_id !== sessionId
       }));
   
+      if (activeSession === popupId) {
+        setViewingConversation(undefined);
+        setActiveSession(null);
+        setHoveredId(null);
+      }
+  
       setPopupId(null);
   }
 

@@ -23,6 +23,10 @@ const ChatWindow = ({
       setMessages(externalMessages);
       setSessionId(externalMessages[0].session_id.replace("SESSION#", ""));
       setReadOnly(true); // Stop app from trying to generate a response when viewing previous conversations
+    } else if (externalMessages === undefined) {
+      setMessages([]);
+      setSessionId("");
+      setReadOnly(true);
     }
   }, [externalMessages]);
 
@@ -106,7 +110,7 @@ const ChatWindow = ({
     return "";
   };
 
-  const hasMessages = messages.length > 0;
+  const hasMessages = messages !== undefined && messages.length > 0;
 
   return (
     <div className="flex flex-col w-full min-h-[80vh]">
