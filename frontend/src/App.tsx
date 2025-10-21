@@ -18,12 +18,11 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [popupOpen, setPopupOpen] = useState<boolean>(false);
+  const [popupId, setPopupId] = useState<string | null>(null);
 
-  const [viewingConversation, setViewingConversation] = useState<Message[] | null>(null);
+  const [viewingConversation, setViewingConversation] = useState<Message[] | undefined>(undefined);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -132,27 +131,23 @@ export default function App() {
   const handleDeleteConversation = async (sessionId: string) => {
     const cleanSessionId = sessionId.replace(/^SESSION#SESSION#/, "SESSION#");
     const encodeSessionID = encodeURIComponent(cleanSessionId);
+    console.log("id about to be deleted: "+cleanSessionId)
 
-    if (auth.isAuthenticated && auth.user?.profile.sub) {
-      try {
-        const response = await deleteConversation(encodeSessionID, auth.user.id_token!)
+      // try {
+      //   const response = await deleteConversation(encodeSessionID, auth.user.id_token!)
         
-      } catch (error) {
-        console.error("Failed to delete conversation", error);
-        return;
-      }
-    }
-
-    setConversations(conversations.filter(convo => {
-      return convo.session_id !== sessionId
-    }));
-    
-    if (activeSession === sessionId) {
-      setActiveSession(null);
-    }
-
-    setPopupOpen(false);
+      // } catch (error) {
+      //   console.error("Failed to delete conversation", error);
+      //   return;
+      // }
+      setConversations(conversations.filter(convo => {
+        return convo.session_id !== sessionId
+      }));
+  
+      setPopupId(null);
   }
+
+  console.log("active session id:" + activeSession);
 
   if (auth.isLoading || auth.activeNavigator)
     return <div className="p-4">Loading…</div>;
@@ -205,7 +200,7 @@ export default function App() {
                     className="p-1 text-gray-500 dark:text-gray-300 hover:text-red-500 hover:dark:text-red-500 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPopupOpen(true)
+                      setPopupId(c.session_id)
                     }}
                   >
                     <svg 
@@ -214,13 +209,13 @@ export default function App() {
                       <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
                     </svg>
                   </span>
-                  {popupOpen &&
+                  {popupId === c.session_id &&
                     <Popup 
                       title="Delete conversation"
                       description="Are you sure you want to delete this conversation?"
                       action="Delete"
                       onSuccess={() => handleDeleteConversation(c.session_id)}
-                      onClose={() => setPopupOpen(false)}
+                      onClose={() => setPopupId(null)}
                     />
                   }
                 </>

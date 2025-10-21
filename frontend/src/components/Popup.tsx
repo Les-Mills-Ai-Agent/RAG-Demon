@@ -51,6 +51,7 @@ const Popup: React.FC<PopupProps> = (
                         // fadeIn: opacity in; pop: scale + opacity in
                         animationName: undefined,
                     }}
+                    onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
                     <div className="px-5 py-3 border-b border-gray-200/70 dark:border-gray-700/60">
