@@ -1,12 +1,40 @@
+import { useEffect, useRef } from "react";
+
 interface PopupProps {
-    title: string,
-    description: string,
-    action: string,
-    onSuccess: () => void,
-    onClose: () => void
+    title: string;
+    description: string;
+    action: string;
+    onSuccess: () => void;
+    onClose: () => void;
 }
 
-const Popup: React.FC<PopupProps> = ({title, description, action, onSuccess, onClose}) => {
+const Popup: React.FC<PopupProps> = (
+    { title, description, action, onSuccess, onClose },
+) => {
+    const menuRef = useRef<HTMLDivElement | null>(null);
+
+    // Close on outside click
+    useEffect(() => {
+        const onClick = (e: MouseEvent) => {
+            if (
+                menuRef.current && !menuRef.current.contains(e.target as Node)
+            ) {
+                onClose();
+            }
+        };
+        window.addEventListener("mousedown", onClick);
+        return () => window.removeEventListener("mousedown", onClick);
+    }, []);
+
+    // Close on ESC
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+        window.addEventListener("keydown", onKey);
+        return () => {
+            window.removeEventListener("keydown", onKey);
+        };
+    }, []);
+
     return (
         <div className="fixed inset-0 z-50">
             {/* Backdrop with blur */}
@@ -16,9 +44,8 @@ const Popup: React.FC<PopupProps> = ({title, description, action, onSuccess, onC
             />
             <div className="absolute inset-0 flex items-end sm:items-center justify-center p-4">
                 <div
-                    className="w-full max-w-sm rounded-2xl bg-white/95 dark:bg-gray-800/95 shadow-xl border border-gray-200/70 dark:border-gray-700/60
-                               transition-all duration-150 ease-out
-                               animate-[fadeIn_120ms_ease-out] sm:animate-[pop_140ms_ease-out]"
+                    ref={menuRef}
+                    className="w-full max-w-sm rounded-2xl bg-white/95 dark:bg-gray-800/95 shadow-xl border border-gray-200/70 dark:border-gray-700/60"
                     style={{
                         // keyframes in inline style fallback
                         // fadeIn: opacity in; pop: scale + opacity in
@@ -44,7 +71,7 @@ const Popup: React.FC<PopupProps> = ({title, description, action, onSuccess, onC
                         <button
                             onClick={onClose}
                             className="px-3 py-1.5 rounded-xl border border-gray-300 dark:border-gray-600
-                                   text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                                   text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
                         >
                             Close
                         </button>
