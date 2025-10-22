@@ -512,6 +512,11 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
+                - dynamodb:DeleteItem
+                - dynamodb:BatchWriteItem
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:Scan
                 - bedrock:*
               Resource: "*"
 
