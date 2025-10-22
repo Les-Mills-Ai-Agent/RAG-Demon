@@ -581,9 +581,11 @@ Resources:
       PreventUserExistenceErrors: ENABLED
       CallbackURLs:
         - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/callback
+        - https://www.ragdemon.com/callback
         - http://localhost:5173/callback
       LogoutURLs:
         - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/signed-out
+        - https://www.ragdemon.com/signed-out
         - http://localhost:5173/signed-out
 
   RagCognitoUserPoolDomain:
