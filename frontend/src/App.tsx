@@ -95,7 +95,7 @@ export default function App() {
       }
     };
     loadConversations();
-  }, [auth.isAuthenticated, auth.user]);
+  }, [auth.isAuthenticated, auth.user, conversations]);
 
   const handleSelectConversation = async (sessionId: string) => {
     setActiveSession(sessionId);
