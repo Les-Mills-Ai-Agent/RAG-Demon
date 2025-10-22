@@ -133,13 +133,13 @@ export default function App() {
     const encodeSessionID = encodeURIComponent(cleanSessionId);
     console.log("id about to be deleted: "+cleanSessionId)
 
-      // try {
-      //   const response = await deleteConversation(encodeSessionID, auth.user.id_token!)
+      try {
+        const response = await deleteConversation(encodeSessionID, auth.user?.id_token!)
         
-      // } catch (error) {
-      //   console.error("Failed to delete conversation", error);
-      //   return;
-      // }
+      } catch (error) {
+          console.error("Failed to delete conversation", error);
+          return;
+      }
       setConversations(conversations.filter(convo => {
         return convo.session_id !== sessionId
       }));
