@@ -201,5 +201,5 @@ The project includes OpenAPI specification in `backend/openapi.yaml`. Key endpoi
 
 ---
 
-**Maintainers:** Les Mills AI Agent Team  
+**Maintainers:** Les Mills AI Agent Team - (Harsh Maharaj, Max Henley, Stephen Dela Cruz, Vishal Nirmalan, Jan Karlo Nito)
 **Repository:** [Les-Mills-Ai-Agent/RAG-Demon](https://github.com/Les-Mills-Ai-Agent/RAG-Demon)
