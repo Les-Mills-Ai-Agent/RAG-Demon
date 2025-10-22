@@ -49,7 +49,6 @@ RAG-Demon is a comprehensive customer service solution that:
 - **Vite** for fast development and optimized builds
 - **TailwindCSS** for responsive styling
 - **React Query** for efficient data fetching
-- **React Router** for navigation
 
 ### Backend
 - **Python 3.13** with modern async support
@@ -85,9 +84,6 @@ RAG-Demon is a comprehensive customer service solution that:
 2. **Set up the backend**
    ```bash
    cd backend/bedrock_impl
-   pip install -r requirements.txt
-   
-   # Or using Poetry
    poetry install
    ```
 
@@ -119,10 +115,6 @@ RAG-Demon is a comprehensive customer service solution that:
    # Start the frontend
    npm run dev
    
-   # For local backend testing
-   cd ../backend
-   sam local start-api
-   ```
 
 ### Environment Configuration
 
@@ -132,7 +124,7 @@ The project requires several environment variables:
 ```env
 VITE_COGNITO_AUTHORITY=https://your-domain.auth.region.amazoncognito.com
 VITE_COGNITO_CLIENT_ID=your_cognito_client_id
-BEDROCK_API_URL=https://your-api-gateway-url.execute-api.region.amazonaws.com/env
+VITE_API_URL=https://your-api-gateway-url.execute-api.region.amazonaws.com/env
 ```
 
 **Backend (for LangChain implementation):**
@@ -166,28 +158,6 @@ curl -X POST https://your-api-url/rag/bedrock \
   }'
 ```
 
-## 🏗️ Project Structure
-
-```
-RAG-Demon/
-├── backend/
-│   ├── bedrock_impl/          # AWS Bedrock implementation
-│   │   ├── src/bedrock_impl/  # Lambda functions
-│   │   └── tests/             # Unit tests
-│   ├── langchain_impl/        # LangChain implementation
-│   │   ├── src/langchain_impl/ # Core LangChain logic
-│   │   └── tests/             # Unit tests
-│   ├── template.yaml          # SAM template for AWS resources
-│   └── samconfig.toml         # SAM configuration
-├── frontend/
-│   ├── src/
-│   │   ├── components/        # React components
-│   │   ├── services/          # API services
-│   │   ├── hooks/             # Custom React hooks
-│   │   └── types/             # TypeScript definitions
-│   └── package.json
-└── docs/                      # Documentation and knowledge base
-```
 
 ## 🧪 Development
 
@@ -224,24 +194,9 @@ The project includes OpenAPI specification in `backend/openapi.yaml`. Key endpoi
 - `GET /rag/bedrock/messages/{session_id}` - Get messages in a session
 - `POST /feedback` - Submit user feedback
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-Please read our contribution guidelines and ensure all tests pass.
-
-## � License
-
-This project is proprietary software owned by Les Mills International. See the LICENSE file for details.
-
 ## 🆘 Support
 
 - **Issues**: Report bugs via [GitHub Issues](https://github.com/Les-Mills-Ai-Agent/RAG-Demon/issues)
-- **Documentation**: Check the `docs/` directory for detailed guides
 - **Les Mills Support**: Contact support for API access and configuration help
 
 ---
