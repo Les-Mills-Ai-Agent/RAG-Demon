@@ -507,7 +507,7 @@ Resources:
           CONVERSATIONS_TABLE_NAME: !Ref ConversationsTable
       Policies:
         - AWSLambdaBasicExecutionRole
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref ConversationsTable
         - Statement:
             - Effect: Allow
