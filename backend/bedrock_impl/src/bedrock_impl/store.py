@@ -133,7 +133,8 @@ class ChatStore:
 
         return conversations
     
-    def delete_conversation(self, session_id: str) -> None:
+    def delete_conversation(self, sessionId: str) -> None:
+        session_id = sessionId.replace("SESSION%23", "SESSION#")
         print("Fetching all items with session_id:", session_id)
         scan_response = self.table.query(
             KeyConditionExpression = Key("session_id").eq(session_id)
