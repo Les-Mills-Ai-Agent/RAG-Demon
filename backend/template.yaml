@@ -64,7 +64,7 @@ Resources:
       Name: !Sub rag-api-${Environment}
       StageName: !Ref Environment
       Cors:
-        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowMethods: "'GET,POST,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
         MaxAge: 3600
