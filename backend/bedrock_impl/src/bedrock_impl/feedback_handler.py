@@ -8,7 +8,7 @@ from pydantic import BaseModel, ValidationError
 # Initialise logger
 logger = Logger(service="feedback-handler")
 
-TABLE_NAME = os.environ.get("TABLE_NAME", "FeedbackTable")
+TABLE_NAME = os.environ.get("FEEDBACK_TABLE_NAME", "FeedbackTable")
 dynamodb = boto3.client("dynamodb")
 
 
