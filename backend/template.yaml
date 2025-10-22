@@ -442,7 +442,7 @@ Resources:
       Handler: bedrock_impl.feedback_handler.handler
       Environment:
         Variables:
-          TABLE_NAME: !Ref FeedbackTable
+          FEEDBACK_TABLE_NAME: !Ref FeedbackTable
       Policies:
         - AWSLambdaBasicExecutionRole
         - Statement:
@@ -458,7 +458,7 @@ Resources:
       Handler: bedrock_impl.handler.conversation_handler
       Environment:
         Variables:
-          TABLE_NAME: !Ref ConversationsTable
+          CONVERSATIONS_TABLE_NAME: !Ref ConversationsTable
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBReadPolicy:
