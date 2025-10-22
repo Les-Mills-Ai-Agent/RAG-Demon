@@ -534,11 +534,11 @@ Resources:
         - ALLOW_ADMIN_USER_PASSWORD_AUTH
       PreventUserExistenceErrors: ENABLED
       CallbackURLs:
-        - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/callback
+        - !Sub https://${BranchName}.ragdemon.com/callback
         - https://www.ragdemon.com/callback
         - http://localhost:5173/callback
       LogoutURLs:
-        - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/signed-out
+        - !Sub https://${BranchName}.ragdemon.com/signed-out
         - https://www.ragdemon.com/signed-out
         - http://localhost:5173/signed-out
 
