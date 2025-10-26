@@ -19,6 +19,8 @@ dependencies = [
     "uvicorn (>=0.35.0,<0.36.0)"
 ]
 
+[tool.poetry.scripts]
+ragdemon-cli = "src.langchain_impl.app:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
