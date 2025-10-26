@@ -2,7 +2,6 @@ name: AWS Deployment
 
 on:
   push:
-    branches: ["workflow-fix"]
 
 permissions:
   id-token: write
@@ -78,7 +77,6 @@ jobs:
         run: |
           LOWER_BRANCH_NAME=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]')
           cd backend
-          cat bedrock_impl/src/requirements.txt
           sam build
           sam deploy \
             --stack-name ragdemon-${{ github.ref_name }} \
