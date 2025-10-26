@@ -1,0 +1,252 @@
+from http.client import NO_CONTENT
+import os
+import uuid
+from langgraph.checkpoint.memory import MemorySaver
+from botocore.exceptions import NoCredentialsError
+from langchain_openai import ChatOpenAI
+from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
+from langchain_core.tools import tool
+from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, ToolMessage, AnyMessage
+from langchain_core.messages import HumanMessage
+
+from langgraph.prebuilt import ToolNode, tools_condition, InjectedStore
+from langgraph.graph import StateGraph, MessagesState, END
+from langgraph.graph.state import CompiledStateGraph
+
+from langgraph_checkpoint_dynamodb.saver import (
+    DynamoDBSaver,
+)
+
+from typing_extensions import Annotated
+from typing import List, Dict, Any
+from dotenv import load_dotenv, find_dotenv
+
+from langchain_impl.vector_stores import InMemoryStore, BaseVectorStore
+from langchain_impl.apis import build_llm_client, build_embeddings_client
+from langchain_impl.web_scrape import fetch_documentation, split_document
+from langchain_impl.history import show_history_menu
+
+# ---------------- Env ----------------
+load_dotenv(find_dotenv(usecwd=True))
+_ = os.getenv("OPENAI_API_KEY")  # just to ensure it's loaded
+
+# ---------------- Clients & store ----------------
+llm: ChatOpenAI = build_llm_client()
+embeddings: OpenAIEmbeddings = build_embeddings_client()
+vector_store: BaseVectorStore = InMemoryStore(embeddings)
+
+# ---------------- Utilities ----------------
+# - Removes tool messages that don’t have a matching call (avoids 400 errors).
+# - Makes sure chats don’t start with a tool message.
+# Replaces old hard-coded thread_id since DynamoDB now tracks sessions.
+def sanitize_messages(msgs: List[AnyMessage]) -> List[AnyMessage]:
+    """
+    Remove any ToolMessage that doesn't respond to a known tool_call_id
+    present on a preceding AIMessage. Also drops tool messages at the start.
+    Prevents OpenAI 400: tool message without matching tool_calls.
+    """
+    valid_call_ids = set()
+    for m in msgs:
+        if isinstance(m, AIMessage):
+            for tc in (m.tool_calls or []):
+                call_id = getattr(tc, "id", None)
+                if not call_id and isinstance(tc, dict):
+                    call_id = tc.get("id")
+                if call_id:
+                    valid_call_ids.add(call_id)
+
+    clean: List[AnyMessage] = []
+    for m in msgs:
+        if isinstance(m, ToolMessage):
+            if getattr(m, "tool_call_id", None) in valid_call_ids:
+                clean.append(m)
+            else:
+                continue  # drop orphan
+        else:
+            clean.append(m)
+
+    while clean and isinstance(clean[0], ToolMessage):
+        clean.pop(0)
+
+    return clean
+
+# ---------------- Graph ----------------
+def build_graph() -> CompiledStateGraph:
+    graph_builder = StateGraph(MessagesState)
+    tools_node = ToolNode([retrieve])
+
+    graph_builder.add_node(query_or_respond)
+    graph_builder.add_node(tools_node)
+    graph_builder.add_node(generate)
+
+    graph_builder.set_entry_point("query_or_respond")
+    graph_builder.add_conditional_edges(
+        "query_or_respond",
+        tools_condition,
+        {"tools": "tools", END: "generate"},  # ensure we always hit generate()
+    )
+    graph_builder.add_edge("tools", "generate")
+    graph_builder.add_edge("generate", END)
+
+        # ---- DynamoDB checkpointer (no auto-create in app runtime) ----
+    AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+    CHECKPOINTS_TABLE = os.getenv("CHECKPOINTS_TABLE", "No table in env")
+    WRITES_TABLE = os.getenv("WRITES_TABLE", "No table in env")
+
+    backend = os.getenv("CHECKPOINTER_BACKEND", "dynamodb").lower()
+
+    if backend == "memory":
+        checkpointer = MemorySaver()
+    else:
+        try:
+            # Require the table to already exist; do not create from app code.
+            checkpointer = DynamoDBSaver(writes_table_name=WRITES_TABLE, checkpoints_table_name=CHECKPOINTS_TABLE)
+        except Exception as e:
+            raise RuntimeError(
+                f"DynamoDB table '{CHECKPOINTS_TABLE}' is missing or not accessible in region "
+                f"{AWS_REGION}. Create it via IaC (CDK/Terraform/CFN) or run a dev bootstrap "
+                f"script, then set CHECKPOINTS_TABLE accordingly."
+            ) from e
+
+    return graph_builder.compile(checkpointer=checkpointer, store=vector_store)
+
+
+def _retrieve_core(query: str, vector_store: BaseVectorStore) -> tuple[str, list]:
+    """Core retrieval logic that can be tested independently."""
+    retrieved_docs = vector_store.similarity_search(query, k=2)
+    serialized = "\n\n".join(
+        (f"Source: {doc.metadata}\nContent: {doc.page_content}")
+        for doc in retrieved_docs
+    )
+    return serialized, retrieved_docs
+
+@tool(response_format="content_and_artifact")
+def retrieve(query: str, vector_store: Annotated[BaseVectorStore, InjectedStore()]):
+    """Retrieve information related to a query."""
+    return _retrieve_core(query, vector_store)
+
+# ---------------- System Prompt ----------------
+LM_SYSTEM_PROMPT_TEMPLATE = """
+You are a specialised customer service agent for Les Mills International B2B customers
+CONTEXT:
+"{DOCS_CONTENT}"
+""".strip()
+
+def _last_human_text(state: MessagesState) -> str:
+    """Return the most recent human message text ('' if none)."""
+    for m in reversed(state["messages"]):
+        if m.type == "human":
+            return (str(m.content) or "").strip()
+    return ""
+
+def _fallback_docs(query: str, k: int = 5) -> str:
+    """Do a direct similarity search (no tool call) and serialize results."""
+    if not query:
+        return ""
+    try:
+        docs = vector_store.similarity_search(query, k=k)
+        return "\n\n".join(
+            f"Source: {d.metadata}\nContent: {d.page_content}" for d in docs
+        )
+    except Exception as e:
+        # Keep failures invisible to the model; just return empty
+        print(f"[fallback_docs] error: {e}")
+        return ""
+
+
+def build_system_message(state: MessagesState, allow_fallback: bool = False) -> SystemMessage:
+    msgs = sanitize_messages(state["messages"])
+
+    # collect tail ToolMessages
+    recent_tool_messages: List[BaseMessage] = []
+    for message in reversed(msgs):
+        if isinstance(message, ToolMessage) or message.type == "tool":
+            recent_tool_messages.append(message)
+        else:
+            break
+    tool_messages = list(reversed(recent_tool_messages))
+
+    docs_content = "\n\n".join(
+        (message.content if isinstance(message.content, str) else str(message.content))
+        for message in tool_messages
+    ).strip()
+
+    # Fallback only when explicitly allowed (i.e., in generate)
+    if allow_fallback and not docs_content:
+        # helper functions you already added:
+        # _last_human_text(state), _fallback_docs(query, k=5)
+        q = _last_human_text(state)
+        fallback = _fallback_docs(q, k=5)
+        if fallback:
+            # comment this out if you don’t want the console log
+            print("[system] using fallback docs injection (no ToolMessage present)")
+            docs_content = fallback
+
+    system_message_content = LM_SYSTEM_PROMPT_TEMPLATE.replace(
+        "{DOCS_CONTENT}", docs_content or ""
+    )
+    return SystemMessage(system_message_content)
+
+
+def query_or_respond(state: MessagesState):
+    # Force the model to pick a tool when appropriate
+    llm_with_tools = llm.bind_tools([retrieve], tool_choice="required")
+
+    sysmsg = build_system_message(state, allow_fallback=False)
+    step_nudge = SystemMessage("You are a helpful AI Assistant.")
+
+    msgs = sanitize_messages(state["messages"])
+
+    # IMPORTANT: only pass human/system + AI-without-tool_calls
+    convo_msgs = [
+        m for m in msgs
+        if m.type in ("human", "system")
+        or (m.type == "ai" and not m.tool_calls)
+    ]
+
+    response = llm_with_tools.invoke([sysmsg, step_nudge] + convo_msgs)
+    return {"messages": [response]}
+
+def generate(state: MessagesState):
+    sysmsg = build_system_message(state, allow_fallback=True)  # fallback allowed only here
+    msgs = sanitize_messages(state["messages"])
+    conversation_messages = [
+        m for m in msgs
+        if m.type in ("human", "system")
+        or (m.type == "ai" and not m.tool_calls)
+]
+
+    prompt = [sysmsg] + conversation_messages
+    response = llm.invoke(prompt)
+    return {"messages": [response]}
+
+
+# ---------------- CLI runner ----------------
+def main():
+    print("\n================================================================================")
+    # Load & index docs into the vector store (dev-only)
+    doc = fetch_documentation("https://api.content.lesmills.com/docs/v1/content-portal-api.yaml")
+    splits = split_document(doc)
+    vector_store.add_documents(splits)
+
+    app = build_graph().with_config({"configurable": {"thread_id": uuid.uuid4()}})
+
+    while True:
+        raw_input_text = input("\nAsk the RAG Demon (or enter 'q' to quit, ':menu' for history): ").strip()
+        q = raw_input_text.lower()
+        if q == "q":
+            break
+        elif q == ":menu":
+            show_history_menu()
+            continue
+
+        final_msg = None
+        for step in app.stream(
+            {"messages": [{"role": "user", "content": raw_input_text}]},
+            stream_mode="values",
+        ):
+            step["messages"][-1].pretty_print()
+
+if __name__ == "__main__":
+    main()

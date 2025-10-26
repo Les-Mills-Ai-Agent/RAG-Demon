@@ -1,0 +1,10 @@
+{
+  "body": "{\"query\": \"What is the content platform?\"}",
+  "requestContext": {
+    "authorizer": {
+      "claims": {
+        "sub": "test-user-id"
+      }
+    }
+  }
+}

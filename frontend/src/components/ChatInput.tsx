@@ -1,0 +1,80 @@
+import React, { useState } from "react";
+import {
+  Message,
+  newUserMessage,
+  UserMessage,
+  ErrorResponse,
+} from "../models/models";
+
+interface ChatInputProps {
+  onSubmit: (query: Message) => void;
+  session_id?: string;
+  disabled: boolean;
+}
+
+const ChatInput: React.FC<ChatInputProps> = ({
+  onSubmit,
+  session_id,
+  disabled,
+}) => {
+  const [input, setInput] = useState<string>("");
+  const [inputError, setInputError] = useState<boolean>(false);
+
+  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const trimmed = input.trim();
+    if (!trimmed) {
+      setInputError(true);
+      return;
+    }
+
+    const message: UserMessage = newUserMessage(trimmed, session_id);
+
+    onSubmit(message);
+    setInput("");
+    setInputError(false);
+  };
+
+  return (
+    <>
+      <form
+        onSubmit={submit}
+        className={`w-full max-w-3xl mx-auto flex items-center gap-3 bg-white border ${
+          inputError ? "border-red-500" : "border-gray-300"
+        } rounded-full px-4 py-2 shadow transition-all duration-200`}
+      >
+        <input
+          type="text"
+          maxLength={500}
+          className="flex-1 text-sm text-gray-800 placeholder-gray-400 bg-transparent focus:outline-none"
+          placeholder="Ask anything..."
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            if (inputError) setInputError(false);
+          }}
+        />
+        <button
+          type="submit"
+          className={`text-sm font-semibold px-4 py-2 rounded-full transition
+    ${
+      disabled
+        ? "text-gray-500 bg-gray-300 cursor-not-allowed"
+        : "text-white bg-blue-500 hover:bg-blue-600 cursor-pointer"
+    }`}
+          disabled={disabled}
+        >
+          ➤
+        </button>
+      </form>
+      {inputError && (
+        <p className="text-sm text-red-500 text-center mt-1">
+          Please enter a valid message.
+        </p>
+      )}
+    </>
+  );
+};
+
+export default ChatInput;

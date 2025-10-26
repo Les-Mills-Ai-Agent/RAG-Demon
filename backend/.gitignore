@@ -1,0 +1,9 @@
+.venv
+.pytest_cache
+.env
+__pycache__
+**.pyc
+**.pyo
+requirements.txt
+.aws-sam
+auth_test.sh

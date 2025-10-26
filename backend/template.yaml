@@ -1,0 +1,688 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: |
+  Multi-endpoint RAG API (Bedrock, LangChain) using AWS SAM
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: python3.13
+
+Parameters:
+  Environment:
+    Type: String
+    Default: test
+    Description: Deployment environment
+  BranchName:
+    Type: String
+    Description: Name of the GitHub branch of this deployment
+  AmplifyAppId:
+    Type: String
+    Description: ID of the Amplify App
+  OssCollectionArn:
+    Type: String
+    Default: arn:aws:aoss:us-east-1:527748639759:collection/299gexfprk8589m5waqb
+  OssCollectionName:
+    Type: String
+    Default: lmi-knowledge-base-collection
+  KnowledgeBaseRoleArn:
+    Type: String
+    Default: arn:aws:iam::527748639759:role/BedrockKnowledgeBaseRole
+
+# Conditions:
+#   IsProd: !Equals [!Ref Environment, "prod"]
+# IsTest: !Not [Condition: IsProd]
+
+Resources:
+  # RagFrontend:
+  #   Type: AWS::Amplify::App
+  #   Properties:
+  #     Name: ragdemon-frontend
+  #     Repository: https://github.com/Les-Mills-Ai-Agent/RAG-Demon
+  #     AccessToken: "{{resolve:secretsmanager:github/amplify-access-token:SecretString:GithubAccessToken}}"
+  #     Platform: WEB
+  #     EnableBranchAutoDeletion: true
+
+  # RagFrontendBranch:
+  #   Type: AWS::Amplify::Branch
+  #   Properties:
+  #     AppId: !GetAtt RagFrontend.AppId
+  #     Stage: !If [IsProd, PRODUCTION, DEVELOPMENT]
+  #     BranchName: !Ref Environment
+  #     EnableAutoBuild: true
+  #     EnvironmentVariables:
+  #       - Value: https://ragdemon.auth.us-east-1.amazoncognito.com
+  #         Name: VITE_COGNITO_AUTHORITY
+  #       - Value: !GetAtt RagCognitoUserPoolClient.ClientId
+  #         Name: VITE_COGNITO_CLIENT_ID
+  #       - Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+  #         Name: BEDROCK_API_URL
+
+  RagApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub rag-api-${Environment}
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+        MaxAge: 3600
+      DefinitionBody:
+        openapi: 3.0.1
+        info:
+          title: Multi-endpoint RAG API
+          version: 1.0.0
+        x-amazon-apigateway-request-validators:
+          validate-body:
+            validateRequestBody: true
+            validateRequestParameters: false
+          validate-params-only:
+            validateRequestBody: false
+            validateRequestParameters: true
+        paths:
+          /rag/bedrock:
+            post:
+              summary: Ask Bedrock a question and receive a response with sources
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: "#/components/schemas/RAGRequest"
+
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BedrockRagFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+
+              x-amazon-apigateway-request-validator: validate-body
+
+              responses:
+                "200":
+                  description: Successful response
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/RAGResponse"
+                "400":
+                  description: Bad request
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "401":
+                  description: Unauthorized
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "403":
+                  description: Forbidden
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "500":
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+
+          #feedback endpoint integrated to FeedbackFunction
+          /feedback:
+            post:
+              summary: Submit user feedback for the last exchange
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        pk: { type: string }
+                        sk: { type: string }
+                        sessionId: { type: string, nullable: true }
+                        issueType: { type: string }
+                        severity: { type: string, enum: [Low, Medium, High] }
+                        notes: { type: string }
+                        includeContext: { type: boolean }
+                        question: { type: string, nullable: true }
+                        answer: { type: string, nullable: true }
+                        submittedAt:
+                          type: string
+                          format: date-time
+                        metadata:
+                          type: object
+                          properties:
+                            userAgent: { type: string }
+                            language: { type: string }
+                            tzOffsetMin: { type: number }
+                      required: [pk, sk, issueType, severity, submittedAt]
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FeedbackFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+              responses:
+                "200":
+                  description: Stored
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          status: { type: string, example: "ok" }
+                          id: { type: string, example: "FEEDBACK#123456" }
+                        required: [status, id]
+
+                "400":
+                  description: Invalid payload
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+
+                "401":
+                  description: Unauthorized
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+
+                "500":
+                  description: Server error
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+
+          /rag/bedrock/conversation/{user_id}:
+            get:
+              summary: Fetch all conversations that belong to a given user
+              parameters:
+                - in: path
+                  name: user_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the user
+
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+
+              x-amazon-apigateway-request-validator: validate-params-only
+
+              responses:
+                "200":
+                  description: Successful response
+                  content:
+                    application/json:
+                      schema:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Conversation"
+                "400":
+                  description: Bad request
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "401":
+                  description: Unauthorized
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "403":
+                  description: Forbidden
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "500":
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+
+          /rag/bedrock/messages/{session_id}:
+            get:
+              summary: Fetch all messages within a conversation/session
+              parameters:
+                - in: path
+                  name: session_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the conversation/session
+
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+
+              x-amazon-apigateway-request-validator: validate-params-only
+
+              responses:
+                "200":
+                  description: Successful response
+                  content:
+                    application/json:
+                      schema:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RAGResponse"
+                "400":
+                  description: Bad request
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "403":
+                  description: Forbidden
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "500":
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+
+        components:
+          schemas:
+            Conversation:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                user_id:
+                  type: string
+                created_at:
+                  type: string
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+                last_updated:
+                  type: string
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+              required: [session_id, user_id, created_at, last_updated]
+
+            RAGRequest:
+              type: object
+              properties:
+                message_id:
+                  description: Unique identifier of this message
+                  type: string
+                content:
+                  description: The query for Bedrock to answer
+                  type: string
+                session_id:
+                  description: Optional session identifier
+                  type: string
+                created_at:
+                  type: string
+                  format: date-time
+              required: [message_id, content, created_at]
+
+            RAGResponse:
+              type: object
+              properties:
+                message_id:
+                  description: Unique identifier of this message
+                  type: string
+                content:
+                  type: string
+                  description: The generated LLM response based on the retrieved chunks
+                response_parts:
+                  type: array
+                  description: A list of response parts with their retrieved sources
+                  items:
+                    $ref: "#/components/schemas/ResponsePart"
+                session_id:
+                  description: The session identifier, either newly generated or returned from the request
+                  type: string
+                created_at:
+                  type: string
+                  format: date-time
+                  example: "2024-08-23T13:28:00Z"
+              required:
+                [message_id, content, response_parts, session_id, created_at]
+
+            ErrorResponse:
+              type: object
+              required: [code, message]
+              properties:
+                code:
+                  type: string
+                  description: Stable, machine-readable error code
+                  example: InvalidPayload
+                message:
+                  type: string
+                  description: Human-readable error summary
+                  example: "pk is required"
+                requestId:
+                  type: string
+                  description: API Gateway request id (for support correlation)
+                  example: "c9d2e8b1-1b0a-4b4a-9ad3-6c5b2c4a7e6a"
+                details:
+                  description: Optional structured fields for validation errors or context
+                  oneOf:
+                    - type: object
+                      additionalProperties: true
+                    - type: array
+                      items:
+                        type: object
+                        properties:
+                          field: { type: string, example: "pk" }
+                          reason: { type: string, example: "missing" }
+
+            ResponsePart:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: The text content of the response part
+                references:
+                  type: array
+                  description: The chunks retrieved from the vector store to generate the response part
+                  items:
+                    $ref: "#/components/schemas/Chunk"
+              required: [text, references]
+
+            Chunk:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: The text content of the chunks
+                url:
+                  type: string
+                  format: uri
+              required: [text, url]
+
+      Auth:
+        DefaultAuthorizer: RagCognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          RagCognitoAuthorizer:
+            UserPoolArn: !GetAtt RagCognitoUserPool.Arn
+
+  BedrockRagFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub BedrockRagFunction-${Environment}
+      CodeUri: bedrock_impl/src
+      Handler: bedrock_impl.handler.bedrock_handler
+      Environment:
+        Variables:
+          KNOWLEDGE_BASE_ID: !GetAtt LmiKnowledgeBase.KnowledgeBaseId
+          CONVERSATIONS_TABLE_NAME: !Ref ConversationsTable
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConversationsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: "*"
+
+  FeedbackFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub FeedbackFunction-${Environment}
+      CodeUri: bedrock_impl/src
+      Handler: bedrock_impl.feedback_handler.handler
+      Environment:
+        Variables:
+          FEEDBACK_TABLE_NAME: !Ref FeedbackTable
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action: ["dynamodb:PutItem"]
+              Resource: !GetAtt FeedbackTable.Arn
+
+  ConversationHandlingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ConversationHandlingFunction-${Environment}
+      CodeUri: bedrock_impl/src
+      Handler: bedrock_impl.handler.conversation_handler
+      Environment:
+        Variables:
+          CONVERSATIONS_TABLE_NAME: !Ref ConversationsTable
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref ConversationsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:*
+              Resource: "*"
+
+  BedrockRagFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt BedrockRagFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/${Environment}/*/*
+
+  ConversationHandlingFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ConversationHandlingFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/${Environment}/*/*
+
+  FeedbackFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt FeedbackFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RagApi}/${Environment}/*/*
+
+  RagCognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub RagUserPool-${Environment}
+      # Policies:
+      #   PasswordPolicy:
+      #     MinimumLength: 8
+      #     RequireLowercase: true
+      #     RequireNumbers: true
+      #     RequireSymbols: true
+      #     RequireUppercase: true
+      UsernameAttributes:
+        - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+
+  RagCognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref RagCognitoUserPool
+      ClientName: !Sub RagUserPoolClient-${Environment}
+      GenerateSecret: false
+      SupportedIdentityProviders:
+        - COGNITO
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+        - phone
+        - aws.cognito.signin.user.admin
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+      PreventUserExistenceErrors: ENABLED
+      CallbackURLs:
+        - !Sub https://${BranchName}.ragdemon.com/callback
+        - https://www.ragdemon.com/callback
+        - http://localhost:5173/callback
+      LogoutURLs:
+        - !Sub https://${BranchName}.ragdemon.com/signed-out
+        - https://www.ragdemon.com/signed-out
+        - http://localhost:5173/signed-out
+
+  RagCognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub ragdemon-${Environment}
+      UserPoolId: !GetAtt RagCognitoUserPool.UserPoolId
+      ManagedLoginVersion: 2
+
+  FeedbackTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub FeedbackTable-${Environment}
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+
+  ConversationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ConversationsTable-${Environment}
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+        - AttributeName: created_at_message_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+        - AttributeName: created_at_message_id
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+
+  LmiKnowledgeBase:
+    Type: AWS::Bedrock::KnowledgeBase
+    Properties:
+      Name: !Sub LmiKnowledgeBase-${Environment}
+      RoleArn: !Ref KnowledgeBaseRoleArn
+      KnowledgeBaseConfiguration:
+        Type: VECTOR
+        VectorKnowledgeBaseConfiguration:
+          EmbeddingModelArn: arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0
+      StorageConfiguration:
+        Type: OPENSEARCH_SERVERLESS
+        OpensearchServerlessConfiguration:
+          CollectionArn: !Ref OssCollectionArn
+          VectorIndexName: lmi-vector-index
+          FieldMapping:
+            VectorField: embedding
+            TextField: text
+            MetadataField: metadata
+
+  LmiOnDemandDataSource:
+    Type: AWS::Bedrock::DataSource
+    Properties:
+      Name: !Sub LmiOnDemandDataSource-${Environment}
+      DataSourceConfiguration:
+        Type: WEB
+        WebConfiguration:
+          SourceConfiguration:
+            UrlConfiguration:
+              SeedUrls:
+                - Url: "https://support.lesmillsondemand.com/support/solutions"
+          CrawlerConfiguration:
+            Scope: SUBDOMAINS
+      KnowledgeBaseId: !Ref LmiKnowledgeBase
+      VectorIngestionConfiguration:
+        ChunkingConfiguration:
+          ChunkingStrategy: SEMANTIC
+          SemanticChunkingConfiguration:
+            BreakpointPercentileThreshold: 95
+            BufferSize: 0
+            MaxTokens: 150
+
+  LmiApiDocsDataSource:
+    Type: AWS::Bedrock::DataSource
+    Properties:
+      Name: !Sub LmiApiDocsDataSource-${Environment}
+      DataSourceConfiguration:
+        Type: WEB
+        WebConfiguration:
+          SourceConfiguration:
+            UrlConfiguration:
+              SeedUrls:
+                - Url: "https://api.content.lesmills.com/docs/v1/content-portal-api.yaml"
+          CrawlerConfiguration:
+            Scope: SUBDOMAINS
+      KnowledgeBaseId: !Ref LmiKnowledgeBase
+      VectorIngestionConfiguration:
+        ChunkingConfiguration:
+          ChunkingStrategy: SEMANTIC
+          SemanticChunkingConfiguration:
+            BreakpointPercentileThreshold: 95
+            BufferSize: 0
+            MaxTokens: 150
+
+  LmiFreshdeskDataSource:
+    Type: AWS::Bedrock::DataSource
+    Properties:
+      Name: !Sub LmiFreshdeskDataSource-${Environment}
+      DataSourceConfiguration:
+        Type: WEB
+        WebConfiguration:
+          SourceConfiguration:
+            UrlConfiguration:
+              SeedUrls:
+                - Url: "https://lesmillsvirtualapp.freshdesk.com/en/support/solutions"
+          CrawlerConfiguration:
+            Scope: SUBDOMAINS
+      KnowledgeBaseId: !Ref LmiKnowledgeBase
+      VectorIngestionConfiguration:
+        ChunkingConfiguration:
+          ChunkingStrategy: SEMANTIC
+          SemanticChunkingConfiguration:
+            BreakpointPercentileThreshold: 95
+            BufferSize: 0
+            MaxTokens: 150
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL for prod / test stage of RAG function
+    Value: !Sub https://${RagApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+
+  CognitoPoolId:
+    Description: Cognito user pool ID
+    Value: !GetAtt RagCognitoUserPool.UserPoolId
+
+  CognitoClientId:
+    Description: Cognito user pool client ID
+    Value: !GetAtt RagCognitoUserPoolClient.ClientId
+
+  CognitoAuthority:
+    Description: Cognito user pool domain URL
+    Value: !Sub https://${RagCognitoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com

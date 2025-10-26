@@ -1,0 +1,207 @@
+openapi: 3.0.1
+info:
+  title: Multi-endpoint RAG API
+  version: 1.0.0
+paths:
+  /rag/bedrock:
+    post:
+      summary: Ask Bedrock a question and receive a response with sources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RAGRequest"
+
+      # x-amazon-apigateway-integration:
+      #   uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BedrockRagFunction.Arn}/invocations
+      #   httpMethod: POST
+      #   type: aws_proxy
+
+      # x-amazon-apigateway-request-validators:
+      #   validate-body:
+      #     validateRequestBody: true
+      #     validateRequestParameters: false
+
+      # x-amazon-apigateway-request-validator: validate-body
+
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RAGResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /feedback:
+    post:
+      summary: Submit user feedback for the last exchange
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Feedback"
+      responses:
+        "200":
+          description: Feedback stored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        "400":
+          description: Invalid payload
+        "500":
+          description: Internal server error
+
+
+components:
+  schemas:
+    RAGRequest:
+      type: object
+      properties:
+        message_id:
+          description: Unique identifier of this message
+          type: string
+        content:
+          description: The query for Bedrock to answer
+          type: string
+        session_id:
+          description: Optional session identifier
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [message_id, content, created_at]
+
+    RAGResponse:
+      type: object
+      properties:
+        message_id:
+          description: Unique identifier of this message
+          type: string
+        content:
+          type: string
+          description: The generated LLM response based on the retrieved chunks
+        response_parts:
+          type: array
+          description: A list of response parts with their retrieved sources
+          items:
+            $ref: "#/components/schemas/ResponsePart"
+        session_id:
+          description: The session identifier, either newly generated or returned from the request
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-08-23T13:28:00Z"
+      required: [message_id, content, response_parts, session_id, created_at]
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: number
+          description: The HTTP status code of the response
+          example: 401
+        error:
+          type: string
+          description: The machine readable error identifier
+          example: INVALID_TOKEN
+        message:
+          type: string
+          description: The human readable error message
+          example: "The provided token is invalid."
+      required: [status, error, message]
+
+    ResponsePart:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The text content of the response part
+        references:
+          type: array
+          description: The chunks retrieved from the vector store to generate the response part
+          items:
+            $ref: "#/components/schemas/Chunk"
+      required: [text, references]
+
+    Chunk:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The text content of the chunks
+        url:
+          type: string
+          format: uri
+      required: [text, url]
+
+    Conversation:
+      type: object
+      properties:
+        session_id:
+          type: string
+        user_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-08-23T13:28:00Z"
+        last_updated:
+          type: string
+          format: date-time
+          example: "2024-08-23T13:28:00Z"
+      required: [session_id, user_id, created_at, last_updated]
+
+    Feedback:
+      type: object
+      description: Feedback submission for an AI exchange.
+      properties:
+        pk:         { type: string, example: "USER#${userId}" }
+        sk:         { type: string, example: "FEEDBACK#2025-10-05T12:00:00Z#uuid" }
+        sessionId:  { type: string, nullable: true }
+        issueType:  { type: string }
+        severity:   { type: string, enum: [Low, Medium, High] }
+        notes:      { type: string }
+        includeContext: { type: boolean }
+        question:   { type: string, nullable: true }
+        answer:     { type: string, nullable: true }
+        submittedAt:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          properties:
+            userAgent:   { type: string }
+            language:    { type: string }
+            tzOffsetMin: { type: number }
+      required: [pk, sk, issueType, severity, submittedAt]
