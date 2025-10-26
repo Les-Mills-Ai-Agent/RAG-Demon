@@ -205,7 +205,7 @@ The project includes OpenAPI specification in `backend/openapi.yaml`. Key endpoi
 
 - `POST /rag/bedrock` - Send questions to AI assistant
 - `GET /rag/bedrock/conversation/{user_id}` - Get user's conversations
-- `GET /rag/bedrock/messages/{session_id}` - Get messages in a session
+- `GET /rag/bedrock/messages/{conversation_id}` - Get messages in a conversation
 - `POST /feedback` - Submit user feedback
 
 ## Support
