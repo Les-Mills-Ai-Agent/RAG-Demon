@@ -15,6 +15,13 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
 
+      - name: Clean branch name
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          SHORT_BRANCH_NAME="${BRANCH_NAME:0:30}"
+          echo "SHORT_BRANCH_NAME=$SHORT_BRANCH_NAME" >> $GITHUB_ENV
+          echo $SHORT_BRANCH_NAME
+
       - name: Setup Python
         uses: actions/setup-python@v6.0.0
         with:
@@ -35,12 +42,12 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::527748639759:role/GithubActionsRole
-          role-session-name: ${{ github.ref_name }}-deploy
+          role-session-name: ${{ env.SHORT_BRANCH_NAME }}-deploy
           aws-region: us-east-1
 
       - name: Check stack status
         run: |
-          STACK_NAME="ragdemon-${{ github.ref_name }}"
+          STACK_NAME="ragdemon-${{ env.SHORT_BRANCH_NAME }}"
 
           # Check if stack exists
           STACK_STATUS=$(aws cloudformation describe-stacks \
@@ -75,13 +82,13 @@ jobs:
 
       - name: Deploy with SAM
         run: |
-          LOWER_BRANCH_NAME=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]')
+          BRANCH_LOWER=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]')
           cd backend
           sam build
           sam deploy \
-            --stack-name ragdemon-${{ github.ref_name }} \
+            --stack-name ragdemon-${{ env.SHORT_BRANCH_NAME }} \
             --template-file .aws-sam/build/template.yaml \
-            --parameter-overrides Environment=$LOWER_BRANCH_NAME BranchName=$LOWER_BRANCH_NAME AmplifyAppId=${{ vars.AMPLIFY_APP_ID }} \
+            --parameter-overrides Environment=${{ env.SHORT_BRANCH_NAME }} BranchName=$BRANCH_LOWER AmplifyAppId=${{ vars.AMPLIFY_APP_ID }} \
             --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM \
             --region us-east-1 \
             --no-fail-on-empty-changeset \
@@ -90,7 +97,7 @@ jobs:
           cd ..
       - name: Get Cloudformation stack outputs
         run: |
-          outputs=$(aws cloudformation describe-stacks --stack-name ragdemon-${{ github.ref_name }} --query "Stacks[0].Outputs" --output json)
+          outputs=$(aws cloudformation describe-stacks --stack-name ragdemon-${{ env.SHORT_BRANCH_NAME }} --query "Stacks[0].Outputs" --output json)
           echo "API_URL=$(echo $outputs | jq -r '.[] | select(.OutputKey=="ApiUrl") | .OutputValue')" >> $GITHUB_ENV
           echo "COGNITO_CLIENT_ID=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoClientId") | .OutputValue')" >> $GITHUB_ENV
           echo "COGNITO_AUTHORITY=$(echo $outputs | jq -r '.[] | select(.OutputKey=="CognitoAuthority") | .OutputValue')" >> $GITHUB_ENV
