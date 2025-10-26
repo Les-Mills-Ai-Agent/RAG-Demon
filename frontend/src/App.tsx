@@ -23,6 +23,7 @@ export default function App() {
   const [popupId, setPopupId] = useState<string | null>(null);
 
   const [viewingConversation, setViewingConversation] = useState<Message[] | undefined>(undefined);
+  const [chatInstanceKey, setChatInstanceKey] = useState(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -98,6 +99,7 @@ export default function App() {
   }, [auth.isAuthenticated, auth.user, conversations]);
 
   const handleSelectConversation = async (sessionId: string) => {
+    setIsPanelOpen(false)
     setActiveSession(sessionId);
 
     const cleanSessionId = sessionId.replace(/^SESSION#SESSION#/, "SESSION#");
@@ -169,6 +171,15 @@ export default function App() {
     return null;
   }
 
+  
+
+  const handleNewChat = () => {
+    setActiveSession(null);
+    setViewingConversation(undefined);
+    setIsPanelOpen(false);
+    setChatInstanceKey(prev => prev + 1);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
       <LoginCelebration
@@ -185,7 +196,17 @@ export default function App() {
       <SlidingPanel
         isOpen={isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
-        title="Conversations"
+        title={
+          <div className="flex items-center justify-between w-full">
+            <span className="font-semibold text-lg">Conversations</span>
+            <button
+              onClick={handleNewChat}
+              className="ml-3 px-3 py-1 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition"
+            >
+              New+ 
+            </button>
+          </div>
+      }
       >
         <ul>
           {conversations.length === 0 && (
@@ -269,7 +290,11 @@ export default function App() {
           <QueryClientProvider client={queryClient}>
             <FeedbackProvider>
               <ChatWindow
+                key={chatInstanceKey}
                 messages={viewingConversation ? viewingConversation : undefined} 
+                onSessionCreated={(newSessionId: string) => {
+                  setActiveSession(newSessionId);
+                }}
               />
             </FeedbackProvider>
           </QueryClientProvider>

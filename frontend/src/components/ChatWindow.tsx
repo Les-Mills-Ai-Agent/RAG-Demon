@@ -7,10 +7,12 @@ import { UserMessage } from "../models/models";
 
 type ChatWindowProps = {
   messages?: any[];
+  onSessionCreated?: (sessionId: string) => void;
 };
 
 const ChatWindow = ({
   messages: externalMessages,
+  onSessionCreated,
 }: ChatWindowProps) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [sessionId, setSessionId] = useState<string>();
@@ -19,14 +21,14 @@ const ChatWindow = ({
   const [readOnly, setReadOnly] = useState(false); // Flag to disable generating a response
 
   useEffect(() => {
-    if (externalMessages) {
+    if (externalMessages && externalMessages.length > 0) {
       setMessages(externalMessages);
       setSessionId(externalMessages[0].session_id.replace("SESSION#", ""));
       setReadOnly(true); // Stop app from trying to generate a response when viewing previous conversations
-    } else if (externalMessages === undefined) {
+    } else {
       setMessages([]);
       setSessionId("");
-      setReadOnly(true);
+      setReadOnly(false);
     }
   }, [externalMessages]);
 
@@ -75,6 +77,10 @@ const ChatWindow = ({
       };
       setSessionId(query.data.session_id);
       addMessage(aiMessage);
+
+      if (!sessionId && query.data.session_id && onSessionCreated) {
+        onSessionCreated(query.data.session_id);
+      }
     }
   }, [query?.data, query?.isSuccess, readOnly]);
 
