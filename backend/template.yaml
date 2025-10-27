@@ -64,9 +64,9 @@ Resources:
       Name: !Sub rag-api-${Environment}
       StageName: !Ref Environment
       Cors:
-        AllowMethods: '''GET,POST,OPTIONS'''
-        AllowHeaders: '''Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'''
-        AllowOrigin: '''*'''
+        AllowMethods: "'GET,POST,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
         MaxAge: 3600
       DefinitionBody:
         openapi: 3.0.1
@@ -323,7 +323,53 @@ Resources:
                   content:
                     application/json:
                       schema:
-                        $ref: '#/components/schemas/ErrorResponse'
+                        $ref: "#/components/schemas/ErrorResponse"
+          
+          /rag/bedrock/conversation/delete/{session_id}:
+            delete:
+              summary: Delete a conversation/session
+              parameters:
+                - in: path
+                  name: session_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the conversation/session
+
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+
+              x-amazon-apigateway-request-validator: validate-params-only
+
+              responses:
+                "200":
+                  description: Successful response
+                  content:
+                    application/json:
+                      schema:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RAGResponse"
+                "400":
+                  description: Bad request
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "403":
+                  description: Forbidden
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "500":
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
 
         components:
           schemas:
@@ -496,7 +542,7 @@ Resources:
       Handler: bedrock_impl.feedback_handler.handler
       Environment:
         Variables:
-          TABLE_NAME: !Ref FeedbackTable
+          FEEDBACK_TABLE_NAME: !Ref FeedbackTable
       Policies:
         - AWSLambdaBasicExecutionRole
         - Statement:
@@ -513,14 +559,19 @@ Resources:
       Handler: bedrock_impl.handler.conversation_handler
       Environment:
         Variables:
-          TABLE_NAME: !Ref ConversationsTable
+          CONVERSATIONS_TABLE_NAME: !Ref ConversationsTable
       Policies:
         - AWSLambdaBasicExecutionRole
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref ConversationsTable
         - Statement:
             - Effect: Allow
               Action:
+                - dynamodb:DeleteItem
+                - dynamodb:BatchWriteItem
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:Scan
                 - bedrock:*
               Resource: '*'
 
@@ -589,10 +640,12 @@ Resources:
         - ALLOW_ADMIN_USER_PASSWORD_AUTH
       PreventUserExistenceErrors: ENABLED
       CallbackURLs:
-        - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/callback
+        - !Sub https://${BranchName}.ragdemon.com/callback
+        - https://www.ragdemon.com/callback
         - http://localhost:5173/callback
       LogoutURLs:
-        - !Sub https://${BranchName}.${AmplifyAppId}.amplifyapp.com/signed-out
+        - !Sub https://${BranchName}.ragdemon.com/signed-out
+        - https://www.ragdemon.com/signed-out
         - http://localhost:5173/signed-out
 
   RagCognitoUserPoolDomain:

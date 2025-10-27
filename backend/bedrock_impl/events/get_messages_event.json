@@ -1,6 +1,7 @@
 {
-  "path": "/rag/bedrock/messages/SESSION#daec2072-3581-40a3-8ffa-4278c3e7af92",
+  "path": "/rag/bedrock/messages/SESSION#a9927d12-d8a4-4f2c-94fa-ef4dbe102af7",
   "pathParameters": {
-      "session_id": "SESSION#daec2072-3581-40a3-8ffa-4278c3e7af92"
-  }
+      "session_id": "SESSION#a9927d12-d8a4-4f2c-94fa-ef4dbe102af7"
+  },
+  "httpMethod": "GET"
 }

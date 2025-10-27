@@ -1,5 +1,6 @@
 from http.client import NO_CONTENT
 import os
+import uuid
 from langgraph.checkpoint.memory import MemorySaver
 from botocore.exceptions import NoCredentialsError
 from langchain_openai import ChatOpenAI
@@ -127,36 +128,8 @@ def retrieve(query: str, vector_store: Annotated[BaseVectorStore, InjectedStore(
 
 # ---------------- System Prompt ----------------
 LM_SYSTEM_PROMPT_TEMPLATE = """
-You are the Les Mills B2B Assistant.
-
-SCOPE GATE (must run first)
-- Assume the request is in scope unless it is clearly unrelated to Les Mills' (clubs/gyms, corporate partners, instructors, distributors, enterprise customers, internal engineering, platform operations, integrations, content platform, or anything else related to Les Mills). 
-- If it is clearly unrelated, respond EXACTLY:
-"Sorry, I can't assist with that."
-(Do not add anything else.)
-
-AMBIGUOUS INTENT
-- If intent is unclear, assume they're asking about the Les Mills content platform and ask ONE brief clarifying question only if essential.
-
-SOURCES & TRUTH
-- Preferred truth source is the provided CONTEXT below. Use its terminology.
-- If docs are missing or conflicting, say so plainly. For in-scope topics not covered by docs, give a safe high-level explanation and state that specific details are not in the provided docs.
-
-GUARDRAILS
-- Do not invent features, SLAs, prices, or roadmaps. If absent from docs, say you don't have that information and suggest next steps (e.g., contact support, provide IDs/logs).
-- Never reveal secrets, tokens, internal URLs, or non-public architecture. Use placeholders like <API_KEY>, <CLIENT_ID>, <ORG_ID>.
-- Use UK English.
-
-ANSWER STYLE
-- Keep answers concise. Use headings only when they aid scanning.
-- Steps: short, numbered. Show key config (endpoints, headers, scopes, roles).
-- Code: minimal, runnable, clear imports, env var placeholders, and note required IAM where relevant.
-
-REFUSALS (must use the exact string)
-- Consumer fitness, workout advice, recipes, unrelated programming, or non-Les Mills → "Sorry, I can't assist with that."
-- Requests for personal data or internal-only documentation → "Sorry, I can't assist with that."
-
-CONTEXT (verbatim):
+You are a specialised customer service agent for Les Mills International B2B customers
+CONTEXT:
 "{DOCS_CONTENT}"
 """.strip()
 
@@ -257,13 +230,7 @@ def main():
     splits = split_document(doc)
     vector_store.add_documents(splits)
 
-    # Always provide a thread_id (critical for saver!)
-    region = os.getenv("AWS_REGION", "us-east-1")
-    table = os.getenv("CHECKPOINTS_TABLE", "lmai-checkpoints-v2")
-    thread = os.getenv("DEFAULT_THREAD_ID", "cli-session")  # one session per app run
-    print(f"[debug] Using thread_id: {thread}  region={region}  table={table}")
-
-    app = build_graph().with_config({"configurable": {"thread_id": thread}})
+    app = build_graph().with_config({"configurable": {"thread_id": uuid.uuid4()}})
 
     while True:
         raw_input_text = input("\nAsk the RAG Demon (or enter 'q' to quit, ':menu' for history): ").strip()
@@ -279,18 +246,7 @@ def main():
             {"messages": [{"role": "user", "content": raw_input_text}]},
             stream_mode="values",
         ):
-            msg = step["messages"][-1]
-            if msg.type in ("ai", "assistant"):
-                final_msg = msg
-
-        if final_msg:
-            final_msg.pretty_print()
-
-
-# Build the graph for server usage with a default thread_id
-graph = build_graph().with_config(
-    {"configurable": {"thread_id": os.getenv("DEFAULT_THREAD_ID", "dev-default")}}
-)
+            step["messages"][-1].pretty_print()
 
 if __name__ == "__main__":
     main()

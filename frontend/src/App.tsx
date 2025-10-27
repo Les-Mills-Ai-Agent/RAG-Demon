@@ -9,9 +9,23 @@ import { useAuth } from "react-oidc-context";
 import LoginCelebration from "./components/LoginCelebration";
 import ConfirmSignOut from "./components/ConfirmSignOut";
 import { FeedbackProvider } from "./components/FeedbackProvider";
+import SlidingPanel from "./components/SlidingPanel";
+import { getConversations, getMessages, deleteConversation } from "./utils/api";
+import Popup from "./components/Popup";
+import {ConversationMetadata, Message } from "./models/models";
 
 export default function App() {
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(false);
+
+  const [conversations, setConversations] = useState<ConversationMetadata[]>([]);
+  const [activeSession, setActiveSession] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [popupId, setPopupId] = useState<string | null>(null);
+
+  const [viewingConversation, setViewingConversation] = useState<Message[] | undefined>(undefined);
+  const [chatInstanceKey, setChatInstanceKey] = useState(0);
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
@@ -66,7 +80,75 @@ export default function App() {
     }
   }, [auth.isAuthenticated]);
 
-  // Early returns AFTER all hooks are declared
+  useEffect(() => {
+    const loadConversations = async () => {
+      if (auth.isAuthenticated && auth.user?.profile?.sub) {
+          const convos = await getConversations(auth.user.profile.sub, auth.user.id_token!);
+          const sortedConvos = convos.sort((a, b) => {
+            return new Date(b.last_updated).valueOf() - new Date (a.last_updated).valueOf()
+          })
+          setConversations(sortedConvos);
+      }
+    };
+    loadConversations();
+  }, [auth.isAuthenticated, auth.user, conversations]);
+
+  const handleSelectConversation = async (sessionId: string) => {
+    setIsPanelOpen(false)
+    setActiveSession(sessionId);
+
+    const cleanSessionId = sessionId.replace(/^SESSION#SESSION#/, "SESSION#");
+    const encodeSessionID = encodeURIComponent(cleanSessionId);
+
+    if (auth.isAuthenticated && auth.user?.profile.sub) {
+      try {
+        const msgs = await getMessages(encodeSessionID, auth.user.id_token!);
+
+        const formattedMessages: Message[] = msgs.map((m: any) => {
+          const match = m.created_at_message_id.match(/^MESSAGE#([^#]+)#/);
+          const timestamp = match ? match[1] : new Date().toISOString(); 
+
+          return {
+            message_id: m.created_at_message_id,
+            content: m.body,
+            response_parts: m.response_parts ?? [],
+            session_id: m.session_id,
+            created_at: timestamp, 
+            role: m.role,
+          };
+        });
+        setViewingConversation(formattedMessages);
+
+      } catch (err) {
+        console.error("Failed to load messages");
+      }
+    }
+  };
+
+  const handleDeleteConversation = async (sessionId: string) => {
+    const cleanSessionId = sessionId.replace(/^SESSION#SESSION#/, "SESSION#");
+    const encodeSessionID = encodeURIComponent(cleanSessionId);
+
+      try {
+        const response = await deleteConversation(encodeSessionID, auth.user?.id_token!)
+        
+      } catch (error) {
+          console.error("Failed to delete conversation", error);
+          return;
+      }
+      setConversations(conversations.filter(convo => {
+        return convo.session_id !== sessionId
+      }));
+  
+      if (activeSession === popupId) {
+        setViewingConversation(undefined);
+        setActiveSession(null);
+        setHoveredId(null);
+      }
+  
+      setPopupId(null);
+  }
+
   if (auth.isLoading || auth.activeNavigator)
     return <div className="p-4">Loading…</div>;
   if (auth.error) return <div className="p-4">Error: {auth.error.message}</div>;
@@ -81,6 +163,15 @@ export default function App() {
     return null;
   }
 
+  
+
+  const handleNewChat = () => {
+    setActiveSession(null);
+    setViewingConversation(undefined);
+    setIsPanelOpen(false);
+    setChatInstanceKey(prev => prev + 1);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300">
       <LoginCelebration
@@ -93,11 +184,77 @@ export default function App() {
         onCancel={() => setShowSignoutConfirm(false)}
         onConfirm={onSignoutConfirm}
       />
+      {/*Side Panel*/}
+      <SlidingPanel
+        isOpen={isPanelOpen}
+        onClose={() => setIsPanelOpen(false)}
+        title={
+          <div className="flex items-center justify-between w-full">
+            <span className="font-semibold text-lg">Conversations</span>
+            <button
+              onClick={handleNewChat}
+              className="ml-3 px-3 py-1 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition"
+            >
+              New+ 
+            </button>
+          </div>
+      }
+      >
+        <ul>
+          {conversations.length === 0 && (
+            <li className="p-3 text-gray-500">No conversations yet</li>
+          )}
+          {conversations.map((c) => (
+            <li
+              key={c.session_id}
+              className={`flex items-center justify-between p-3 cursor-pointer ${c.session_id === activeSession ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-600'} rounded-2xl`}
+              onClick={() => handleSelectConversation(c.session_id)}
+              onMouseEnter={() => setHoveredId(c.session_id)}
+              onMouseLeave={() => setHoveredId(null)}
+            >
+              <span>{new Date(c.last_updated).toLocaleString()}</span>
+              {(hoveredId === c.session_id || activeSession === c.session_id) && 
+                <>
+                  <span 
+                    className="p-1 text-gray-500 dark:text-gray-300 hover:text-red-500 hover:dark:text-red-500 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPopupId(c.session_id)
+                    }}
+                  >
+                    <svg 
+                      className="w-4 h-4" 
+                      aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
+                    </svg>
+                  </span>
+                  {popupId === c.session_id &&
+                    <Popup 
+                      title="Delete conversation"
+                      description="Are you sure you want to delete this conversation?"
+                      action="Delete"
+                      onSuccess={() => handleDeleteConversation(c.session_id)}
+                      onClose={() => setPopupId(null)}
+                    />
+                  }
+                </>
+              }
+            </li>
+          ))}
+        </ul>
+      </SlidingPanel>
 
-      <header className="sticky top-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-gray-800/85 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
+      <header className="sticky top-0 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-gray-800/85 px-6 py-4 shadow-md flex items-center justify-between border-b dark:border-gray-700">
+        <div className="flex items-center gap-4">
+
+          <button
+            onClick={() => setIsPanelOpen(prev => !prev)}
+            className="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          >=</button>
         <h1 className="text-xl font-bold text-gray-800 dark:text-white">
           Les Mills AI Assistant
         </h1>
+        </div>
 
         <div className="flex items-center gap-4">
           <button
@@ -124,7 +281,13 @@ export default function App() {
         <div className="mx-auto w-full max-w-5xl px-6 py-6 flex flex-col">
           <QueryClientProvider client={queryClient}>
             <FeedbackProvider>
-              <ChatWindow/>
+              <ChatWindow
+                key={chatInstanceKey}
+                messages={viewingConversation ? viewingConversation : undefined} 
+                onSessionCreated={(newSessionId: string) => {
+                  setActiveSession(newSessionId);
+                }}
+              />
             </FeedbackProvider>
           </QueryClientProvider>
         </div>
