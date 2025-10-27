@@ -52,7 +52,7 @@ const ChatWindow = ({
     created_at: "",
     role: "ai",
   };
-console.log("mesages: " + JSON.stringify(messages))
+
   const addMessage = (message: Message) => {
     if (readOnly) {
       setReadOnly(false);
@@ -63,7 +63,7 @@ console.log("mesages: " + JSON.stringify(messages))
         return messages;
       return [...messages, message];
     });
-    if (messages.length < 1) {
+    if (messages.length > 0 === false) {
       loadConversations(); // refetch conversations to show new one
     }
   };
