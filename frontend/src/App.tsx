@@ -91,7 +91,7 @@ export default function App() {
       }
     };
     loadConversations();
-  }, [auth.isAuthenticated, auth.user, conversations]);
+  }, [auth.isAuthenticated, auth.user]);
 
   const handleSelectConversation = async (sessionId: string) => {
     setIsPanelOpen(false)
