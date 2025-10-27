@@ -135,16 +135,20 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
 
                 {msg.role === "ai" &&
                   (() => {
-                    // Gather all references in a flat array
                     const allReferences = msg.response_parts.flatMap(
                       (part) => part.references
                     );
-                    if (allReferences.length === 0) return null;
+                    const uniqueReferences = Array.from(
+                      new Map(
+                        allReferences.map((ref) => [ref.url, ref])
+                      ).values()
+                    );
+                    if (uniqueReferences.length === 0) return null;
                     return (
                       <div className="flex gap-1 flex-wrap mt-4">
                         <div className="font-bold mb-1">Sources:</div>
                         <div>
-                          {allReferences.map((reference, i) => (
+                          {uniqueReferences.map((reference, i) => (
                             <a
                               key={i}
                               href={reference.url}
