@@ -10,14 +10,15 @@ import LoginCelebration from "./components/LoginCelebration";
 import ConfirmSignOut from "./components/ConfirmSignOut";
 import { FeedbackProvider } from "./components/FeedbackProvider";
 import SlidingPanel from "./components/SlidingPanel";
-import { getConversations, getMessages, Conversation, Message, deleteConversation } from "./utils/api";
+import { getConversations, getMessages, deleteConversation } from "./utils/api";
 import Popup from "./components/Popup";
+import {ConversationMetadata, Message } from "./models/models";
 
 export default function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<ConversationMetadata[]>([]);
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [popupId, setPopupId] = useState<string | null>(null);
@@ -82,17 +83,11 @@ export default function App() {
   useEffect(() => {
     const loadConversations = async () => {
       if (auth.isAuthenticated && auth.user?.profile?.sub) {
-        try {
           const convos = await getConversations(auth.user.profile.sub, auth.user.id_token!);
           const sortedConvos = convos.sort((a, b) => {
             return new Date(b.last_updated).valueOf() - new Date (a.last_updated).valueOf()
           })
           setConversations(sortedConvos);
-        } catch (err) {
-          console.error("Failed to load conversations", err);
-          console.log(auth.user?.profile?.sub)
-          console.log(auth.user?.id_token)
-        }
       }
     };
     loadConversations();
@@ -125,7 +120,7 @@ export default function App() {
         setViewingConversation(formattedMessages);
 
       } catch (err) {
-        console.error("Failed to load messages", err);
+        console.error("Failed to load messages");
       }
     }
   };
@@ -133,7 +128,6 @@ export default function App() {
   const handleDeleteConversation = async (sessionId: string) => {
     const cleanSessionId = sessionId.replace(/^SESSION#SESSION#/, "SESSION#");
     const encodeSessionID = encodeURIComponent(cleanSessionId);
-    console.log("id about to be deleted: "+cleanSessionId)
 
       try {
         const response = await deleteConversation(encodeSessionID, auth.user?.id_token!)
@@ -154,8 +148,6 @@ export default function App() {
   
       setPopupId(null);
   }
-
-  console.log("active session id:" + activeSession);
 
   if (auth.isLoading || auth.activeNavigator)
     return <div className="p-4">Loading…</div>;

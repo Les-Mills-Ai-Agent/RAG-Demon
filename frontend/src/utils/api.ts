@@ -1,21 +1,8 @@
 import { AxiosError } from "axios";
 import axios from "axios";
-import { ErrorResponse } from "../models/models";
+import { ErrorResponse, ConversationMetadata, Message } from "../models/models";
 
-export interface Conversation {
-  session_id: string;
-  user_id: string;
-  created_at: string;
-  last_updated: string;
-}
 
-export interface Message {
-  message_id: string;
-  content: string;
-  session_id: string;
-  created_at: string;
-  response_parts?: any[];
-}
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -55,8 +42,8 @@ api.interceptors.request.use(
   }
 );
 
-export async function getConversations(userId: string, token: string): Promise<Conversation[]> {
-    const res = await api.get<Conversation[]>(`/rag/bedrock/conversation/${userId}`, {
+export async function getConversations(userId: string, token: string): Promise<ConversationMetadata[]> {
+    const res = await api.get<ConversationMetadata[]>(`/rag/bedrock/conversation/${userId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
