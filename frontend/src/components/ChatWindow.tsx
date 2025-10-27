@@ -3,17 +3,44 @@ import ChatBubble from "./ChatBubble";
 import { AiMessage, Message } from "../models/models";
 import { useBedrock } from "../hooks/useBedrock";
 import ChatInput from "./ChatInput";
+import { UserMessage } from "../models/models";
 
-const ChatWindow = () => {
+type ChatWindowProps = {
+  messages?: any[];
+  onSessionCreated?: (sessionId: string) => void;
+};
+
+const ChatWindow = ({
+  messages: externalMessages,
+  onSessionCreated,
+}: ChatWindowProps) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [sessionId, setSessionId] = useState<string>();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(externalMessages || []);
   const [showScrollButton, setShowScrollButton] = useState(false); 
+  const [readOnly, setReadOnly] = useState(false); // Flag to disable generating a response
 
-  const lastUserMessage = messages
-    .slice()
-    .reverse()
-    .find((m) => m.role === "user");
+  useEffect(() => {
+    if (externalMessages && externalMessages.length > 0) {
+      setMessages(externalMessages);
+      setSessionId(externalMessages[0].session_id.replace("SESSION#", ""));
+      setReadOnly(true); // Stop app from trying to generate a response when viewing previous conversations
+    } else {
+      setMessages([]);
+      setSessionId("");
+      setReadOnly(false);
+    }
+  }, [externalMessages]);
+
+  const lastUserMessage = messages.length > 0 ? {
+    session_id: sessionId,
+    ...(
+      messages
+        .slice()
+        .reverse()
+        .find((m) => m.role === "user")
+    )
+  } as UserMessage : undefined;
 
   const placeholderMessage: AiMessage = {
     message_id: "",
@@ -25,6 +52,9 @@ const ChatWindow = () => {
   };
 
   const addMessage = (message: Message) => {
+    if (readOnly) {
+      setReadOnly(false);
+    }
     setMessages((messages) => {
       // prevent duplicates
       if (messages.some((m) => m.message_id === message.message_id))
@@ -33,10 +63,10 @@ const ChatWindow = () => {
     });
   };
 
-  const query = useBedrock(lastUserMessage);
+  const query = useBedrock(!readOnly ? lastUserMessage : undefined);
 
   useEffect(() => {
-    if (query.isSuccess && query.data) {
+    if (query && query.isSuccess && query.data && !readOnly) {
       const aiMessage: AiMessage = {
         message_id: query.data.message_id,
         content: query.data.content,
@@ -47,8 +77,12 @@ const ChatWindow = () => {
       };
       setSessionId(query.data.session_id);
       addMessage(aiMessage);
+
+      if (!sessionId && query.data.session_id && onSessionCreated) {
+        onSessionCreated(query.data.session_id);
+      }
     }
-  }, [query.data, query.isSuccess]);
+  }, [query?.data, query?.isSuccess, readOnly]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -82,7 +116,7 @@ const ChatWindow = () => {
     return "";
   };
 
-  const hasMessages = messages.length > 0;
+  const hasMessages = messages !== undefined && messages.length > 0;
 
   return (
     <div className="flex flex-col w-full min-h-[80vh]">
@@ -98,7 +132,7 @@ const ChatWindow = () => {
             <div className="bg-transparent">
               <ChatInput
                 onSubmit={addMessage}
-                disabled={query.isLoading}
+                disabled={query ? query.isLoading : false}
                 session_id={sessionId}
               />
             </div>
@@ -119,7 +153,7 @@ const ChatWindow = () => {
                 }
               />
             ))}
-            {(query.isLoading || query.error) && (
+            {(!readOnly && query && (query.isLoading || query.error)) && (
               <ChatBubble
                 msg={placeholderMessage}
                 isLoading={query.isLoading}
@@ -137,7 +171,7 @@ const ChatWindow = () => {
                 <br />
                 <ChatInput
                   onSubmit={addMessage}
-                  disabled={query.isLoading}
+                  disabled={query ? query.isLoading : false}
                   session_id={sessionId}
                 />
               </div>
