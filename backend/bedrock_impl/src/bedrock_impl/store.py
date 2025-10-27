@@ -15,6 +15,8 @@ from boto3.dynamodb.conditions import Key
 
 from bedrock_impl.models import ResponsePart
 
+import urllib.parse
+
 def require_env(name: str) -> str:
     try:
         return os.environ[name]
@@ -99,22 +101,60 @@ class ChatStore:
         return Session.model_validate(session_item)
     
     def get_messages(self, session_id: str) -> list[AiMessage | UserMessage]:
+        # if url encoded id is passed through, decode it
+        if session_id.startswith("SESSION%23"):
+            decoded_session_id = urllib.parse.unquote(session_id)
+        # if url stripped id if passed in (just a uuid without prefix) if passed, append it
+        else:
+            decoded_session_id = f"SESSION#{session_id}"
         response = self.table.query(
-            KeyConditionExpression = Key("session_id").eq(f"{session_id}") & Key("created_at_message_id").begins_with("MESSAGE#"),
+            KeyConditionExpression = Key("session_id").eq(f"{decoded_session_id}") & Key("created_at_message_id").begins_with("MESSAGE#"),
             ScanIndexForward = True, 
         )
         messages = response.get("Items", [])
         return [Message.from_dynamodb(message) for message in messages]
     
     def get_conversations(self, user_id: str) -> list[Session]:
+        print("Fetching conversations for user_id:", user_id)
         response = self.table.scan(
             FilterExpression=Key("user_id").eq(user_id) & Key("created_at_message_id").eq("METADATA")
         )
-
+        print("Scan response:", response)
+        
         items = response.get("Items", [])
-        conversations = [Session.model_validate(item) for item in items]
+        print("Items found:", items)
+
+        conversations = []
+        for item in items:
+            try:
+                conversations.append(Session.model_validate(item))
+            except Exception as e:
+                print("Session validation failed for item:", item, e)
 
         return conversations
+    
+    def delete_conversation(self, sessionId: str) -> None:
+        session_id = sessionId.replace("SESSION%23", "SESSION#")
+        print("Fetching all items with session_id:", session_id)
+        scan_response = self.table.query(
+            KeyConditionExpression = Key("session_id").eq(session_id)
+        )
+
+        items = scan_response.get("Items", [])
+        if not items:
+            raise ValueError(f"Session {session_id} not found")
+        
+        print("Items found:", items)
+        
+        print("Deleting all items in conversation:", session_id)
+        with self.table.batch_writer() as batch:
+            for item in items:
+                batch.delete_item(
+                    Key = {
+                        "session_id": item["session_id"],
+                        "created_at_message_id": item["created_at_message_id"]
+                    },
+                )
 
 
 class Message(BaseModel):

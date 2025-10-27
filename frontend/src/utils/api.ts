@@ -1,6 +1,8 @@
 import { AxiosError } from "axios";
 import axios from "axios";
-import { ErrorResponse } from "../models/models";
+import { ErrorResponse, ConversationMetadata, Message } from "../models/models";
+
+
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -24,5 +26,51 @@ api.interceptors.response.use(
     } as ErrorResponse);
   }
 );
+
+api.interceptors.request.use(
+  (config) => {
+    console.log('Making API Request:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers
+    });
+    return config;
+  },
+  (error) => {
+    console.error('Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+export async function getConversations(userId: string, token: string): Promise<ConversationMetadata[]> {
+    const res = await api.get<ConversationMetadata[]>(`/rag/bedrock/conversation/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 30000
+    });
+
+    return res.data;
+}
+
+export async function getMessages(sessionId: string, token: string): Promise<Message[]> {
+  const res = await api.get<Message[]>(`/rag/bedrock/messages/${sessionId}`, {
+    headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 30000
+  });
+  return res.data;
+}
+
+export async function deleteConversation(sessionId: string, token: string): Promise<string> {
+  const res = await api.delete<string>(`/rag/bedrock/conversation/delete/${sessionId}`, {
+    headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 30000
+  });
+  return res.data;
+}
 
 export default api;

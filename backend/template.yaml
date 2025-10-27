@@ -64,7 +64,7 @@ Resources:
       Name: !Sub rag-api-${Environment}
       StageName: !Ref Environment
       Cors:
-        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowMethods: "'GET,POST,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
         MaxAge: 3600
@@ -294,6 +294,52 @@ Resources:
                     application/json:
                       schema:
                         $ref: "#/components/schemas/ErrorResponse"
+          
+          /rag/bedrock/conversation/delete/{session_id}:
+            delete:
+              summary: Delete a conversation/session
+              parameters:
+                - in: path
+                  name: session_id
+                  required: true
+                  schema:
+                    type: string
+                  description: The id of the conversation/session
+
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConversationHandlingFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+
+              x-amazon-apigateway-request-validator: validate-params-only
+
+              responses:
+                "200":
+                  description: Successful response
+                  content:
+                    application/json:
+                      schema:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RAGResponse"
+                "400":
+                  description: Bad request
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "403":
+                  description: Forbidden
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
+                "500":
+                  description: Internal server error
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ErrorResponse"
 
         components:
           schemas:
@@ -461,11 +507,16 @@ Resources:
           CONVERSATIONS_TABLE_NAME: !Ref ConversationsTable
       Policies:
         - AWSLambdaBasicExecutionRole
-        - DynamoDBReadPolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref ConversationsTable
         - Statement:
             - Effect: Allow
               Action:
+                - dynamodb:DeleteItem
+                - dynamodb:BatchWriteItem
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:Scan
                 - bedrock:*
               Resource: "*"
 
