@@ -80,18 +80,18 @@ export default function App() {
     }
   }, [auth.isAuthenticated]);
 
+  const loadConversations = async () => {
+    if (auth.isAuthenticated && auth.user?.profile?.sub) {
+        const convos = await getConversations(auth.user.profile.sub, auth.user.id_token!);
+        const sortedConvos = convos.sort((a, b) => {
+          return new Date(b.last_updated).valueOf() - new Date (a.last_updated).valueOf()
+        })
+        setConversations(sortedConvos);
+    }
+  };
   useEffect(() => {
-    const loadConversations = async () => {
-      if (auth.isAuthenticated && auth.user?.profile?.sub) {
-          const convos = await getConversations(auth.user.profile.sub, auth.user.id_token!);
-          const sortedConvos = convos.sort((a, b) => {
-            return new Date(b.last_updated).valueOf() - new Date (a.last_updated).valueOf()
-          })
-          setConversations(sortedConvos);
-      }
-    };
     loadConversations();
-  }, [auth.isAuthenticated, auth.user, conversations]);
+  }, [auth.isAuthenticated, auth.user]);
 
   const handleSelectConversation = async (sessionId: string) => {
     setIsPanelOpen(false)
@@ -287,6 +287,7 @@ export default function App() {
                 onSessionCreated={(newSessionId: string) => {
                   setActiveSession(newSessionId);
                 }}
+                loadConversations={loadConversations}
               />
             </FeedbackProvider>
           </QueryClientProvider>
