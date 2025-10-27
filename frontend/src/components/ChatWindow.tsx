@@ -8,11 +8,13 @@ import { UserMessage } from "../models/models";
 type ChatWindowProps = {
   messages?: any[];
   onSessionCreated?: (sessionId: string) => void;
+  loadConversations: () => Promise<void>
 };
 
 const ChatWindow = ({
   messages: externalMessages,
   onSessionCreated,
+  loadConversations
 }: ChatWindowProps) => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [sessionId, setSessionId] = useState<string>();
@@ -50,7 +52,7 @@ const ChatWindow = ({
     created_at: "",
     role: "ai",
   };
-
+console.log("mesages: " + JSON.stringify(messages))
   const addMessage = (message: Message) => {
     if (readOnly) {
       setReadOnly(false);
@@ -61,6 +63,9 @@ const ChatWindow = ({
         return messages;
       return [...messages, message];
     });
+    if (messages.length < 1) {
+      loadConversations(); // refetch conversations to show new one
+    }
   };
 
   const query = useBedrock(!readOnly ? lastUserMessage : undefined);
