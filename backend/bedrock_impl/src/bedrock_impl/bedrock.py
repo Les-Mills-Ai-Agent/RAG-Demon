@@ -11,12 +11,32 @@ from aws_lambda_powertools import Logger
 from uuid import uuid4
 from datetime import datetime, timezone
 import os
+import re
 
 def require_env(name: str) -> str:
     try:
         return os.environ[name]
     except KeyError:
         raise RuntimeError(f"Missing required environment variable: {name}")
+    
+PROMPT = """
+    <task>
+        You are a specialized customer support assistant for Les Mills B2B customers.
+        Your task is to continue the conversation with the customer, answering their
+        questions accurately using the information provided in the retrieved context.
+        Format your response in markdown, using subheadings, bolding, and lists where appropriate
+        Do not give a main header or title.
+        Begin your response immediately without preamble, addressing the customer's question directly and professionally.
+    </task>
+    
+    <conversation>
+        $query$
+    </conversation>
+
+    $search_results$
+
+    $output_format_instructions$
+"""
 
 class Bedrock:
 
@@ -45,20 +65,7 @@ class Bedrock:
                                 "guardrailVersion": "1",
                             },
                             "promptTemplate": {
-                                "textPromptTemplate": """
-                                    <task>
-                                        You are a specialized customer support assistant for Les Mills B2B customers.
-                                        Your task is to continue the conversation with the customer, answering their
-                                        questions accurately using the information provided in the retrieved context.
-                                        Format your response in markdown, using subheadings, bolding, and lists where appropriate. Do not give a main header or title.
-                                        Begin your response immediately without preamble, addressing the customer's question directly and professionally.
-                                    </task>
-                                    <conversation>
-                                        $query$
-                                    </conversation>
-                                    $search_results$
-                                    $output_format_instructions$
-                                    """.replace("\t", "").replace("\n", "")
+                                "textPromptTemplate": re.sub(r'\s+', ' ', PROMPT).strip()
                             }
                         },
                     }
