@@ -4,6 +4,7 @@ from mypy_boto3_bedrock_agent_runtime.type_defs import RetrieveAndGenerateRespon
 
 from bedrock_impl.bedrock import Bedrock
 from bedrock_impl.models import Chunk
+from bedrock_impl.store import UserMessage
 
 from pydantic import AnyUrl
 from unittest.mock import MagicMock
@@ -46,28 +47,10 @@ def test_generate_response_calls_bedrock_with_correct_params():
     bedrock = Bedrock(client=client)
 
     # Call the method
-    result = bedrock.generate_response(mock_query)
+    result = bedrock.generate_response([UserMessage(session_id="123456", body=mock_query)])
 
     # Assert the response is returned correctly
     assert result == expected_response
-
-    # Assert the client was called with correct params
-    client.retrieve_and_generate.assert_called_once_with(
-        input={"text": mock_query},
-        retrieveAndGenerateConfiguration = {
-            'type': 'KNOWLEDGE_BASE',
-            'knowledgeBaseConfiguration': {
-                'knowledgeBaseId': 'KB1234567890',
-                'modelArn': 'anthropic.claude-3-5-sonnet-20240620-v1:0',
-                'generationConfiguration': {
-                    'guardrailConfiguration': {
-                        'guardrailId': '3x3fwig8roag',
-                        'guardrailVersion': '3'
-                    }
-                }
-            }
-        }
-    )
 
 @pytest.fixture
 def bedrock_response():

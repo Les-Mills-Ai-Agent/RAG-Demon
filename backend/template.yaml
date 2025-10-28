@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: |
   Multi-endpoint RAG API (Bedrock, LangChain) using AWS SAM
@@ -89,7 +89,7 @@ Resources:
                 content:
                   application/json:
                     schema:
-                      $ref: "#/components/schemas/RAGRequest"
+                      $ref: '#/components/schemas/RAGRequest'
 
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BedrockRagFunction.Arn}/invocations
@@ -99,36 +99,36 @@ Resources:
               x-amazon-apigateway-request-validator: validate-body
 
               responses:
-                "200":
+                '200':
                   description: Successful response
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/RAGResponse"
-                "400":
+                        $ref: '#/components/schemas/RAGResponse'
+                '400':
                   description: Bad request
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                "401":
+                        $ref: '#/components/schemas/ErrorResponse'
+                '401':
                   description: Unauthorized
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                "403":
+                        $ref: '#/components/schemas/ErrorResponse'
+                '403':
                   description: Forbidden
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                "500":
+                        $ref: '#/components/schemas/ErrorResponse'
+                '500':
                   description: Internal server error
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
+                        $ref: '#/components/schemas/ErrorResponse'
 
           #feedback endpoint integrated to FeedbackFunction
           /feedback:
@@ -141,61 +141,91 @@ Resources:
                     schema:
                       type: object
                       properties:
-                        pk: { type: string }
-                        sk: { type: string }
-                        sessionId: { type: string, nullable: true }
-                        issueType: { type: string }
-                        severity: { type: string, enum: [Low, Medium, High] }
-                        notes: { type: string }
-                        includeContext: { type: boolean }
-                        question: { type: string, nullable: true }
-                        answer: { type: string, nullable: true }
+                        pk:
+                          type: string
+                        sk:
+                          type: string
+                        sessionId:
+                          type: string
+                          nullable: true
+                        issueType:
+                          type: string
+                        severity:
+                          type: string
+                          enum:
+                            - Low
+                            - Medium
+                            - High
+                        notes:
+                          type: string
+                        includeContext:
+                          type: boolean
+                        question:
+                          type: string
+                          nullable: true
+                        answer:
+                          type: string
+                          nullable: true
                         submittedAt:
                           type: string
                           format: date-time
                         metadata:
                           type: object
                           properties:
-                            userAgent: { type: string }
-                            language: { type: string }
-                            tzOffsetMin: { type: number }
-                      required: [pk, sk, issueType, severity, submittedAt]
+                            userAgent:
+                              type: string
+                            language:
+                              type: string
+                            tzOffsetMin:
+                              type: number
+                      required:
+                        - pk
+                        - sk
+                        - issueType
+                        - severity
+                        - submittedAt
               x-amazon-apigateway-integration:
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FeedbackFunction.Arn}/invocations
                 httpMethod: POST
                 type: aws_proxy
               responses:
-                "200":
+                '200':
                   description: Stored
                   content:
                     application/json:
                       schema:
                         type: object
                         properties:
-                          status: { type: string, example: "ok" }
-                          id: { type: string, example: "FEEDBACK#123456" }
-                        required: [status, id]
+                          status:
+                            type: string
+                            example: ok
+                          id:
+                            type: string
+                            example: FEEDBACK#123456
+                        required:
+                          - status
+                          - id
 
-                "400":
+                '400':
                   description: Invalid payload
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
+                        $ref: '#/components/schemas/ErrorResponse'
 
-                "401":
+                '401':
                   description: Unauthorized
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
+                        $ref: '#/components/schemas/ErrorResponse'
 
-                "500":
+                '500':
                   description: Server error
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
+                        $ref: '#/components/schemas/ErrorResponse'
 
           /rag/bedrock/conversation/{user_id}:
             get:
@@ -216,38 +246,38 @@ Resources:
               x-amazon-apigateway-request-validator: validate-params-only
 
               responses:
-                "200":
+                '200':
                   description: Successful response
                   content:
                     application/json:
                       schema:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Conversation"
-                "400":
+                          $ref: '#/components/schemas/Conversation'
+                '400':
                   description: Bad request
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                "401":
+                        $ref: '#/components/schemas/ErrorResponse'
+                '401':
                   description: Unauthorized
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                "403":
+                        $ref: '#/components/schemas/ErrorResponse'
+                '403':
                   description: Forbidden
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                "500":
+                        $ref: '#/components/schemas/ErrorResponse'
+                '500':
                   description: Internal server error
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
+                        $ref: '#/components/schemas/ErrorResponse'
 
           /rag/bedrock/messages/{session_id}:
             get:
@@ -268,27 +298,27 @@ Resources:
               x-amazon-apigateway-request-validator: validate-params-only
 
               responses:
-                "200":
+                '200':
                   description: Successful response
                   content:
                     application/json:
                       schema:
                         type: array
                         items:
-                          $ref: "#/components/schemas/RAGResponse"
-                "400":
+                          $ref: '#/components/schemas/RAGResponse'
+                '400':
                   description: Bad request
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                "403":
+                        $ref: '#/components/schemas/ErrorResponse'
+                '403':
                   description: Forbidden
                   content:
                     application/json:
                       schema:
-                        $ref: "#/components/schemas/ErrorResponse"
-                "500":
+                        $ref: '#/components/schemas/ErrorResponse'
+                '500':
                   description: Internal server error
                   content:
                     application/json:
@@ -353,12 +383,16 @@ Resources:
                 created_at:
                   type: string
                   format: date-time
-                  example: "2024-08-23T13:28:00Z"
+                  example: '2024-08-23T13:28:00Z'
                 last_updated:
                   type: string
                   format: date-time
-                  example: "2024-08-23T13:28:00Z"
-              required: [session_id, user_id, created_at, last_updated]
+                  example: '2024-08-23T13:28:00Z'
+              required:
+                - session_id
+                - user_id
+                - created_at
+                - last_updated
 
             RAGRequest:
               type: object
@@ -375,7 +409,10 @@ Resources:
                 created_at:
                   type: string
                   format: date-time
-              required: [message_id, content, created_at]
+              required:
+                - message_id
+                - content
+                - created_at
 
             RAGResponse:
               type: object
@@ -390,20 +427,27 @@ Resources:
                   type: array
                   description: A list of response parts with their retrieved sources
                   items:
-                    $ref: "#/components/schemas/ResponsePart"
+                    $ref: '#/components/schemas/ResponsePart'
                 session_id:
-                  description: The session identifier, either newly generated or returned from the request
+                  description: The session identifier, either newly generated or returned from the
+                    request
                   type: string
                 created_at:
                   type: string
                   format: date-time
-                  example: "2024-08-23T13:28:00Z"
+                  example: '2024-08-23T13:28:00Z'
               required:
-                [message_id, content, response_parts, session_id, created_at]
+                - message_id
+                - content
+                - response_parts
+                - session_id
+                - created_at
 
             ErrorResponse:
               type: object
-              required: [code, message]
+              required:
+                - code
+                - message
               properties:
                 code:
                   type: string
@@ -412,11 +456,11 @@ Resources:
                 message:
                   type: string
                   description: Human-readable error summary
-                  example: "pk is required"
+                  example: pk is required
                 requestId:
                   type: string
                   description: API Gateway request id (for support correlation)
-                  example: "c9d2e8b1-1b0a-4b4a-9ad3-6c5b2c4a7e6a"
+                  example: c9d2e8b1-1b0a-4b4a-9ad3-6c5b2c4a7e6a
                 details:
                   description: Optional structured fields for validation errors or context
                   oneOf:
@@ -426,8 +470,12 @@ Resources:
                       items:
                         type: object
                         properties:
-                          field: { type: string, example: "pk" }
-                          reason: { type: string, example: "missing" }
+                          field:
+                            type: string
+                            example: pk
+                          reason:
+                            type: string
+                            example: missing
 
             ResponsePart:
               type: object
@@ -437,10 +485,13 @@ Resources:
                   description: The text content of the response part
                 references:
                   type: array
-                  description: The chunks retrieved from the vector store to generate the response part
+                  description: The chunks retrieved from the vector store to generate the response
+                    part
                   items:
-                    $ref: "#/components/schemas/Chunk"
-              required: [text, references]
+                    $ref: '#/components/schemas/Chunk'
+              required:
+                - text
+                - references
 
             Chunk:
               type: object
@@ -451,7 +502,9 @@ Resources:
                 url:
                   type: string
                   format: uri
-              required: [text, url]
+              required:
+                - text
+                - url
 
       Auth:
         DefaultAuthorizer: RagCognitoAuthorizer
@@ -470,6 +523,7 @@ Resources:
         Variables:
           KNOWLEDGE_BASE_ID: !GetAtt LmiKnowledgeBase.KnowledgeBaseId
           CONVERSATIONS_TABLE_NAME: !Ref ConversationsTable
+          GUARDRAIL_ID: !GetAtt LmiKnowledgeBaseGuardrail.GuardrailId
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
@@ -478,7 +532,7 @@ Resources:
             - Effect: Allow
               Action:
                 - bedrock:*
-              Resource: "*"
+              Resource: '*'
 
   FeedbackFunction:
     Type: AWS::Serverless::Function
@@ -493,7 +547,8 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - Statement:
             - Effect: Allow
-              Action: ["dynamodb:PutItem"]
+              Action:
+                - dynamodb:PutItem
               Resource: !GetAtt FeedbackTable.Arn
 
   ConversationHandlingFunction:
@@ -518,7 +573,7 @@ Resources:
                 - dynamodb:Query
                 - dynamodb:Scan
                 - bedrock:*
-              Resource: "*"
+              Resource: '*'
 
   BedrockRagFunctionInvokePermission:
     Type: AWS::Lambda::Permission
@@ -665,7 +720,7 @@ Resources:
           SourceConfiguration:
             UrlConfiguration:
               SeedUrls:
-                - Url: "https://support.lesmillsondemand.com/support/solutions"
+                - Url: https://support.lesmillsondemand.com/support/solutions
           CrawlerConfiguration:
             Scope: SUBDOMAINS
       KnowledgeBaseId: !Ref LmiKnowledgeBase
@@ -687,7 +742,7 @@ Resources:
           SourceConfiguration:
             UrlConfiguration:
               SeedUrls:
-                - Url: "https://api.content.lesmills.com/docs/v1/content-portal-api.yaml"
+                - Url: https://api.content.lesmills.com/docs/v1/content-portal-api.yaml
           CrawlerConfiguration:
             Scope: SUBDOMAINS
       KnowledgeBaseId: !Ref LmiKnowledgeBase
@@ -709,7 +764,7 @@ Resources:
           SourceConfiguration:
             UrlConfiguration:
               SeedUrls:
-                - Url: "https://lesmillsvirtualapp.freshdesk.com/en/support/solutions"
+                - Url: https://lesmillsvirtualapp.freshdesk.com/en/support/solutions
           CrawlerConfiguration:
             Scope: SUBDOMAINS
       KnowledgeBaseId: !Ref LmiKnowledgeBase
@@ -720,6 +775,68 @@ Resources:
             BreakpointPercentileThreshold: 95
             BufferSize: 0
             MaxTokens: 150
+
+  LmiKnowledgeBaseGuardrail:
+    Type: AWS::Bedrock::Guardrail
+    Properties:
+      Name: !Sub lmi-guardrail-${Environment}
+      BlockedInputMessaging: Sorry, this question has been blocked by our content
+        policy. If you think this is a mistake, click the three dots next to
+        this message and submit your feedback for review.
+      BlockedOutputsMessaging: Sorry, the model's answer to this question has been
+        blocked by our content policy. If you think this is a mistake, click the
+        three dots next to this message and submit your feedback for review.
+      SensitiveInformationPolicyConfig:
+        PiiEntitiesConfig:
+          - Type: EMAIL
+            Action: ANONYMIZE
+            OutputEnabled: false
+          - Type: ADDRESS
+            Action: ANONYMIZE
+            OutputEnabled: false
+          - Type: PHONE
+            Action: ANONYMIZE
+            OutputEnabled: false
+          - Type: PASSWORD
+            Action: BLOCK
+            OutputEnabled: false
+      ContentPolicyConfig:
+        FiltersConfig:
+          - Type: VIOLENCE
+            OutputStrength: HIGH
+            InputStrength: HIGH
+            InputAction: BLOCK
+            OutputAction: BLOCK
+          - Type: PROMPT_ATTACK
+            OutputStrength: NONE
+            InputStrength: HIGH
+            InputAction: BLOCK
+          - Type: MISCONDUCT
+            OutputStrength: HIGH
+            InputStrength: HIGH
+            InputAction: BLOCK
+            OutputAction: BLOCK
+          - Type: HATE
+            OutputStrength: HIGH
+            InputStrength: HIGH
+            InputAction: BLOCK
+            OutputAction: BLOCK
+          - Type: SEXUAL
+            OutputStrength: HIGH
+            InputStrength: HIGH
+            InputAction: BLOCK
+            OutputAction: BLOCK
+          - Type: INSULTS
+            OutputStrength: HIGH
+            InputStrength: HIGH
+            InputAction: BLOCK
+            OutputAction: BLOCK
+
+  LmiKnowledgeBaseGuardrailVersion:
+    Type: AWS::Bedrock::GuardrailVersion
+    Properties:
+      GuardrailIdentifier: !Ref LmiKnowledgeBaseGuardrail
+      Description: First published guardrail version using cloudformation
 
 Outputs:
   ApiUrl:

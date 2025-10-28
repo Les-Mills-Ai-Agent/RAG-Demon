@@ -11,14 +11,47 @@ from aws_lambda_powertools import Logger
 from uuid import uuid4
 from datetime import datetime, timezone
 import os
+import re
 
 def require_env(name: str) -> str:
     try:
         return os.environ[name]
     except KeyError:
         raise RuntimeError(f"Missing required environment variable: {name}")
+    
+PROMPT = """
+    <task>
+        You are a professional customer support assistant for Les Mills B2B clients.
+        Use the retrieved context to provide accurate, helpful, and contextually relevant answers to the customer's question.
 
-logger = Logger(service="rag-bedrock-lambda")
+        When forming your response:
+        - **Base your answer primarily on the retrieved context.**
+        - You may make **logical inferences or reasoned conclusions** if the context implies but does not explicitly state the answer.
+        - When doing so, clearly indicate the difference:
+        - **"According to the context..."** for directly supported claims.
+        - **"Based on the information, it can be inferred that..."** for reasoned or implicit conclusions.
+        - If the context does not contain enough information, provide the best possible partial answer and explain what information is missing.
+
+        Your response must:
+        - Be written in **Markdown**.
+        - Use **subheadings**, **bold text**, and **lists** where appropriate.
+        - Start directly with the answer (no greetings or introductions).
+        - Maintain a **professional and confident tone**.
+        - Avoid repeating the customer's question unless clarification is needed.
+    </task>
+
+    <conversation>
+        $query$
+    </conversation>
+
+    <context>
+        $search_results$
+    </context>
+
+    <output_format>
+        $output_format_instructions$
+    </output_format>
+"""
 
 class Bedrock:
 
@@ -43,10 +76,13 @@ class Bedrock:
                         "modelArn": "anthropic.claude-3-5-sonnet-20240620-v1:0",
                         "generationConfiguration": {
                             "guardrailConfiguration": {
-                                "guardrailId": "3x3fwig8roag",
-                                "guardrailVersion": "3",
+                                "guardrailId": require_env("GUARDRAIL_ID"),
+                                "guardrailVersion": "1",
+                            },
+                            "promptTemplate": {
+                                "textPromptTemplate": re.sub(r'\s+', ' ', PROMPT).strip()
                             }
-                        }
+                        },
                     }
                 )
             )
@@ -57,16 +93,11 @@ class Bedrock:
         """
         return RAGRequest.model_validate_json(body)
 
-    def generate_response(self, query: str, context: Optional[list[AiMessage | UserMessage]] = None) -> RetrieveAndGenerateResponseTypeDef:
+    def generate_response(self, conversation: list[AiMessage | UserMessage]) -> RetrieveAndGenerateResponseTypeDef:
         try:
-            if context:
-                prompt = f"Query: {query} | Context: {[str(message) + "\n" for message in context]}"
-            else:
-                prompt = query
-
             return self.client.retrieve_and_generate(
                 input = {
-                    "text": prompt
+                    "text": f"{[str(message) for message in conversation]}"
                 },
                 retrieveAndGenerateConfiguration = self.rag_config,
             )

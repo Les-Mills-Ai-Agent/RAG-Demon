@@ -130,49 +130,49 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
           {/* Success */}
           {!error && !isLoading && (
             <div>
-              {msg.role === "user" && msg.content}
+              <div className="prose prose-sm dark:prose-invert max-w-none leading-snug">
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
 
-              {msg.role === "ai" && (
-                <>
-                  {/* If there are response_parts, render them */}
-                  {msg.response_parts.length > 0 ? (
-                    msg.response_parts.map((part, i) => (
-                      <div key={i}>
-                        <div className="prose prose-sm max-w-none dark:prose-invert">
-                          {part.text}
-                        </div>
-
-                        {part.references.length > 0 &&
-                          part.references.map((reference, j) => (
+                {msg.role === "ai" &&
+                  (() => {
+                    const allReferences = msg.response_parts.flatMap(
+                      (part) => part.references
+                    );
+                    const uniqueReferences = Array.from(
+                      new Map(
+                        allReferences.map((ref) => [ref.url, ref])
+                      ).values()
+                    );
+                    if (uniqueReferences.length === 0) return null;
+                    return (
+                      <div className="flex gap-1 flex-wrap mt-4">
+                        <div className="font-bold mb-1">Sources:</div>
+                        <div>
+                          {uniqueReferences.map((reference, i) => (
                             <a
-                              key={j}
+                              key={i}
                               href={reference.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 dark:text-blue-400 no-underline ml-0.5"
                             >
-                              [{j + 1}]
+                              [{i + 1}]
                             </a>
                           ))}
+                        </div>
                       </div>
-                    ))
-                  ) : (
-                    // fallback if no response_parts
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      {msg.content}
-                    </div>
-                  )}
-                </>
-              )}
+                    );
+                  })()}
+              </div>
             </div>
           )}
 
           {/* Timestamp */}
-          {formattedTime && (
+          {/* {formattedTime && (
             <div className="text-right text-xs text-gray-400 dark:text-gray-500 mt-1">
               {formattedTime}
             </div>
-          )}
+          )} */}
         </div>
 
         {/* 3-dots trigger */}

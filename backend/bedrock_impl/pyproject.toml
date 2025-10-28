@@ -33,7 +33,8 @@ export-requirements = "scripts.export_requirements:main"
 testpaths = ["tests"]
 pythonpath = ["src"]
 env = [
-  "KNOWLEDGE_BASE_ID=KB1234567890"
+  "KNOWLEDGE_BASE_ID=KB1234567890",
+  "GUARDRAIL_ID=GR1234567890"
 ]
 
 [build-system]
